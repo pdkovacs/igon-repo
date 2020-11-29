@@ -1,4 +1,4 @@
-# Icon Repository
+# Icon Repository – with Go backend (in progress)
 
 A web application for UI/UX designers and frontend developers to manage and expolore a library of icons. A distinctive feature of the application is to provide the ability to attach rich, structured, queryable metainformation to the assets in the library while these assets are also published to a git repository designed to be accessed by (automated) build systems.
 
