@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -24,6 +25,17 @@ func setEnvVar(envVarName string, value string) {
 	os.Setenv(envVarName, value)
 }
 
+func closeRemoveFile(file *os.File) {
+	fileCloseError := file.Close()
+	if fileCloseError != nil {
+		logrus.Errorf("Error while closing configuration file %v: %v", file.Name(), fileCloseError)
+	}
+	fileRemoveError := os.Remove(file.Name())
+	if fileRemoveError != nil {
+		logrus.Errorf("Error while closing configuration file %v: %v", file.Name(), fileRemoveError)
+	}
+}
+
 type readConfigurationTestSuite struct {
 	suite.Suite
 }
@@ -41,19 +53,35 @@ func createTempFileForConfig() *os.File {
 	return file
 }
 
-func storeConfigInTempFile(config interface{}, file *os.File) {
-	logger := logrus.WithField("prefix", "storeConfigInTempFile")
+func storeJSONConfig(config map[string]interface{}, file *os.File) error {
 	wireForm, marshallingError := json.Marshal(config)
 	if marshallingError != nil {
-		logger.Fatal(marshallingError)
+		return marshallingError
 	}
 	countWritten, writeError := file.Write(wireForm)
 	if writeError != nil {
-		logger.Fatal(writeError)
+		return writeError
 	}
 	if countWritten != len(wireForm) {
-		logger.Fatalf("Couldn't write all config: %d bytes instead of %d", countWritten, len(wireForm))
+		return fmt.Errorf("Couldn't write all config: %d bytes instead of %d", countWritten, len(wireForm))
 	}
+	return nil
+}
+
+func storeConfigInTempFile(key string, value string) (configFile *os.File, err error) {
+	configFile = createTempFileForConfig()
+	defer func() {
+		logrus.Infof("aaa error: %v", err)
+		if err != nil {
+			closeRemoveFile(configFile)
+		}
+	}()
+
+	optsInFile := make(map[string]interface{})
+	optsInFile[key] = value
+	err = storeJSONConfig(optsInFile, configFile)
+	logrus.Infof("ccc error: %v", err)
+	return
 }
 
 func (s *readConfigurationTestSuite) AfterTest(suiteName, testName string) {
@@ -63,7 +91,8 @@ func (s *readConfigurationTestSuite) AfterTest(suiteName, testName string) {
 
 func (s *readConfigurationTestSuite) TestYieldDefaultsWithoutConfigFile() {
 	clArgs := []string{}
-	opts := ReadConfiguration("some non-existent file", clArgs)
+	opts, err := ReadConfiguration("some non-existent file", clArgs)
+	s.NoError(err)
 	s.Equal("localhost", opts.ServerHostname)
 	s.Equal(8080, opts.ServerPort)
 	s.Equal("localhost", opts.DBHost)
@@ -72,50 +101,93 @@ func (s *readConfigurationTestSuite) TestYieldDefaultsWithoutConfigFile() {
 }
 
 func (s *readConfigurationTestSuite) TestConfigFileSettingsOverridesDefaults() {
-	connHostInFile := "tohuvabohu"
-	optsInFile := make(map[string]interface{})
-	optsInFile["dbHost"] = connHostInFile
+	dbHostInFile := "tohuvabohu"
 
-	configFile := createTempFileForConfig()
-	// defer os.Remove(configFile.Name())
-	storeConfigInTempFile(optsInFile, configFile)
+	configFile, err := storeConfigInTempFile("dbHost", dbHostInFile)
+	if err != nil {
+		panic(err)
+	}
+	defer closeRemoveFile(configFile)
 
 	clArgs := []string{}
-	opts := ReadConfiguration(configFile.Name(), clArgs)
+	opts, err := ReadConfiguration(configFile.Name(), clArgs)
+	s.NoError(err)
 	s.Equal("localhost", opts.ServerHostname)
 	s.Equal(8080, opts.ServerPort)
-	s.Equal(connHostInFile, opts.DBHost)
+	s.Equal(dbHostInFile, opts.DBHost)
 	s.Equal(5432, opts.DBPort)
 	s.Equal(false, opts.EnableBackdoors)
 }
 
 func (s *readConfigurationTestSuite) TestEnvVarSettingOverridesDefaults() {
-	connHostInEnvVar := "nokedli"
+	dbHostInEnvVar := "nokedli"
 
-	setEnvVar("DB_HOST", connHostInEnvVar)
+	setEnvVar("DB_HOST", dbHostInEnvVar)
 
 	clArgs := []string{}
-	opts := ReadConfiguration("name-of-some-nonexistent-file", clArgs)
+	opts, err := ReadConfiguration("name-of-some-nonexistent-file", clArgs)
+	s.NoError(err)
 	s.Equal("localhost", opts.ServerHostname)
 	s.Equal(8080, opts.ServerPort)
-	s.Equal(connHostInEnvVar, opts.DBHost)
+	s.Equal(dbHostInEnvVar, opts.DBHost)
+	s.Equal(5432, opts.DBPort)
+	s.Equal(false, opts.EnableBackdoors)
+}
+
+func (s *readConfigurationTestSuite) TestEnvVarSettingOverridesConfigFile() {
+	dbHostInFile := "tohuvabohu"
+	dbHostInEnvVar := "nokedli"
+
+	configFile, err := storeConfigInTempFile("dbHost", dbHostInFile)
+	if err != nil {
+		panic(err)
+	}
+	defer closeRemoveFile(configFile)
+
+	setEnvVar("DB_HOST", dbHostInEnvVar)
+
+	clArgs := []string{}
+	opts, err := ReadConfiguration(configFile.Name(), clArgs)
+	s.NoError(err)
+	s.Equal("localhost", opts.ServerHostname)
+	s.Equal(8080, opts.ServerPort)
+	s.Equal(dbHostInEnvVar, opts.DBHost)
+	s.Equal(5432, opts.DBPort)
+	s.Equal(false, opts.EnableBackdoors)
+}
+
+func (s *readConfigurationTestSuite) TestCliArgsOverrideConfigFile() {
+	dbHostInFile := "tohuvabohu"
+	dbHostInArg := "nokedli"
+
+	configFile, err := storeConfigInTempFile("dbHost", dbHostInFile)
+	if err != nil {
+		panic(err)
+	}
+	defer closeRemoveFile(configFile)
+
+	clArgs := []string{"--db-host", dbHostInArg}
+	opts, err := ReadConfiguration("name-of-some-nonexistent-file", clArgs)
+	s.NoError(err)
+	s.Equal("localhost", opts.ServerHostname)
+	s.Equal(8080, opts.ServerPort)
+	s.Equal(dbHostInArg, opts.DBHost)
 	s.Equal(5432, opts.DBPort)
 	s.Equal(false, opts.EnableBackdoors)
 }
 
 func (s *readConfigurationTestSuite) TestCliArgsOverridesEnvVarSettings() {
 	connHostInEnvVar := "nokedli"
-	connHostInArg := "tohuvabohu"
-	optsInFile := Options{}
-	optsInFile.DBHost = connHostInArg
+	dbHostInArg := "tohuvabohu"
 
 	setEnvVar("DB_HOST", connHostInEnvVar)
 
-	clArgs := []string{"--db-host", connHostInArg}
-	opts := ReadConfiguration("name-of-some-nonexistent-file", clArgs)
+	clArgs := []string{"--db-host", dbHostInArg}
+	opts, err := ReadConfiguration("name-of-some-nonexistent-file", clArgs)
+	s.NoError(err)
 	s.Equal("localhost", opts.ServerHostname)
 	s.Equal(8080, opts.ServerPort)
-	s.Equal(connHostInArg, opts.DBHost)
+	s.Equal(dbHostInArg, opts.DBHost)
 	s.Equal(5432, opts.DBPort)
 	s.Equal(false, opts.EnableBackdoors)
 }

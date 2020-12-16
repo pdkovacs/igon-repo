@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -44,16 +45,10 @@ type Options struct {
 	PackageRootDir              string       `json:"packageRootDir" env:"PACKAGE_ROOT_DIR" long:"package-root-dir" short:"" default:"" description:"Package root dir"`
 }
 
-type mapsOfOptions struct {
-	keyToName        map[string]string
-	keyToLongOptName map[string]string
-}
-
-func createOptionsMaps() mapsOfOptions {
-	optionsMaps := mapsOfOptions{
-		keyToName:        make(map[string]string),
-		keyToLongOptName: make(map[string]string),
-	}
+func createOptionsMaps() (map[string]string, map[string]string, map[string]string) {
+	keyToName := make(map[string]string)
+	keyToLongOptName := make(map[string]string)
+	keyToEnvName := make(map[string]string)
 
 	t := reflect.TypeOf(Options{})
 	for i := 0; i < t.NumField(); i++ {
@@ -64,19 +59,25 @@ func createOptionsMaps() mapsOfOptions {
 		if !jsonTagFound {
 			logrus.Panicf("No json flag for Options.%s", name)
 		}
-		optionsMaps.keyToName[key] = name
+		keyToName[key] = name
 
 		longOptName, longOptNameFound := f.Tag.Lookup("long")
 		if !longOptNameFound {
-			logrus.Panicf("No json flag for Options.%s", name)
+			logrus.Panicf("No name found for Options.%s", name)
 		}
-		optionsMaps.keyToLongOptName[key] = longOptName
+		keyToLongOptName[key] = longOptName
+
+		envName, envNameFound := f.Tag.Lookup("env")
+		if !envNameFound {
+			logrus.Panicf("No env name for Options.%s", name)
+		}
+		keyToEnvName[key] = envName
 	}
 
-	return optionsMaps
+	return keyToName, keyToLongOptName, keyToEnvName
 }
 
-var optionsMaps = createOptionsMaps()
+var keyToName, keyToLongOptName, keyToEnvName = createOptionsMaps()
 
 var iconRepoHome = filepath.Join(os.Getenv("HOME"), ".ui-toolbox/icon-repo")
 var iconDataLocationGit = filepath.Join(iconRepoHome, "git-repo")
@@ -94,34 +95,38 @@ func GetConfigFilePath() string {
 }
 
 // ReadConfiguration reads the configuration file and merges it with the command line arguments
-func ReadConfiguration(filePath string, clArgs []string) Options {
-	optsInFile := ReadConfigurationFromFile(filePath)
-	return parseFlagsMergeSettings(clArgs, optsInFile)
+func ReadConfiguration(filePath string, clArgs []string) (Options, error) {
+	optsInFile, err := ReadConfigurationFromFile(filePath)
+	if err != nil {
+		return Options{}, err
+	}
+	return parseFlagsMergeSettings(clArgs, optsInFile), nil
 }
 
 // ReadConfigurationFromFile reads configuration from a file (JSON for now)
-func ReadConfigurationFromFile(filePath string) map[string]interface{} {
+func ReadConfigurationFromFile(filePath string) (map[string]interface{}, error) {
 	logger := logrus.WithField("prefix", "ReadConfigurationFromFile")
 	var optsInFile = make(map[string]interface{})
+	var err error
 
 	_, fileStatError := os.Stat(filePath)
 	if fileStatError == nil {
 		fileContent, fileReadError := ioutil.ReadFile(filePath)
 		if fileReadError != nil {
-			logger.Fatalf("Error while reading configuration file: %v", filePath)
+			err = fmt.Errorf("Error while reading configuration file: %v", filePath)
 		}
 		unmarshalError := json.Unmarshal(fileContent, &optsInFile)
 		if unmarshalError != nil {
-			logger.Fatal(unmarshalError)
+			err = unmarshalError
 		}
 	} else {
 		if !os.IsNotExist(fileStatError) {
-			logger.Fatal(fileStatError)
+			err = fileStatError
 		}
 	}
 	logger.Infof("After config file processing: '%s'", optsInFile["ConnHost"])
 
-	return optsInFile
+	return optsInFile, err
 }
 
 func parseFlagsMergeSettings(clArgs []string, optsInFile map[string]interface{}) Options {
@@ -138,7 +143,8 @@ func parseFlagsMergeSettings(clArgs []string, optsInFile map[string]interface{})
 
 	for key, value := range optsInFile {
 		o := findOption(key, parser)
-		if !o.IsSet() || o.IsSetDefault() {
+		logger.Infof("aaa %v, %v, %v, %v", o.LongName, o.Value(), o.IsSet(), o.IsSetDefault())
+		if !o.IsSet() || (o.IsSetDefault() && os.Getenv(keyToEnvName[key]) == "") {
 			setFieldByJSONKey(&opts, key, value)
 		}
 	}
@@ -146,9 +152,9 @@ func parseFlagsMergeSettings(clArgs []string, optsInFile map[string]interface{})
 }
 
 func findOption(key string, parser *flags.Parser) *flags.Option {
-	return parser.FindOptionByLongName(optionsMaps.keyToLongOptName[key])
+	return parser.FindOptionByLongName(keyToLongOptName[key])
 }
 
 func setFieldByJSONKey(opts *Options, key string, value interface{}) {
-	reflect.Indirect(reflect.ValueOf(&opts).Elem()).FieldByName(optionsMaps.keyToName[key]).Set(reflect.ValueOf(value))
+	reflect.Indirect(reflect.ValueOf(&opts).Elem()).FieldByName(keyToName[key]).Set(reflect.ValueOf(value))
 }
