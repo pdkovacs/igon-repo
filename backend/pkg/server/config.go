@@ -9,7 +9,7 @@ import (
 	"reflect"
 
 	"github.com/jessevdk/go-flags"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 // UsersByRoles maps roles to lists of user holding the role
@@ -57,19 +57,19 @@ func createOptionsMaps() (map[string]string, map[string]string, map[string]strin
 
 		key, jsonTagFound := f.Tag.Lookup("json")
 		if !jsonTagFound {
-			logrus.Panicf("No json flag for Options.%s", name)
+			log.Panicf("No json flag for Options.%s", name)
 		}
 		keyToName[key] = name
 
 		longOptName, longOptNameFound := f.Tag.Lookup("long")
 		if !longOptNameFound {
-			logrus.Panicf("No name found for Options.%s", name)
+			log.Panicf("No name found for Options.%s", name)
 		}
 		keyToLongOptName[key] = longOptName
 
 		envName, envNameFound := f.Tag.Lookup("env")
 		if !envNameFound {
-			logrus.Panicf("No env name for Options.%s", name)
+			log.Panicf("No env name for Options.%s", name)
 		}
 		keyToEnvName[key] = envName
 	}
@@ -90,7 +90,7 @@ func GetConfigFilePath() string {
 	} else {
 		result = defaultConfigFilePath
 	}
-	logrus.Infof("Configuration file: %s", result)
+	log.Infof("Configuration file: %s", result)
 	return result
 }
 
@@ -105,7 +105,6 @@ func ReadConfiguration(filePath string, clArgs []string) (Options, error) {
 
 // ReadConfigurationFromFile reads configuration from a file (JSON for now)
 func ReadConfigurationFromFile(filePath string) (map[string]interface{}, error) {
-	logger := logrus.WithField("prefix", "ReadConfigurationFromFile")
 	var optsInFile = make(map[string]interface{})
 	var err error
 
@@ -124,14 +123,12 @@ func ReadConfigurationFromFile(filePath string) (map[string]interface{}, error) 
 			err = fileStatError
 		}
 	}
-	logger.Infof("After config file processing: '%s'", optsInFile["ConnHost"])
 
 	return optsInFile, err
 }
 
 func parseFlagsMergeSettings(clArgs []string, optsInFile map[string]interface{}) Options {
-	logger := logrus.WithField("prefix", "ReadConfiguration")
-	logger.Infof("aaa %v", optsInFile)
+	logger := log.WithField("prefix", "ReadConfiguration")
 
 	var opts = Options{}
 	parser := flags.NewParser(&opts, flags.Default)
@@ -143,7 +140,8 @@ func parseFlagsMergeSettings(clArgs []string, optsInFile map[string]interface{})
 
 	for key, value := range optsInFile {
 		o := findOption(key, parser)
-		logger.Infof("aaa %v, %v, %v, %v", o.LongName, o.Value(), o.IsSet(), o.IsSetDefault())
+		logger.Debugf("Parsed option attributes: long-name: %v, value: %v, IsSet: %v, IsSetDefault: %v",
+			o.LongName, o.Value(), o.IsSet(), o.IsSetDefault())
 		if !o.IsSet() || (o.IsSetDefault() && os.Getenv(keyToEnvName[key]) == "") {
 			setFieldByJSONKey(&opts, key, value)
 		}

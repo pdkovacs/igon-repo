@@ -7,7 +7,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -26,13 +26,14 @@ func setEnvVar(envVarName string, value string) {
 }
 
 func closeRemoveFile(file *os.File) {
+	logger := log.WithField("prefix", "test-closeRemoveFile")
 	fileCloseError := file.Close()
 	if fileCloseError != nil {
-		logrus.Errorf("Error while closing configuration file %v: %v", file.Name(), fileCloseError)
+		logger.Errorf("Error while closing configuration file %v: %v", file.Name(), fileCloseError)
 	}
 	fileRemoveError := os.Remove(file.Name())
 	if fileRemoveError != nil {
-		logrus.Errorf("Error while closing configuration file %v: %v", file.Name(), fileRemoveError)
+		logger.Errorf("Error while closing configuration file %v: %v", file.Name(), fileRemoveError)
 	}
 }
 
@@ -45,7 +46,7 @@ func TestReadConfiguration(t *testing.T) {
 }
 
 func createTempFileForConfig() *os.File {
-	logger := logrus.WithField("prefix", "createTempFileForConfig")
+	logger := log.WithField("prefix", "createTempFileForConfig")
 	file, tempFileError := ioutil.TempFile(os.Getenv("HOME"), "TestReadConfiguration")
 	if tempFileError != nil {
 		logger.Fatal(tempFileError)
@@ -73,7 +74,7 @@ func storeConfigInTempFile(key string, value string) (configFile *os.File) {
 	configFile = createTempFileForConfig()
 	defer func() {
 		if *err != nil {
-			logrus.Errorf("Error while storing config file: %v", *err)
+			log.Errorf("Error while storing config file: %v", *err)
 			closeRemoveFile(configFile)
 			panic(err)
 		}
@@ -87,7 +88,6 @@ func storeConfigInTempFile(key string, value string) (configFile *os.File) {
 }
 
 func (s *readConfigurationTestSuite) AfterTest(suiteName, testName string) {
-	logrus.Infof("AfterTest called")
 	clearEnvVarsSet()
 }
 
