@@ -68,19 +68,21 @@ func storeJSONConfig(config map[string]interface{}, file *os.File) error {
 	return nil
 }
 
-func storeConfigInTempFile(key string, value string) (configFile *os.File, err error) {
+func storeConfigInTempFile(key string, value string) (configFile *os.File) {
+	var err *error
 	configFile = createTempFileForConfig()
 	defer func() {
-		logrus.Infof("aaa error: %v", err)
-		if err != nil {
+		if *err != nil {
+			logrus.Errorf("Error while storing config file: %v", *err)
 			closeRemoveFile(configFile)
+			panic(err)
 		}
 	}()
 
 	optsInFile := make(map[string]interface{})
 	optsInFile[key] = value
-	err = storeJSONConfig(optsInFile, configFile)
-	logrus.Infof("ccc error: %v", err)
+	storeError := storeJSONConfig(optsInFile, configFile)
+	err = &storeError
 	return
 }
 
@@ -103,10 +105,7 @@ func (s *readConfigurationTestSuite) TestYieldDefaultsWithoutConfigFile() {
 func (s *readConfigurationTestSuite) TestConfigFileSettingsOverridesDefaults() {
 	dbHostInFile := "tohuvabohu"
 
-	configFile, err := storeConfigInTempFile("dbHost", dbHostInFile)
-	if err != nil {
-		panic(err)
-	}
+	configFile := storeConfigInTempFile("dbHost", dbHostInFile)
 	defer closeRemoveFile(configFile)
 
 	clArgs := []string{}
@@ -138,10 +137,7 @@ func (s *readConfigurationTestSuite) TestEnvVarSettingOverridesConfigFile() {
 	dbHostInFile := "tohuvabohu"
 	dbHostInEnvVar := "nokedli"
 
-	configFile, err := storeConfigInTempFile("dbHost", dbHostInFile)
-	if err != nil {
-		panic(err)
-	}
+	configFile := storeConfigInTempFile("dbHost", dbHostInFile)
 	defer closeRemoveFile(configFile)
 
 	setEnvVar("DB_HOST", dbHostInEnvVar)
@@ -160,10 +156,7 @@ func (s *readConfigurationTestSuite) TestCliArgsOverrideConfigFile() {
 	dbHostInFile := "tohuvabohu"
 	dbHostInArg := "nokedli"
 
-	configFile, err := storeConfigInTempFile("dbHost", dbHostInFile)
-	if err != nil {
-		panic(err)
-	}
+	configFile := storeConfigInTempFile("dbHost", dbHostInFile)
 	defer closeRemoveFile(configFile)
 
 	clArgs := []string{"--db-host", dbHostInArg}
