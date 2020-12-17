@@ -11,7 +11,7 @@ func startTestServer() int {
 	var serverPort int
 	var wg sync.WaitGroup
 	wg.Add(1)
-	go server.SetupAndStartServer(func(port int) {
+	go server.SetupAndStart(0, func(port int) {
 		serverPort = port
 		wg.Done()
 	})
@@ -21,7 +21,7 @@ func startTestServer() int {
 
 // terminateTestServer terminates a test server
 func terminateTestServer() {
-	server.ListenerKiller()
+	server.KillListener()
 }
 
 // defaultAuth holds the test PasswordCredentials

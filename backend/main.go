@@ -1,6 +1,10 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
+	"github.com/pdkovacs/igo-repo/backend/pkg/config"
 	"github.com/pdkovacs/igo-repo/backend/pkg/server"
 	log "github.com/sirupsen/logrus"
 )
@@ -12,6 +16,23 @@ func main() {
 		TimestampFormat: "2006-01-02 15:04:05.000",
 	})
 
-	server.SetupAndStartServer(func(port int) {
-	})
+	var wantedVersion bool = false
+
+	for _, value := range os.Args {
+		if value == "-v" || value == "--version" {
+			fmt.Printf("Version:\t%v\nCommit:\t\t%v\nBuild time:\t%v\nBuild user:\t%v\n",
+				config.Version, config.Commit, config.BuildTime, config.BuildUser)
+			wantedVersion = true
+		}
+	}
+
+	if !wantedVersion {
+		conf, configurationReadError := config.ReadConfiguration("", os.Args)
+		if configurationReadError != nil {
+			log.Fatalf("Failed to read configuratioin: %v", configurationReadError)
+		}
+
+		server.SetupAndStart(conf.ServerPort, func(port int) {
+		})
+	}
 }
