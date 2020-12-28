@@ -57,14 +57,14 @@ func createTempFileForConfig() *os.File {
 func storeJSONConfig(config map[string]interface{}, file *os.File) error {
 	wireForm, marshallingError := json.Marshal(config)
 	if marshallingError != nil {
-		return marshallingError
+		return fmt.Errorf("Failed to marshal the configuration into JSON: %w", marshallingError)
 	}
 	countWritten, writeError := file.Write(wireForm)
 	if writeError != nil {
-		return writeError
+		return fmt.Errorf("Failed to write the configuration JSON to file %s: %w", file.Name(), writeError)
 	}
 	if countWritten != len(wireForm) {
-		return fmt.Errorf("Couldn't write all config: %d bytes instead of %d", countWritten, len(wireForm))
+		return fmt.Errorf("Failed to write the configuration JSON to file %s: wrote %d bytes instead of %d", file.Name(), countWritten, len(wireForm))
 	}
 	return nil
 }

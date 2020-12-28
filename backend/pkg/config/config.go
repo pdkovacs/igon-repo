@@ -112,7 +112,7 @@ func ReadConfigurationFromFile(filePath string) (map[string]interface{}, error) 
 	if fileStatError == nil {
 		fileContent, fileReadError := ioutil.ReadFile(filePath)
 		if fileReadError != nil {
-			err = fmt.Errorf("Error while reading configuration file: %v", filePath)
+			err = fmt.Errorf("Failed to read configuration file %v: %w", filePath, fileReadError)
 		}
 		unmarshalError := json.Unmarshal(fileContent, &optsInFile)
 		if unmarshalError != nil {
