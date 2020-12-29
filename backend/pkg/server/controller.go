@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pdkovacs/igo-repo/backend/pkg/endpoints"
+	"github.com/pdkovacs/igo-repo/backend/pkg/build"
 	"github.com/pdkovacs/igo-repo/backend/pkg/pingpong"
 	"github.com/sirupsen/logrus"
 )
@@ -52,7 +52,7 @@ var SetupAndStart = func(port int, ready func(port int)) {
 		})
 	})
 	r.GET("/info", func(c *gin.Context) {
-		c.JSON(200, endpoints.GetInfo())
+		c.JSON(200, build.GetInfo())
 	})
 	Start(port, r, ready)
 }

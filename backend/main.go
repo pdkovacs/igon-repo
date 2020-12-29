@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/pdkovacs/igo-repo/backend/pkg/build"
 	"github.com/pdkovacs/igo-repo/backend/pkg/config"
 	"github.com/pdkovacs/igo-repo/backend/pkg/server"
 	log "github.com/sirupsen/logrus"
@@ -20,8 +21,7 @@ func main() {
 
 	for _, value := range os.Args {
 		if value == "-v" || value == "--version" {
-			fmt.Printf("Version:\t%v\nCommit:\t\t%v\nBuild time:\t%v\nBuild user:\t%v\n",
-				config.Version, config.Commit, config.BuildTime, config.BuildUser)
+			fmt.Printf(build.GetInfoString())
 			wantedVersion = true
 		}
 	}
