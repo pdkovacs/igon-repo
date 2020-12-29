@@ -8,7 +8,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/pdkovacs/igo-repo/backend/pkg/build"
-	"github.com/pdkovacs/igo-repo/backend/pkg/pingpong"
 	"github.com/sirupsen/logrus"
 )
 
@@ -46,11 +45,6 @@ var Start = func(portRequested int, r http.Handler, ready func(port int)) {
 // SetupAndStart sets up and starts server.
 var SetupAndStart = func(port int, ready func(port int)) {
 	r := gin.Default()
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": pingpong.Foo("ping"),
-		})
-	})
 	r.GET("/info", func(c *gin.Context) {
 		c.JSON(200, build.GetInfo())
 	})

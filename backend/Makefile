@@ -2,9 +2,9 @@
 clean:
 	go clean -testcache
 test:
-	go test -race ./... | egrep -v '^[?].*\[no test files\]$$'
+	go test -race ./...
 test-verbose:
-	go test -v -race ./... | egrep -v '^[?].*\[no test files\]$$'
+	go test -v -race ./...
 run:
 	go run main.go
 build: test
