@@ -6,8 +6,11 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"github.com/pdkovacs/igo-repo/backend/pkg/build"
+	"github.com/pdkovacs/igo-repo/backend/pkg/security/authn"
 	"github.com/sirupsen/logrus"
 )
 
@@ -45,6 +48,10 @@ var Start = func(portRequested int, r http.Handler, ready func(port int)) {
 // SetupAndStart sets up and starts server.
 var SetupAndStart = func(port int, ready func(port int)) {
 	r := gin.Default()
+	store := cookie.NewStore([]byte("secret"))
+	r.Use(sessions.Sessions("mysession", store))
+	r.Use(authn.HandlerProvider(authn.Basic))
+
 	r.GET("/info", func(c *gin.Context) {
 		c.JSON(200, build.GetInfo())
 	})

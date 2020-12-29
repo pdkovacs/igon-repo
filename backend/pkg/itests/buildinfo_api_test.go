@@ -22,7 +22,7 @@ func (s *buildinfoAPITestSuite) TestMustIncludeVersionInfo() {
 	expected := build.GetInfo()
 
 	buildInfo := build.Info{}
-	err := get("/info", &buildInfo)
-	s.NoError(err)
+	err := get("/info", 200, &buildInfo)
+	s.Require().NoError(err)
 	s.Equal(expected, buildInfo)
 }

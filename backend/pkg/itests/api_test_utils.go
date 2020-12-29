@@ -28,7 +28,7 @@ func terminateTestServer() {
 	server.KillListener()
 }
 
-func get(requestPath string, respJSON interface{}) error {
+func get(requestPath string, expectedStatusCode int, respJSON interface{}) error {
 	request, requestCreationError := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d%s", serverPort, requestPath), nil)
 	if requestCreationError != nil {
 		return fmt.Errorf("Failed to create request: %w", requestCreationError)
@@ -37,6 +37,9 @@ func get(requestPath string, respJSON interface{}) error {
 	response, requestExecutionError := client.Do(request)
 	if requestExecutionError != nil {
 		return fmt.Errorf("Failed to execute request: %w", requestExecutionError)
+	}
+	if response.StatusCode != expectedStatusCode {
+		return fmt.Errorf("Unexpected status code: %v (expected: %v)", response.StatusCode, expectedStatusCode)
 	}
 	byteBody, responseReadError := ioutil.ReadAll(response.Body)
 	if responseReadError != nil {
