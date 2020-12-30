@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/pdkovacs/igo-repo/backend/pkg/server"
+	"github.com/stretchr/testify/suite"
 )
 
 var serverPort int
@@ -28,7 +29,7 @@ func terminateTestServer() {
 	server.KillListener()
 }
 
-func get(requestPath string, expectedStatusCode int, respJSON interface{}) error {
+func get(requestPath string, expectedStatusCode int, s *suite.Suite, respJSON interface{}) error {
 	request, requestCreationError := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d%s", serverPort, requestPath), nil)
 	if requestCreationError != nil {
 		return fmt.Errorf("Failed to create request: %w", requestCreationError)
@@ -39,7 +40,8 @@ func get(requestPath string, expectedStatusCode int, respJSON interface{}) error
 		return fmt.Errorf("Failed to execute request: %w", requestExecutionError)
 	}
 	if response.StatusCode != expectedStatusCode {
-		return fmt.Errorf("Unexpected status code: %v (expected: %v)", response.StatusCode, expectedStatusCode)
+		s.Require().FailNow("Unexpected status code", "expected: %d, got: %d", response.StatusCode, expectedStatusCode)
+		return nil
 	}
 	byteBody, responseReadError := ioutil.ReadAll(response.Body)
 	if responseReadError != nil {
