@@ -7,17 +7,32 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/pdkovacs/igo-repo/backend/pkg/config"
+	"github.com/pdkovacs/igo-repo/backend/pkg/security/authn"
 	"github.com/pdkovacs/igo-repo/backend/pkg/server"
 	"github.com/stretchr/testify/suite"
 )
 
+var defaultOptions config.Options
+
+func init() {
+	var err error
+	defaultOptions, err = config.ReadConfiguration("", []string{})
+	if err != nil {
+		panic(err)
+	}
+	defaultOptions.PasswordCredentials = []authn.PasswordCredentials{
+		{User: "ux", Password: "ux"},
+	}
+}
+
 var serverPort int
 
 // startTestServer starts a test server
-func startTestServer() {
+func startTestServer(options config.Options) {
 	var wg sync.WaitGroup
 	wg.Add(1)
-	go server.SetupAndStart(0, func(port int) {
+	go server.SetupAndStart(0, options, func(port int) {
 		serverPort = port
 		wg.Done()
 	})
@@ -29,30 +44,72 @@ func terminateTestServer() {
 	server.KillListener()
 }
 
-func get(requestPath string, expectedStatusCode int, s *suite.Suite, respJSON interface{}) error {
-	request, requestCreationError := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d%s", serverPort, requestPath), nil)
-	if requestCreationError != nil {
-		return fmt.Errorf("Failed to create request: %w", requestCreationError)
-	}
-	client := http.Client{}
-	response, requestExecutionError := client.Do(request)
-	if requestExecutionError != nil {
-		return fmt.Errorf("Failed to execute request: %w", requestExecutionError)
-	}
-	if response.StatusCode != expectedStatusCode {
-		s.Require().FailNow("Unexpected status code", "expected: %d, got: %d", response.StatusCode, expectedStatusCode)
-		return nil
-	}
-	byteBody, responseReadError := ioutil.ReadAll(response.Body)
-	if responseReadError != nil {
-		return fmt.Errorf("Failed to read response body: %w", responseReadError)
-	}
-	jsonUnmarshalError := json.Unmarshal(byteBody, respJSON)
-	if jsonUnmarshalError != nil {
-		return fmt.Errorf("Failed to unmarshal JSON response: %w", jsonUnmarshalError)
-	}
-	return nil
+type requestCredentials struct {
+	headerName  string
+	headerValue string
 }
 
-// defaultAuth holds the test PasswordCredentials
-var defaultAuth = passwordCredentials{user: "ux", password: "ux"}
+type request struct {
+	path               string
+	credentials        *requestCredentials
+	expectedStatusCode int
+	body               interface{}
+	testSuite          *suite.Suite
+}
+
+type response struct {
+	headers map[string][]string
+	body    interface{}
+}
+
+func get(req *request) (response, error) {
+	request, requestCreationError := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d%s", serverPort, req.path), nil)
+	if requestCreationError != nil {
+		return response{}, fmt.Errorf("Failed to create request: %w", requestCreationError)
+	}
+
+	var credentials requestCredentials
+	if req.credentials == nil {
+		var credError error
+		credentials, credError = makeRequestCredentials(basicAuthScheme, defaultCredentials.User, defaultCredentials.Password)
+		if credError != nil {
+			return response{}, fmt.Errorf("Failed to create default request credentials: %w", credError)
+		}
+	} else {
+		credentials = *req.credentials
+	}
+	if credentials.headerName != "" {
+		request.Header.Set(credentials.headerName, credentials.headerValue)
+	}
+
+	client := http.Client{}
+	resp, requestExecutionError := client.Do(request)
+	if requestExecutionError != nil {
+		return response{}, fmt.Errorf("Failed to execute request: %w", requestExecutionError)
+	}
+	if resp.StatusCode != req.expectedStatusCode {
+		req.testSuite.Require().FailNow("Unexpected status code", "expected: %d, got: %d", req.expectedStatusCode, resp.StatusCode)
+		return response{}, nil
+	}
+
+	if req.body != nil {
+		byteBody, responseReadError := ioutil.ReadAll(resp.Body)
+		if responseReadError != nil {
+			return response{}, fmt.Errorf("Failed to read response body: %w", responseReadError)
+		}
+		jsonUnmarshalError := json.Unmarshal(byteBody, req.body)
+		if jsonUnmarshalError != nil {
+			return response{}, fmt.Errorf("Failed to unmarshal JSON response: %w", jsonUnmarshalError)
+		}
+	}
+
+	var responseBody = req.body
+	req.body = nil
+	return response{
+		headers: resp.Header,
+		body:    responseBody,
+	}, nil
+}
+
+// defaultCredentials holds the test PasswordCredentials
+var defaultCredentials = authn.PasswordCredentials{User: "ux", Password: "ux"}

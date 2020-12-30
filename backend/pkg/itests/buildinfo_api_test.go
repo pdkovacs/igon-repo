@@ -16,7 +16,7 @@ func TestBuildinfoAPITestSuite(t *testing.T) {
 }
 
 func (s *buildinfoAPITestSuite) BeforeTest(suiteName, testName string) {
-	startTestServer()
+	startTestServer(defaultOptions)
 }
 
 func (s *buildinfoAPITestSuite) AfterTest(suiteName, testName string) {
@@ -26,8 +26,13 @@ func (s *buildinfoAPITestSuite) AfterTest(suiteName, testName string) {
 func (s *buildinfoAPITestSuite) TestMustIncludeVersionInfo() {
 	expected := build.GetInfo()
 
-	buildInfo := build.Info{}
-	err := get("/info", 200, &s.Suite, &buildInfo)
+	req := request{
+		path:               "/info",
+		testSuite:          &s.Suite,
+		expectedStatusCode: 200,
+		body:               &build.Info{},
+	}
+	resp, err := get(&req)
 	s.Require().NoError(err)
-	s.Equal(expected, buildInfo)
+	s.Equal(&expected, resp.body)
 }

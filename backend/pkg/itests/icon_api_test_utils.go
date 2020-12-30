@@ -31,7 +31,7 @@ var testIconInputDataDescriptor = []testIconDescriptor{
 	},
 	{
 		name:       "cast_connected",
-		modifiedBy: defaultAuth.user,
+		modifiedBy: defaultCredentials.User,
 		files: []icon.IconfileDescriptor{
 			{
 				Format: "svg",

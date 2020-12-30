@@ -17,22 +17,22 @@ func main() {
 		TimestampFormat: "2006-01-02 15:04:05.000",
 	})
 
-	var wantedVersion bool = false
+	var serverWanted bool = true
 
 	for _, value := range os.Args {
 		if value == "-v" || value == "--version" {
 			fmt.Printf(build.GetInfoString())
-			wantedVersion = true
+			serverWanted = false
 		}
 	}
 
-	if !wantedVersion {
+	if serverWanted {
 		conf, configurationReadError := config.ReadConfiguration("", os.Args)
 		if configurationReadError != nil {
 			log.Fatalf("Failed to read configuratioin: %v", configurationReadError)
 		}
 
-		server.SetupAndStart(conf.ServerPort, func(port int) {
+		server.SetupAndStart(conf.ServerPort, conf, func(port int) {
 		})
 	}
 }
