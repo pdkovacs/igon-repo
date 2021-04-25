@@ -1,4 +1,4 @@
-package icon
+package domain
 
 // IconfileDescriptor describes an icon-file
 type IconfileDescriptor struct {

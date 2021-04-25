@@ -9,9 +9,8 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
-	"github.com/pdkovacs/igo-repo/backend/pkg/build"
-	"github.com/pdkovacs/igo-repo/backend/pkg/config"
-	"github.com/pdkovacs/igo-repo/backend/pkg/security/authn"
+	"github.com/pdkovacs/igo-repo/backend/pkg/auxiliaries"
+	"github.com/pdkovacs/igo-repo/backend/pkg/security"
 	"github.com/sirupsen/logrus"
 )
 
@@ -47,16 +46,16 @@ var Start = func(portRequested int, r http.Handler, ready func(port int)) {
 }
 
 // SetupAndStart sets up and starts server.
-var SetupAndStart = func(port int, options config.Options, ready func(port int)) {
+var SetupAndStart = func(port int, options auxiliaries.Options, ready func(port int)) {
 	r := gin.Default()
 	store := cookie.NewStore([]byte("secret"))
 	r.Use(sessions.Sessions("mysession", store))
 	if options.PasswordCredentials != nil && len(options.PasswordCredentials) > 0 {
-		r.Use(authn.HandlerProvider(authn.BasicConfig{PasswordCredentialsList: options.PasswordCredentials}))
+		r.Use(security.HandlerProvider(security.BasicConfig{PasswordCredentialsList: options.PasswordCredentials}))
 	}
 
 	r.GET("/info", func(c *gin.Context) {
-		c.JSON(200, build.GetInfo())
+		c.JSON(200, auxiliaries.GetBuildInfo())
 	})
 	Start(port, r, ready)
 }

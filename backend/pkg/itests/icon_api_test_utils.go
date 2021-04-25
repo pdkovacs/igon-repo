@@ -1,20 +1,20 @@
 package itests
 
 import (
-	"github.com/pdkovacs/igo-repo/backend/pkg/icon"
+	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
 )
 
 type testIconDescriptor struct {
 	name       string
 	modifiedBy string
-	files      []icon.IconfileDescriptor
+	files      []domain.IconfileDescriptor
 }
 
 var testIconInputDataDescriptor = []testIconDescriptor{
 	{
 		name:       "attach_money",
 		modifiedBy: "ux",
-		files: []icon.IconfileDescriptor{
+		files: []domain.IconfileDescriptor{
 			{
 				Format: "svg",
 				Size:   "18px",
@@ -32,7 +32,7 @@ var testIconInputDataDescriptor = []testIconDescriptor{
 	{
 		name:       "cast_connected",
 		modifiedBy: defaultCredentials.User,
-		files: []icon.IconfileDescriptor{
+		files: []domain.IconfileDescriptor{
 			{
 				Format: "svg",
 				Size:   "24px",

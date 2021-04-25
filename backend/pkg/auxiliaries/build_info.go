@@ -1,4 +1,4 @@
-package build
+package auxiliaries
 
 import "fmt"
 
@@ -21,15 +21,15 @@ type VersionInfo struct {
 	BuildTime string `json:"buildTime"`
 }
 
-// Info holds basic information about the application
-type Info struct {
+// BuildInfo holds basic information about the application
+type BuildInfo struct {
 	VersionInfo    VersionInfo `json:"versionInfo"`
 	AppDescription string      `json:"appDescription"`
 }
 
-// GetInfo returns basic information about the application
-func GetInfo() Info {
-	return Info{
+// GetBuildInfo returns basic information about the application
+func GetBuildInfo() BuildInfo {
+	return BuildInfo{
 		VersionInfo: VersionInfo{
 			Version:   version,
 			Commit:    commit,
@@ -39,7 +39,7 @@ func GetInfo() Info {
 	}
 }
 
-// GetInfoString constructs and returns a string containing the build info.
-func GetInfoString() string {
+// GetBuildInfoString constructs and returns a string containing the build info.
+func GetBuildInfoString() string {
 	return fmt.Sprintf("Version:\t%v\nCommit:\t\t%v\nBuild time:\t%v\nBuild user:\t%v\n", version, commit, time, user)
 }

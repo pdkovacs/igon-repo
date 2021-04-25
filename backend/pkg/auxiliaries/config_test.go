@@ -1,4 +1,4 @@
-package config
+package auxiliaries
 
 import (
 	"encoding/json"

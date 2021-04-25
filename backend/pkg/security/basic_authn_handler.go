@@ -1,4 +1,4 @@
-package authn
+package security
 
 import (
 	"encoding/base64"
@@ -6,17 +6,12 @@ import (
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/pdkovacs/igo-repo/backend/pkg/auxiliaries"
 )
 
 // BasicConfig holds the configuration for the Basic authentication scheme
 type BasicConfig struct {
-	PasswordCredentialsList []PasswordCredentials
-}
-
-// PasswordCredentials holds password-credentials
-type PasswordCredentials struct {
-	User     string
-	Password string
+	PasswordCredentialsList []auxiliaries.PasswordCredentials
 }
 
 func decodeBasicAuthnHeaderValue(headerValue string) (username, password string, decodeOK bool) {

@@ -3,7 +3,7 @@ package itests
 import (
 	"testing"
 
-	"github.com/pdkovacs/igo-repo/backend/pkg/build"
+	"github.com/pdkovacs/igo-repo/backend/pkg/auxiliaries"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -24,13 +24,13 @@ func (s *buildinfoAPITestSuite) AfterTest(suiteName, testName string) {
 }
 
 func (s *buildinfoAPITestSuite) TestMustIncludeVersionInfo() {
-	expected := build.GetInfo()
+	expected := auxiliaries.GetBuildInfo()
 
 	req := request{
 		path:               "/info",
 		testSuite:          &s.Suite,
 		expectedStatusCode: 200,
-		body:               &build.Info{},
+		body:               &auxiliaries.BuildInfo{},
 	}
 	resp, err := get(&req)
 	s.Require().NoError(err)

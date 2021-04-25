@@ -7,21 +7,20 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/pdkovacs/igo-repo/backend/pkg/config"
-	"github.com/pdkovacs/igo-repo/backend/pkg/security/authn"
+	"github.com/pdkovacs/igo-repo/backend/pkg/auxiliaries"
 	"github.com/pdkovacs/igo-repo/backend/pkg/server"
 	"github.com/stretchr/testify/suite"
 )
 
-var defaultOptions config.Options
+var defaultOptions auxiliaries.Options
 
 func init() {
 	var err error
-	defaultOptions, err = config.ReadConfiguration("", []string{})
+	defaultOptions, err = auxiliaries.ReadConfiguration("", []string{})
 	if err != nil {
 		panic(err)
 	}
-	defaultOptions.PasswordCredentials = []authn.PasswordCredentials{
+	defaultOptions.PasswordCredentials = []auxiliaries.PasswordCredentials{
 		{User: "ux", Password: "ux"},
 	}
 }
@@ -29,7 +28,7 @@ func init() {
 var serverPort int
 
 // startTestServer starts a test server
-func startTestServer(options config.Options) {
+func startTestServer(options auxiliaries.Options) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go server.SetupAndStart(0, options, func(port int) {
@@ -112,4 +111,4 @@ func get(req *request) (response, error) {
 }
 
 // defaultCredentials holds the test PasswordCredentials
-var defaultCredentials = authn.PasswordCredentials{User: "ux", Password: "ux"}
+var defaultCredentials = auxiliaries.PasswordCredentials{User: "ux", Password: "ux"}

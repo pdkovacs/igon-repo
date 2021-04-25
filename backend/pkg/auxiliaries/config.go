@@ -1,4 +1,4 @@
-package config
+package auxiliaries
 
 import (
 	"encoding/json"
@@ -9,14 +9,19 @@ import (
 	"reflect"
 
 	"github.com/jessevdk/go-flags"
-	"github.com/pdkovacs/igo-repo/backend/pkg/security/authn"
 	log "github.com/sirupsen/logrus"
 )
+
+// PasswordCredentials holds password-credentials
+type PasswordCredentials struct {
+	User     string
+	Password string
+}
 
 // UsersByRoles maps roles to lists of user holding the role
 type UsersByRoles map[string][]string
 
-type basicAuthnData []authn.PasswordCredentials
+type basicAuthnData []PasswordCredentials
 
 // Options holds the available command-line options
 type Options struct {
@@ -43,7 +48,7 @@ type Options struct {
 	DBPort                      int            `json:"dbPort" env:"DB_PORT" long:"db-port" short:"" default:"5432" description:"DB port"`
 	DBUser                      string         `json:"dbUser" env:"DB_USER" long:"db-user" short:"" default:"iconrepo" description:"DB user"`
 	DBPassword                  string         `json:"dbPassword" env:"DB_PASSWORD" long:"db-password" short:"" default:"iconrepo" description:"DB password"`
-	DBDatabase                  string         `json:"dbDatabase" env:"DB_DATABASE" long:"db-database" short:"" default:"iconrepo" description:"DB database"`
+	DBName                      string         `json:"dbName" env:"DB_NAME" long:"db-name" short:"" default:"iconrepo" description:"Name of the database"`
 	EnableBackdoors             bool           `json:"enableBackdoors" env:"ENABLE_BACKDOORS" long:"enable-backdoors" short:"" description:"Enable backdoors"`
 	LoggerLevel                 string         `json:"loggerLevel" env:"LOGGER_LEVEL" long:"logger-level" short:"" default:"info" description:"Logger level"`
 	PackageRootDir              string         `json:"packageRootDir" env:"PACKAGE_ROOT_DIR" long:"package-root-dir" short:"" default:"" description:"Package root dir"`

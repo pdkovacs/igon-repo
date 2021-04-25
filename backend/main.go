@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/pdkovacs/igo-repo/backend/pkg/build"
-	"github.com/pdkovacs/igo-repo/backend/pkg/config"
+	"github.com/pdkovacs/igo-repo/backend/pkg/auxiliaries"
 	"github.com/pdkovacs/igo-repo/backend/pkg/server"
 	log "github.com/sirupsen/logrus"
 )
@@ -21,13 +20,13 @@ func main() {
 
 	for _, value := range os.Args {
 		if value == "-v" || value == "--version" {
-			fmt.Printf(build.GetInfoString())
+			fmt.Printf(auxiliaries.GetBuildInfoString())
 			serverWanted = false
 		}
 	}
 
 	if serverWanted {
-		conf, configurationReadError := config.ReadConfiguration("", os.Args)
+		conf, configurationReadError := auxiliaries.ReadConfiguration("", os.Args)
 		if configurationReadError != nil {
 			log.Fatalf("Failed to read configuratioin: %v", configurationReadError)
 		}
