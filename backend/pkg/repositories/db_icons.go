@@ -7,7 +7,9 @@ import (
 	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
 )
 
-func CreateIcon(db *sql.DB, iconfile domain.Iconfile, modifiedBy string) error {
+type CreateSideEffect func() error
+
+func CreateIcon(db *sql.DB, iconfile domain.Iconfile, modifiedBy string, createSideEffect CreateSideEffect) error {
 	var tx *sql.Tx
 	var err error
 
@@ -27,6 +29,13 @@ func CreateIcon(db *sql.DB, iconfile domain.Iconfile, modifiedBy string) error {
 	err = insertIconfile(tx, iconfile, modifiedBy)
 	if err != nil {
 		return fmt.Errorf("failed to create icon-file %v: %w", iconfile.Name, err)
+	}
+
+	if createSideEffect != nil {
+		err = createSideEffect()
+		if err != nil {
+			return fmt.Errorf("failed to create icon file %s, %w", iconfile.Name, err)
+		}
 	}
 
 	tx.Commit()
