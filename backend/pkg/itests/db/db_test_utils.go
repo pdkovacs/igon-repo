@@ -48,3 +48,13 @@ func manageTestResourcesBeforeEach() {
 func getPool() *sql.DB {
 	return db
 }
+
+func getIconCount() (int, error) {
+	var getIconCountSQL = "SELECT count(*) from icon"
+	var count int
+	err := db.QueryRow(getIconCountSQL).Scan(&count)
+	if err != nil {
+		return 0, nil
+	}
+	return count, nil
+}
