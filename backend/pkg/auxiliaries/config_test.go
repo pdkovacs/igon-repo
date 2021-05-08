@@ -100,6 +100,7 @@ func (s *readConfigurationTestSuite) TestYieldDefaultsWithoutConfigFile() {
 	s.Equal("localhost", opts.DBHost)
 	s.Equal(5432, opts.DBPort)
 	s.Equal(false, opts.EnableBackdoors)
+	s.Equal(DefaultIconDataLocationGit, opts.IconDataLocationGit)
 }
 
 func (s *readConfigurationTestSuite) TestConfigFileSettingsOverridesDefaults() {

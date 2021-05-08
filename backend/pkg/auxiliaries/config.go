@@ -88,16 +88,16 @@ func createOptionsMaps() (map[string]string, map[string]string, map[string]strin
 
 var keyToName, keyToLongOptName, keyToEnvName = createOptionsMaps()
 
-var iconRepoHome = filepath.Join(os.Getenv("HOME"), ".ui-toolbox/icon-repo")
-var iconDataLocationGit = filepath.Join(iconRepoHome, "git-repo")
-var defaultConfigFilePath = filepath.Join(iconRepoHome, "config.json")
+var DefaultIconRepoHome = filepath.Join(os.Getenv("HOME"), ".ui-toolbox/icon-repo")
+var DefaultIconDataLocationGit = filepath.Join(DefaultIconRepoHome, "git-repo")
+var DefaultConfigFilePath = filepath.Join(DefaultIconRepoHome, "config.json")
 
 // GetConfigFilePath gets the path of the configuration file
 func GetConfigFilePath() string {
 	var result string
 	if result = os.Getenv("ICON_REPO_CONFIG_FILE"); result != "" {
 	} else {
-		result = defaultConfigFilePath
+		result = DefaultConfigFilePath
 	}
 	log.Infof("Configuration file: %s", result)
 	return result
@@ -121,7 +121,7 @@ func ReadConfigurationFromFile(filePath string) (map[string]interface{}, error) 
 	if fileStatError == nil {
 		fileContent, fileReadError := ioutil.ReadFile(filePath)
 		if fileReadError != nil {
-			err = fmt.Errorf("Failed to read configuration file %v: %w", filePath, fileReadError)
+			err = fmt.Errorf("failed to read configuration file %v: %w", filePath, fileReadError)
 		}
 		unmarshalError := json.Unmarshal(fileContent, &optsInFile)
 		if unmarshalError != nil {
@@ -146,6 +146,8 @@ func parseFlagsMergeSettings(clArgs []string, optsInFile map[string]interface{})
 	if parseError != nil {
 		logger.Fatal(parseError)
 	}
+
+	opts.IconDataLocationGit = DefaultIconDataLocationGit
 
 	for key, value := range optsInFile {
 		o := findOption(key, parser)
