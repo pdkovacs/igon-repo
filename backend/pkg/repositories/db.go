@@ -19,7 +19,7 @@ func checkDefined(value string, name string) {
 	}
 }
 
-func createConnectionProperties(options auxiliaries.Options) ConnectionProperties {
+func CreateConnectionProperties(options auxiliaries.Options) ConnectionProperties {
 	checkDefined(options.DBHost, "DBHost")
 	checkDefined(options.DBName, "DBName")
 	if options.DBPort == 0 {

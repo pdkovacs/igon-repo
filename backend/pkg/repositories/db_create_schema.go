@@ -29,7 +29,7 @@ func colConstraintsToSQL(colConstraints []string) string {
 	if len(colConstraints) == 0 {
 		return ""
 	}
-	return ",\n    " + fmt.Sprintf(strings.Join(colConstraints[:], ",\n    "))
+	return ",\n    " + strings.Join(colConstraints[:], ",\n    ")
 }
 
 func makeCreateTableStatement(tableDefinition tableSpec) string {
@@ -87,7 +87,7 @@ func createSchema(db *sql.DB) error {
 	return nil
 }
 
-func createSchemaRetry(db *sql.DB) error {
+func CreateSchemaRetry(db *sql.DB) error {
 	var err error
 	for i := 0; i < 30; i++ {
 		err = createSchema(db)

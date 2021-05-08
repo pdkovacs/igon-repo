@@ -9,23 +9,23 @@ type IconfileDescriptor struct {
 // IconfileData holds data of an icon-file
 type IconfileData struct {
 	IconfileDescriptor
-	content []byte
+	Content []byte
 }
 
-// Attributes holds attributes of an icon
-type Attributes struct {
+// IconAttributes holds attributes of an icon
+type IconAttributes struct {
 	Name string
 }
 
 // Iconfile describes the file representation of an icon
 type Iconfile struct {
-	Attributes
+	IconAttributes
 	IconfileData
 }
 
-// Descriptor describes an icon
-type Descriptor struct {
-	Attributes
+// IconDescriptor describes an icon
+type IconDescriptor struct {
+	IconAttributes
 	Name       string
 	ModifiedBy string
 	Iconfiles  []IconfileDescriptor
