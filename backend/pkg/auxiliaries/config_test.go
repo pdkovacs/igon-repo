@@ -93,6 +93,18 @@ func (s *readConfigurationTestSuite) AfterTest(suiteName, testName string) {
 
 func (s *readConfigurationTestSuite) TestYieldDefaultsWithoutConfigFile() {
 	clArgs := []string{}
+	opts, err := ReadConfiguration("", clArgs)
+	s.NoError(err)
+	s.Equal("localhost", opts.ServerHostname)
+	s.Equal(8080, opts.ServerPort)
+	s.Equal("localhost", opts.DBHost)
+	s.Equal(5432, opts.DBPort)
+	s.Equal(false, opts.EnableBackdoors)
+	s.Equal(DefaultIconDataLocationGit, opts.IconDataLocationGit)
+}
+
+func (s *readConfigurationTestSuite) TestYieldDefaultsWithMissingConfigFile() {
+	clArgs := []string{}
 	opts, err := ReadConfiguration("some non-existent file", clArgs)
 	s.NoError(err)
 	s.Equal("localhost", opts.ServerHostname)
