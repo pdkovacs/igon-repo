@@ -26,11 +26,7 @@ func main() {
 	}
 
 	if serverWanted {
-		conf, configurationReadError := auxiliaries.ReadConfiguration("", os.Args)
-		if configurationReadError != nil {
-			log.Fatalf("Failed to read configuratioin: %v", configurationReadError)
-		}
-
+		conf := auxiliaries.ParseCommandLineArgs(os.Args)
 		server.SetupAndStart(conf.ServerPort, conf, func(port int) {
 		})
 	}

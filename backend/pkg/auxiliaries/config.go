@@ -114,30 +114,38 @@ func ReadConfiguration(filePath string, clArgs []string) (Options, error) {
 
 // ReadConfigurationFromFile reads configuration from a file (JSON for now)
 func ReadConfigurationFromFile(filePath string) (map[string]interface{}, error) {
-	var optsInFile = make(map[string]interface{})
-	var err error
-
 	_, fileStatError := os.Stat(filePath)
-	if fileStatError == nil {
-		fileContent, fileReadError := ioutil.ReadFile(filePath)
-		if fileReadError != nil {
-			err = fmt.Errorf("failed to read configuration file %v: %w", filePath, fileReadError)
-		}
-		unmarshalError := json.Unmarshal(fileContent, &optsInFile)
-		if unmarshalError != nil {
-			err = unmarshalError
-		}
-	} else {
-		if !os.IsNotExist(fileStatError) {
-			err = fileStatError
-		}
+	if fileStatError != nil {
+		return nil, fmt.Errorf("failed to locate configuration file %v: %w", filePath, fileStatError)
 	}
 
-	return optsInFile, err
+	fileContent, fileReadError := ioutil.ReadFile(filePath)
+	if fileReadError != nil {
+		return nil, fmt.Errorf("failed to read configuration file %v: %w", filePath, fileReadError)
+	}
+
+	var optsInFile = make(map[string]interface{})
+
+	unmarshalError := json.Unmarshal(fileContent, &optsInFile)
+	if unmarshalError != nil {
+		return nil, fmt.Errorf("failed to parse configuration file %v: %w", filePath, unmarshalError)
+	}
+
+	return optsInFile, nil
 }
 
-func parseFlagsMergeSettings(clArgs []string, optsInFile map[string]interface{}) Options {
-	logger := log.WithField("prefix", "ReadConfiguration")
+func GetDefaultConfiguration() Options {
+	options, _ := parseCommandLineArgs([]string{})
+	return options
+}
+
+func ParseCommandLineArgs(clArgs []string) Options {
+	options, _ := parseCommandLineArgs(clArgs)
+	return options
+}
+
+func parseCommandLineArgs(clArgs []string) (Options, *flags.Parser) {
+	logger := log.WithField("prefix", "parseCommandLineArgs")
 
 	var opts = Options{}
 	parser := flags.NewParser(&opts, flags.Default)
@@ -148,6 +156,14 @@ func parseFlagsMergeSettings(clArgs []string, optsInFile map[string]interface{})
 	}
 
 	opts.IconDataLocationGit = DefaultIconDataLocationGit
+
+	return opts, parser
+}
+
+func parseFlagsMergeSettings(clArgs []string, optsInFile map[string]interface{}) Options {
+	logger := log.WithField("prefix", "parseFlagsMergeSettings")
+
+	opts, parser := parseCommandLineArgs(clArgs)
 
 	for key, value := range optsInFile {
 		o := findOption(key, parser)

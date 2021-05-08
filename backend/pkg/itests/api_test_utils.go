@@ -15,11 +15,7 @@ import (
 var defaultOptions auxiliaries.Options
 
 func init() {
-	var err error
-	defaultOptions, err = auxiliaries.ReadConfiguration("", []string{})
-	if err != nil {
-		panic(err)
-	}
+	defaultOptions = auxiliaries.GetDefaultConfiguration()
 	defaultOptions.PasswordCredentials = []auxiliaries.PasswordCredentials{
 		{User: "ux", Password: "ux"},
 	}

@@ -2,7 +2,9 @@ package auxiliaries
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -91,10 +93,8 @@ func (s *readConfigurationTestSuite) AfterTest(suiteName, testName string) {
 	clearEnvVarsSet()
 }
 
-func (s *readConfigurationTestSuite) TestYieldDefaultsWithoutConfigFile() {
-	clArgs := []string{}
-	opts, err := ReadConfiguration("", clArgs)
-	s.NoError(err)
+func (s *readConfigurationTestSuite) TestGetDefaultConfiguration() {
+	opts := GetDefaultConfiguration()
 	s.Equal("localhost", opts.ServerHostname)
 	s.Equal(8080, opts.ServerPort)
 	s.Equal("localhost", opts.DBHost)
@@ -103,16 +103,10 @@ func (s *readConfigurationTestSuite) TestYieldDefaultsWithoutConfigFile() {
 	s.Equal(DefaultIconDataLocationGit, opts.IconDataLocationGit)
 }
 
-func (s *readConfigurationTestSuite) TestYieldDefaultsWithMissingConfigFile() {
+func (s *readConfigurationTestSuite) TestFailOnMissingConfigFile() {
 	clArgs := []string{}
-	opts, err := ReadConfiguration("some non-existent file", clArgs)
-	s.NoError(err)
-	s.Equal("localhost", opts.ServerHostname)
-	s.Equal(8080, opts.ServerPort)
-	s.Equal("localhost", opts.DBHost)
-	s.Equal(5432, opts.DBPort)
-	s.Equal(false, opts.EnableBackdoors)
-	s.Equal(DefaultIconDataLocationGit, opts.IconDataLocationGit)
+	_, err := ReadConfiguration("some non-existent file", clArgs)
+	s.True(errors.Is(err, fs.ErrNotExist))
 }
 
 func (s *readConfigurationTestSuite) TestConfigFileSettingsOverridesDefaults() {
@@ -137,8 +131,7 @@ func (s *readConfigurationTestSuite) TestEnvVarSettingOverridesDefaults() {
 	setEnvVar("DB_HOST", dbHostInEnvVar)
 
 	clArgs := []string{}
-	opts, err := ReadConfiguration("name-of-some-nonexistent-file", clArgs)
-	s.NoError(err)
+	opts := ParseCommandLineArgs(clArgs)
 	s.Equal("localhost", opts.ServerHostname)
 	s.Equal(8080, opts.ServerPort)
 	s.Equal(dbHostInEnvVar, opts.DBHost)
@@ -173,7 +166,7 @@ func (s *readConfigurationTestSuite) TestCliArgsOverrideConfigFile() {
 	defer closeRemoveFile(configFile)
 
 	clArgs := []string{"--db-host", dbHostInArg}
-	opts, err := ReadConfiguration("name-of-some-nonexistent-file", clArgs)
+	opts, err := ReadConfiguration(configFile.Name(), clArgs)
 	s.NoError(err)
 	s.Equal("localhost", opts.ServerHostname)
 	s.Equal(8080, opts.ServerPort)
@@ -189,8 +182,7 @@ func (s *readConfigurationTestSuite) TestCliArgsOverridesEnvVarSettings() {
 	setEnvVar("DB_HOST", connHostInEnvVar)
 
 	clArgs := []string{"--db-host", dbHostInArg}
-	opts, err := ReadConfiguration("name-of-some-nonexistent-file", clArgs)
-	s.NoError(err)
+	opts := ParseCommandLineArgs(clArgs)
 	s.Equal("localhost", opts.ServerHostname)
 	s.Equal(8080, opts.ServerPort)
 	s.Equal(dbHostInArg, opts.DBHost)
