@@ -1,7 +1,6 @@
 package db
 
 import (
-	"crypto/rand"
 	"errors"
 	"fmt"
 	"testing"
@@ -94,28 +93,4 @@ func (s *addIconToDBTestSuite) TestRollbackOnErrorInSideEffect() {
 	s.getIconfileChecked(iconfile1)
 	_, err = s.getIconfile(iconfile2)
 	s.True(errors.Is(err, domain.ErrIconNotFound))
-}
-
-func randomBytes(len int) []byte {
-	b := make([]byte, len)
-	_, err := rand.Read(b)
-	if err != nil {
-		panic(err)
-	}
-	return b
-}
-
-func createTestIconfile(name, format, size string) domain.Iconfile {
-	return domain.Iconfile{
-		IconAttributes: domain.IconAttributes{
-			Name: name,
-		},
-		IconfileData: domain.IconfileData{
-			IconfileDescriptor: domain.IconfileDescriptor{
-				Format: format,
-				Size:   size,
-			},
-			Content: randomBytes(4096),
-		},
-	}
 }

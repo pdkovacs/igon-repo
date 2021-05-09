@@ -1,11 +1,13 @@
 package db
 
 import (
+	"crypto/rand"
 	"database/sql"
 	"fmt"
 
 	_ "github.com/lib/pq"
 	"github.com/pdkovacs/igo-repo/backend/pkg/auxiliaries"
+	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
 	"github.com/pdkovacs/igo-repo/backend/pkg/repositories"
 )
 
@@ -57,4 +59,28 @@ func getIconCount() (int, error) {
 		return 0, nil
 	}
 	return count, nil
+}
+
+func createTestIconfile(name, format, size string) domain.Iconfile {
+	return domain.Iconfile{
+		IconAttributes: domain.IconAttributes{
+			Name: name,
+		},
+		IconfileData: domain.IconfileData{
+			IconfileDescriptor: domain.IconfileDescriptor{
+				Format: format,
+				Size:   size,
+			},
+			Content: randomBytes(4096),
+		},
+	}
+}
+
+func randomBytes(len int) []byte {
+	b := make([]byte, len)
+	_, err := rand.Read(b)
+	if err != nil {
+		panic(err)
+	}
+	return b
 }

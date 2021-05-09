@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/lib/pq"
 	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
 )
 
@@ -42,11 +43,42 @@ func CreateIcon(db *sql.DB, iconfile domain.Iconfile, modifiedBy string, createS
 	return nil
 }
 
+func AddIconfileToIcon(db *sql.DB, iconfile domain.Iconfile, modifiedBy string, createSideEffect CreateSideEffect) error {
+	var tx *sql.Tx
+	var err error
+
+	tx, err = db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	err = insertIconfile(tx, iconfile, modifiedBy)
+	if err != nil {
+		return fmt.Errorf("failed to create icon-file %v: %w", iconfile.Name, err)
+	}
+
+	if createSideEffect != nil {
+		err = createSideEffect()
+		if err != nil {
+			return fmt.Errorf("failed to create icon file %s, %w", iconfile.Name, err)
+		}
+	}
+
+	tx.Commit()
+	return nil
+}
+
 func insertIconfile(tx *sql.Tx, iconfile domain.Iconfile, modifiedBy string) error {
 	const insertIconfileSQL = "INSERT INTO icon_file(icon_id, file_format, icon_size, content) " +
 		"SELECT id, $2, $3, $4 FROM icon WHERE name = $1 RETURNING id"
 	_, err := tx.Exec(insertIconfileSQL, iconfile.Name, iconfile.Format, iconfile.Size, iconfile.Content)
 	if err != nil {
+		if err, ok := err.(*pq.Error); ok {
+			if err.Code.Name() == "unique_violation" {
+				return domain.ErrIconfileAlreadyExists
+			}
+		}
 		return fmt.Errorf("failed to insert icon-file %v: %w", iconfile.Name, err)
 	}
 	return nil
