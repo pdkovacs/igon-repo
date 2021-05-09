@@ -10,26 +10,11 @@ import (
 )
 
 type addIconfileToDBTestSuite struct {
-	suite.Suite
+	dbTestSuite
 }
 
 func TestAddIconfileToDBTestSuite(t *testing.T) {
 	suite.Run(t, &addIconfileToDBTestSuite{})
-}
-
-func (s *addIconfileToDBTestSuite) SetupSuite() {
-	manageTestResourcesBeforeAll()
-}
-
-func (s *addIconfileToDBTestSuite) TearDownSuite() {
-	manageTestResourcesAfterAll()
-}
-
-func (s *addIconfileToDBTestSuite) BeforeTest(suiteName, testName string) {
-	manageTestResourcesBeforeEach()
-}
-
-func (s *addIconfileToDBTestSuite) AfterTest(suiteName, testName string) {
 }
 
 func (s *addIconfileToDBTestSuite) TestErrorOnDuplicateIconfile() {

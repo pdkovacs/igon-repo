@@ -11,26 +11,11 @@ import (
 )
 
 type addIconToDBTestSuite struct {
-	suite.Suite
+	dbTestSuite
 }
 
 func TestAddIconToDBTestSuite(t *testing.T) {
 	suite.Run(t, &addIconToDBTestSuite{})
-}
-
-func (s *addIconToDBTestSuite) BeforeTest(suiteName, testName string) {
-	manageTestResourcesBeforeEach()
-}
-
-func (s *addIconToDBTestSuite) AfterTest(suiteName, testName string) {
-}
-
-func (s *addIconToDBTestSuite) SetupSuite() {
-	manageTestResourcesBeforeAll()
-}
-
-func (s *addIconToDBTestSuite) TearDownSuite() {
-	manageTestResourcesAfterAll()
 }
 
 func (s *addIconToDBTestSuite) getIconfile(iconfile domain.Iconfile) ([]byte, error) {

@@ -9,6 +9,7 @@ import (
 	"github.com/pdkovacs/igo-repo/backend/pkg/auxiliaries"
 	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
 	"github.com/pdkovacs/igo-repo/backend/pkg/repositories"
+	"github.com/stretchr/testify/suite"
 )
 
 var db *sql.DB
@@ -83,4 +84,23 @@ func randomBytes(len int) []byte {
 		panic(err)
 	}
 	return b
+}
+
+type dbTestSuite struct {
+	suite.Suite
+}
+
+func (s *dbTestSuite) SetupSuite() {
+	manageTestResourcesBeforeAll()
+}
+
+func (s *dbTestSuite) TearDownSuite() {
+	manageTestResourcesAfterAll()
+}
+
+func (s *dbTestSuite) BeforeTest(suiteName, testName string) {
+	manageTestResourcesBeforeEach()
+}
+
+func (s *dbTestSuite) AfterTest(suiteName, testName string) {
 }
