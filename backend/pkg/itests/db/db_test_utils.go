@@ -9,6 +9,7 @@ import (
 	"github.com/pdkovacs/igo-repo/backend/pkg/auxiliaries"
 	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
 	"github.com/pdkovacs/igo-repo/backend/pkg/repositories"
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -30,7 +31,14 @@ func terminatePool() {
 }
 
 func makeSureHasUptodateDBSchemaWithNoData() {
-	err := repositories.CreateSchemaRetry(db)
+	var logger = log.WithField("prefix", "make-sure-has-uptodate-db-schema-with-no-data")
+	var err error
+	err = repositories.CreateSchemaRetry(db)
+	if err != nil {
+		logger.Errorf("Failed to create schema %v", err)
+		panic(err)
+	}
+	err = repositories.ExecuteSchemaUpgrade(db)
 	if err != nil {
 		panic(err)
 	}
@@ -60,6 +68,23 @@ func getIconCount() (int, error) {
 		return 0, nil
 	}
 	return count, nil
+}
+
+type testDataType struct {
+	iconfiles  []domain.Iconfile
+	modifiedBy string
+	tag1       string
+	tag2       string
+}
+
+var testData = testDataType{
+	iconfiles: []domain.Iconfile{
+		createTestIconfile("metro-icon", "french", "great"),
+		createTestIconfile("zazie-icon", "french", "great"),
+	},
+	modifiedBy: "ux",
+	tag1:       "used-in-marvinjs",
+	tag2:       "some other tag",
 }
 
 func createTestIconfile(name, format, size string) domain.Iconfile {

@@ -117,3 +117,27 @@ func GetIconFile(db *sql.DB, iconName, format, iconSize string) ([]byte, error) 
 
 	return content, nil
 }
+
+func GetExistingTags(db *sql.DB) ([]string, error) {
+	rows, err := db.Query("SELECT text FROM tag")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	tags := make([]string, 0, 50)
+	for rows.Next() {
+		var tag string
+		err := rows.Scan(&tag)
+		if err != nil {
+			return nil, err
+		}
+		tags = append(tags, tag)
+	}
+	err = rows.Err()
+	if err != nil {
+		return nil, err
+	}
+
+	return tags, nil
+}
