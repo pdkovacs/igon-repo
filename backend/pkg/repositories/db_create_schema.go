@@ -3,10 +3,11 @@ package repositories
 import (
 	"database/sql"
 	"fmt"
+	"net"
 	"strings"
+	"syscall"
 	"time"
 
-	"github.com/lib/pq"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -89,23 +90,45 @@ func createSchema(db *sql.DB) error {
 
 func CreateSchemaRetry(db *sql.DB) error {
 	var err error
+
 	for i := 0; i < 30; i++ {
 		err = createSchema(db)
 		if err == nil {
 			return nil
-		}
-		if err, ok := err.(*pq.Error); ok {
-			error_code_name := err.Code.Name()
-			log.Debug("pq error", error_code_name)
-			if error_code_name == "sqlclient_unable_to_establish_sqlconnection" ||
-				error_code_name == "sqlserver_rejected_establishment_of_sqlconnection" {
-				time.Sleep(2 * time.Second)
-			} else {
-				return err
-			}
 		} else {
-			return err
+			log.Infof("CreateSchemaRetry error %v; retry count: %v", err, i)
+		}
+		if worthIt := isErrorWorthRetrying(err); worthIt {
+			time.Sleep(2 * time.Second)
+			createSchema(db)
+		} else {
+			return fmt.Errorf("create schema failed: %w", err)
 		}
 	}
 	return err
+}
+
+func isErrorWorthRetrying(err error) bool {
+	if netError, ok := err.(net.Error); ok && netError.Timeout() {
+		println("Timeout")
+		return true
+	}
+
+	switch t := err.(type) {
+	case *net.OpError:
+		if t.Op == "dial" {
+			println("unknown host / connection refused")
+			return true
+		} else if t.Op == "read" {
+			println("connection refused")
+			return true
+		}
+
+	case syscall.Errno:
+		if t == syscall.ECONNREFUSED {
+			println("connection refused")
+			return true
+		}
+	}
+	return false
 }
