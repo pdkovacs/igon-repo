@@ -19,10 +19,10 @@ func (s *addTagTestSuite) TestCreateAssociateNonExistingTag() {
 	var tags []string
 	var err error
 
-	var iconfile = testData.iconfiles[0]
+	var icon = testData[0]
 	const tag = "used-in-marvinjs"
 
-	err = repositories.CreateIcon(getPool(), iconfile, testData.modifiedBy, nil)
+	err = repositories.CreateIcon(getPool(), icon.Name, icon.Iconfiles[0], icon.ModifiedBy, nil)
 	s.NoError(err)
 	tags, err = repositories.GetExistingTags(getPool())
 	s.NoError(err)

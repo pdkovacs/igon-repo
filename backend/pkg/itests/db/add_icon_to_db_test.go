@@ -18,64 +18,61 @@ func TestAddIconToDBTestSuite(t *testing.T) {
 	suite.Run(t, &addIconToDBTestSuite{})
 }
 
-func (s *addIconToDBTestSuite) getIconfile(iconfile domain.Iconfile) ([]byte, error) {
-	return repositories.GetIconFile(getPool(), iconfile.Name, iconfile.Format, iconfile.Size)
+func (s *addIconToDBTestSuite) getIconfile(iconName string, iconfile domain.Iconfile) ([]byte, error) {
+	return repositories.GetIconFile(getPool(), iconName, iconfile.Format, iconfile.Size)
 }
 
-func (s *addIconToDBTestSuite) getIconfileChecked(iconfile domain.Iconfile) {
-	content, err := s.getIconfile(iconfile)
+func (s *addIconToDBTestSuite) getIconfileChecked(iconName string, iconfile domain.Iconfile) {
+	content, err := s.getIconfile(iconName, iconfile)
 	s.NoError(err)
 	s.Equal(iconfile.Content, content)
 }
 
 func (s *addIconToDBTestSuite) TestAddFirstIcon() {
-	const user = "zazie"
-	var iconfile = createTestIconfile("metro-icon", "french", "great")
-	fmt.Printf("Hello, First Icon %v\n", iconfile.Name)
-	err := repositories.CreateIcon(getPool(), iconfile, user, nil)
+	var icon = testData[0]
+	fmt.Printf("Hello, First Icon %v\n", icon.Name)
+	err := repositories.CreateIcon(getPool(), icon.Name, icon.Iconfiles[0], icon.ModifiedBy, nil)
 	s.NoError(err)
-	s.getIconfileChecked(iconfile)
+	s.getIconfileChecked(icon.Name, icon.Iconfiles[0])
 }
 
 func (s *addIconToDBTestSuite) TestAddASecondIcon() {
 	var err error
-	const user = "zazie"
-	var iconfile1 = createTestIconfile("metro-icon", "french", "great")
-	var iconfile2 = createTestIconfile("animal-icon", "french", "huge")
-	err = repositories.CreateIcon(getPool(), iconfile1, user, nil)
+	var icon1 = testData[0]
+	var icon2 = testData[1]
+	err = repositories.CreateIcon(getPool(), icon1.Name, icon1.Iconfiles[0], icon1.ModifiedBy, nil)
 	s.NoError(err)
-	err = repositories.CreateIcon(getPool(), iconfile2, user, nil)
+	err = repositories.CreateIcon(getPool(), icon2.Name, icon2.Iconfiles[1], icon2.ModifiedBy, nil)
 	s.NoError(err)
 	var count int
 	count, err = getIconCount()
 	s.NoError(err)
 	s.Equal(2, count)
-	s.getIconfileChecked(iconfile1)
-	s.getIconfileChecked(iconfile2)
+	s.getIconfileChecked(icon1.Name, icon1.Iconfiles[0])
+	s.getIconfileChecked(icon2.Name, icon2.Iconfiles[1])
 }
 
 // should rollback to last consistent state, in case an error occurs in sideEffect
 func (s *addIconToDBTestSuite) TestRollbackOnErrorInSideEffect() {
 	var count int
 	var err error
+
 	var sideEffectTestError = errors.New("some error occurred in side-effect")
 	var createSideEffect = func() error {
 		return sideEffectTestError
 	}
-	const user = "zazie"
 
-	var iconfile1 = createTestIconfile("metro-icon", "french", "great")
-	err = repositories.CreateIcon(getPool(), iconfile1, user, nil)
+	var icon1 = testData[0]
+	var icon2 = testData[1]
+	err = repositories.CreateIcon(getPool(), icon1.Name, icon1.Iconfiles[0], icon1.ModifiedBy, nil)
 	s.NoError(err)
-
-	var iconfile2 = createTestIconfile("animal-icon", "french", "huge")
-	err = repositories.CreateIcon(getPool(), iconfile2, user, createSideEffect)
+	err = repositories.CreateIcon(getPool(), icon2.Name, icon2.Iconfiles[1], icon2.ModifiedBy, createSideEffect)
 	s.True(errors.Is(err, sideEffectTestError))
 
 	count, err = getIconCount()
 	s.NoError(err)
 	s.Equal(1, count)
-	s.getIconfileChecked(iconfile1)
-	_, err = s.getIconfile(iconfile2)
+	s.getIconfileChecked(icon1.Name, icon1.Iconfiles[0])
+	_, err = s.getIconfile(icon2.Name, icon2.Iconfiles[1])
 	s.True(errors.Is(err, domain.ErrIconNotFound))
 }

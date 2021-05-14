@@ -19,13 +19,12 @@ func TestAddIconfileToDBTestSuite(t *testing.T) {
 
 func (s *addIconfileToDBTestSuite) TestErrorOnDuplicateIconfile() {
 	var err error
-	const user = "Zazie"
+	var icon = testData[0]
+	var iconfile = icon.Iconfiles[0]
 
-	var iconfile1 = createTestIconfile("metro-icon", "french", "great")
-	err = repositories.CreateIcon(getPool(), iconfile1, user, nil)
+	err = repositories.CreateIcon(getPool(), icon.Name, iconfile, icon.ModifiedBy, nil)
 	s.NoError(err)
 
-	var iconfile2 = createTestIconfile("metro-icon", "french", "great")
-	err = repositories.AddIconfileToIcon(getPool(), iconfile2, user, nil)
+	err = repositories.AddIconfileToIcon(getPool(), icon.Name, iconfile, icon.ModifiedBy, nil)
 	s.True(errors.Is(err, domain.ErrIconfileAlreadyExists))
 }

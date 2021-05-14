@@ -7,14 +7,14 @@ import (
 type testIconDescriptor struct {
 	name       string
 	modifiedBy string
-	files      []domain.IconfileDescriptor
+	files      []domain.Iconfile
 }
 
 var testIconInputDataDescriptor = []testIconDescriptor{
 	{
 		name:       "attach_money",
 		modifiedBy: "ux",
-		files: []domain.IconfileDescriptor{
+		files: []domain.Iconfile{
 			{
 				Format: "svg",
 				Size:   "18px",
@@ -32,7 +32,7 @@ var testIconInputDataDescriptor = []testIconDescriptor{
 	{
 		name:       "cast_connected",
 		modifiedBy: defaultCredentials.User,
-		files: []domain.IconfileDescriptor{
+		files: []domain.Iconfile{
 			{
 				Format: "svg",
 				Size:   "24px",

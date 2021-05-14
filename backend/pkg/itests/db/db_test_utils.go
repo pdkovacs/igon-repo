@@ -70,35 +70,38 @@ func getIconCount() (int, error) {
 	return count, nil
 }
 
-type testDataType struct {
-	iconfiles  []domain.Iconfile
-	modifiedBy string
-	tag1       string
-	tag2       string
-}
-
-var testData = testDataType{
-	iconfiles: []domain.Iconfile{
-		createTestIconfile("metro-icon", "french", "great"),
-		createTestIconfile("zazie-icon", "french", "great"),
+var testData = []domain.Icon{
+	{
+		Name:       "metro-zazie",
+		ModifiedBy: "ux",
+		Iconfiles: []domain.Iconfile{
+			createTestIconfile("french", "great"),
+			createTestIconfile("french", "huge"),
+		},
+		Tags: []string{
+			"used-in-marvinjs",
+			"some other tag",
+		},
 	},
-	modifiedBy: "ux",
-	tag1:       "used-in-marvinjs",
-	tag2:       "some other tag",
+	{
+		Name:       "zazie-icon",
+		ModifiedBy: "ux",
+		Iconfiles: []domain.Iconfile{
+			createTestIconfile("french", "great"),
+			createTestIconfile("dutch", "cute"),
+		},
+		Tags: []string{
+			"used-in-marvinjs",
+			"yet another tag",
+		},
+	},
 }
 
-func createTestIconfile(name, format, size string) domain.Iconfile {
+func createTestIconfile(format, size string) domain.Iconfile {
 	return domain.Iconfile{
-		IconAttributes: domain.IconAttributes{
-			Name: name,
-		},
-		IconfileData: domain.IconfileData{
-			IconfileDescriptor: domain.IconfileDescriptor{
-				Format: format,
-				Size:   size,
-			},
-			Content: randomBytes(4096),
-		},
+		Format:  format,
+		Size:    size,
+		Content: randomBytes(4096),
 	}
 }
 
