@@ -56,6 +56,9 @@ func manageTestResourcesBeforeEach() {
 	makeSureHasUptodateDBSchemaWithNoData()
 }
 
+func manageTestResourcesAfterEach() {
+}
+
 func getPool() *sql.DB {
 	return db
 }
@@ -131,4 +134,5 @@ func (s *dbTestSuite) BeforeTest(suiteName, testName string) {
 }
 
 func (s *dbTestSuite) AfterTest(suiteName, testName string) {
+	manageTestResourcesAfterEach()
 }

@@ -85,6 +85,14 @@ func createSchema(db *sql.DB) error {
 	if err != nil {
 		return err
 	}
+	err = dropCreateTable(db, iconToTagsTableSpec)
+	if err != nil {
+		return err
+	}
+	err = dropCreateTable(db, tagTableSpec)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

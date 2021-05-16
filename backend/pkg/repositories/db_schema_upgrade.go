@@ -99,10 +99,10 @@ func ExecuteSchemaUpgrade(db *sql.DB) error {
 		if applied {
 			logger.Infof("Version already applied: %s", upgrStep.version)
 		} else {
-			logger.Infof("Applying upgrade: \"%s\" ...", upgrStep.version)
+			logger.Infof("Applying upgrade: '%s' ...", upgrStep.version)
 			err = applyUpgrade(tx, upgrStep)
 			if err != nil {
-				return fmt.Errorf("failed to apply upgrade step \"%s\": %w", upgrStep.version, err)
+				return fmt.Errorf("failed to apply upgrade step '%s': %w", upgrStep.version, err)
 			}
 		}
 	}

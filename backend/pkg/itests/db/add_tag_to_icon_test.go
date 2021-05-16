@@ -3,6 +3,7 @@ package db
 import (
 	"testing"
 
+	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
 	"github.com/pdkovacs/igo-repo/backend/pkg/repositories"
 	"github.com/stretchr/testify/suite"
 )
@@ -27,4 +28,20 @@ func (s *addTagTestSuite) TestCreateAssociateNonExistingTag() {
 	tags, err = repositories.GetExistingTags(getPool())
 	s.NoError(err)
 	s.Empty(tags)
+
+	var iconDesc domain.Icon
+	iconDesc, err = repositories.DescribeIcon(db, icon.Name)
+	s.NoError(err)
+	s.Empty(iconDesc.Tags)
+
+	err = repositories.AddTag(db, icon.Name, tag)
+	s.NoError(err)
+
+	tags, err = repositories.GetExistingTags(getPool())
+	s.NoError(err)
+	s.Equal(1, len(tags))
+
+	iconDesc, err = repositories.DescribeIcon(db, icon.Name)
+	s.NoError(err)
+	s.Equal(1, len(iconDesc.Tags))
 }
