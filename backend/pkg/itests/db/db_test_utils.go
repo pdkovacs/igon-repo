@@ -15,9 +15,18 @@ import (
 
 var db *sql.DB
 
+var testIconRepoSchema = "test_iconrepo"
+
 func createTestDBPool() {
 	connProps := repositories.CreateConnectionProperties(auxiliaries.GetDefaultConfiguration())
-	connStr := fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=disable", connProps.User, connProps.Password, connProps.Host, connProps.Database)
+	connStr := fmt.Sprintf(
+		"postgres://%s:%s@%s/%s?sslmode=disable&options=-csearch_path=%s",
+		connProps.User,
+		connProps.Password,
+		connProps.Host,
+		connProps.Database,
+		testIconRepoSchema,
+	)
 	var err error
 	db, err = sql.Open("postgres", connStr)
 	if err != nil {
@@ -30,16 +39,43 @@ func terminatePool() {
 	db.Close()
 }
 
+func deleteData() error {
+	var tx *sql.Tx
+	var err error
+
+	tx, err = db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to start Tx for deleting test data: %w", err)
+	}
+	defer tx.Rollback()
+
+	tables := []string{"icon", "icon_file", "tag", "icon_to_tags"}
+	for _, table := range tables {
+		_, err = tx.Exec("DELETE FROM " + table)
+		if err != nil {
+			return fmt.Errorf("failed to delete test data from table %s: %w", table, err)
+		}
+	}
+
+	tx.Commit()
+	return nil
+}
+
 func makeSureHasUptodateDBSchemaWithNoData() {
 	var logger = log.WithField("prefix", "make-sure-has-uptodate-db-schema-with-no-data")
 	var err error
-	err = repositories.CreateSchemaRetry(db)
+	err = repositories.CreateSchemaRetry(db, testIconRepoSchema)
 	if err != nil {
 		logger.Errorf("Failed to create schema %v", err)
 		panic(err)
 	}
 	err = repositories.ExecuteSchemaUpgrade(db)
 	if err != nil {
+		panic(err)
+	}
+	err = deleteData()
+	if err != nil {
+		logger.Errorf("failed to delete test data: %v", err)
 		panic(err)
 	}
 }

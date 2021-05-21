@@ -16,12 +16,32 @@ type upgradeStep struct {
 
 var upgradeSteps = []upgradeStep{
 	{
+		version: "2018-04-04/0 - first version",
+		sqls: []string{
+			`CREATE TABLE icon(
+				id          serial primary key,
+				name        text,
+				modified_by text,
+				modified_at timestamp DEFAULT now(),
+				UNIQUE(name)
+			)`,
+			`CREATE TABLE icon_file(
+				id          serial primary key,
+				icon_id     int REFERENCES icon(id) ON DELETE CASCADE,
+				file_format text,
+				icon_size   text,
+				content     bytea,
+				UNIQUE (icon_id, file_format, icon_size)
+			)`,
+		},
+	},
+	{
 		version: "2018-12-30/1 - tag support",
 		sqls: []string{
 			"CREATE TABLE tag(id serial primary key, text text)",
 			"CREATE TABLE icon_to_tags (" +
 				"icon_id int REFERENCES icon(id) ON DELETE CASCADE, " +
-				"tag_id  int REFERENCES tag(id)  ON DELETE CASCADE" +
+				"tag_id  int REFERENCES tag(id)  ON DELETE RESTRICT" +
 				")",
 		},
 	},

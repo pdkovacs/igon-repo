@@ -253,3 +253,75 @@ func AddTag(db *sql.DB, iconName string, tag string) error {
 	tx.Commit()
 	return nil
 }
+
+func deleteIconfileBare(tx *sql.Tx, iconName string, iconfile domain.Iconfile) error {
+	var err error
+
+	var getIdAndLockIcon = "SELECT id FROM icon WHERE name = $1 FOR UPDATE"
+	var deleteFile = "DELETE FROM icon_file WHERE icon_id = $1 and file_format = $2 and icon_size = $3"
+	var countIconfilesLeftForIcon = "SELECT count(*) as icon_file_count FROM icon_file WHERE icon_id = $1"
+	var deleteIconSQL = "DELETE FROM icon WHERE id = $1"
+
+	var iconId int64
+	err = tx.QueryRow(getIdAndLockIcon, iconName).Scan(&iconId)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return domain.ErrIconNotFound
+		}
+		return fmt.Errorf("failed to obtain iconfile id for %v: %w", iconfile, err)
+	}
+
+	_, err = tx.Exec(deleteFile, iconId, iconfile.Format, iconfile.Size)
+	if err != nil {
+		return fmt.Errorf("failed to delete iconfile %v: %w", iconfile, err)
+	}
+
+	var remainingIconfileCountForIcon int
+	err = tx.QueryRow(countIconfilesLeftForIcon, iconId).Scan(&remainingIconfileCountForIcon)
+	if err != nil {
+		return fmt.Errorf("failed to obtain iconfile count for %v: %w", iconName, err)
+	}
+
+	if remainingIconfileCountForIcon == 0 {
+		_, err = tx.Exec(deleteIconSQL, iconId)
+		if err != nil {
+			return fmt.Errorf("failed to delete icon %v: %w", iconName, err)
+		}
+	}
+
+	return nil
+}
+
+func DeleteIcon(db *sql.DB, iconName string, createSideEffect CreateSideEffect) error {
+	var tx *sql.Tx
+	var err error
+
+	tx, err = db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to start Tx for deleting icon %s: %w", iconName, err)
+	}
+	defer tx.Rollback()
+
+	var iconDesc domain.Icon
+	iconDesc, err = describeIconInTx(tx, iconName, true)
+	if err != nil {
+		return fmt.Errorf("failed to describe icon %v: %w", iconName, err)
+	}
+
+	for _, iconFile := range iconDesc.Iconfiles {
+		err = deleteIconfileBare(tx, iconName, iconFile)
+		if err != nil {
+			return fmt.Errorf("failed to delete iconfile %v: %w", iconFile, err)
+		}
+	}
+
+	if createSideEffect != nil {
+		err = createSideEffect()
+		if err != nil {
+			return fmt.Errorf("failed to execute side effect while deleting icon %v: %w", iconName, err)
+		}
+	}
+
+	tx.Commit()
+	return nil
+}

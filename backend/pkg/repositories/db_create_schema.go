@@ -4,103 +4,48 @@ import (
 	"database/sql"
 	"fmt"
 	"net"
-	"strings"
 	"syscall"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 )
 
-func colDefToSQL(columnsDef columnsDefinition, columnName string) string {
-	return fmt.Sprintf("%s %s", columnName, columnsDef[columnName])
-}
-
-func columnsDefinitionToSQL(columnsDef columnsDefinition) string {
-	resultColsDef := ""
-	for columnName := range columnsDef {
-		if len(resultColsDef) > 0 {
-			resultColsDef += ",\n    "
-		}
-		resultColsDef += colDefToSQL(columnsDef, columnName)
-	}
-	return resultColsDef
-}
-
-func colConstraintsToSQL(colConstraints []string) string {
-	if len(colConstraints) == 0 {
-		return ""
-	}
-	return ",\n    " + strings.Join(colConstraints[:], ",\n    ")
-}
-
-func makeCreateTableStatement(tableDefinition tableSpec) string {
-	format := `CREATE TABLE %s (
-	%s%s
-)`
-	return fmt.Sprintf(
-		format,
-		tableDefinition.tableName,
-		columnsDefinitionToSQL(tableDefinition.columns),
-		colConstraintsToSQL(tableDefinition.col_constraints),
-	)
-}
-
-func createTable(db *sql.DB, tableDefinition tableSpec) error {
-	_, err := db.Exec(makeCreateTableStatement(tableDefinition))
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func dropTableIfExists(db *sql.DB, tableDefinition tableSpec) error {
-	statement := fmt.Sprintf("DROP TABLE IF EXISTS %s CASCADE", tableDefinition.tableName)
-	_, err := db.Exec(statement)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func dropCreateTable(db *sql.DB, tableDefinition tableSpec) error {
+func createSchema(db *sql.DB, schemaName string) error {
 	var err error
-	err = dropTableIfExists(db, tableDefinition)
+	var tx *sql.Tx
+	tx, err = db.Begin()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create Tx for schema creation: %w", err)
 	}
-	err = createTable(db, tableDefinition)
+	defer tx.Rollback()
+
+	var count int
+	err = tx.QueryRow("SELECT count(*) FROM information_schema.schemata where schema_name = $1", schemaName).Scan(&count)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to check existence of schema %s: %w", schemaName, err)
 	}
+
+	if count == 1 {
+		log.Infof("schema %s already exists", schemaName)
+		return nil
+	}
+
+	log.Infof("creating schema %s...", schemaName)
+
+	_, err = tx.Exec("create schema " + schemaName)
+	if err != nil {
+		return fmt.Errorf("failed to create schema: " + schemaName)
+	}
+
+	tx.Commit()
 	return nil
 }
 
-func createSchema(db *sql.DB) error {
-	var err error
-	err = dropCreateTable(db, iconTableSpec)
-	if err != nil {
-		return err
-	}
-	err = dropCreateTable(db, iconfileTableSpec)
-	if err != nil {
-		return err
-	}
-	err = dropCreateTable(db, iconToTagsTableSpec)
-	if err != nil {
-		return err
-	}
-	err = dropCreateTable(db, tagTableSpec)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func CreateSchemaRetry(db *sql.DB) error {
+func CreateSchemaRetry(db *sql.DB, schemaName string) error {
 	var err error
 
 	for i := 0; i < 30; i++ {
-		err = createSchema(db)
+		err = createSchema(db, schemaName)
 		if err == nil {
 			return nil
 		} else {
@@ -108,7 +53,7 @@ func CreateSchemaRetry(db *sql.DB) error {
 		}
 		if worthIt := isErrorWorthRetrying(err); worthIt {
 			time.Sleep(2 * time.Second)
-			createSchema(db)
+			createSchema(db, schemaName)
 		} else {
 			return fmt.Errorf("create schema failed: %w", err)
 		}
