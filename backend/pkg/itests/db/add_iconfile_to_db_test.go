@@ -28,3 +28,21 @@ func (s *addIconfileToDBTestSuite) TestErrorOnDuplicateIconfile() {
 	err = repositories.AddIconfileToIcon(getPool(), icon.Name, iconfile, icon.ModifiedBy, nil)
 	s.True(errors.Is(err, domain.ErrIconfileAlreadyExists))
 }
+
+func (s *addIconfileToDBTestSuite) TestSecondIconfile() {
+	var err error
+	var icon = testData[0]
+	var iconfile1 = icon.Iconfiles[0]
+	var iconfile2 = icon.Iconfiles[1]
+
+	err = repositories.CreateIcon(getPool(), icon.Name, iconfile1, icon.ModifiedBy, nil)
+	s.NoError(err)
+
+	err = repositories.AddIconfileToIcon(getPool(), icon.Name, iconfile2, icon.ModifiedBy, nil)
+	s.NoError(err)
+
+	var iconDesc domain.Icon
+	iconDesc, err = repositories.DescribeIcon(getPool(), icon.Name)
+	s.NoError(err)
+	s.equalIconAttributes(icon, iconDesc, nil)
+}

@@ -70,9 +70,10 @@ func describeIconInTx(tx *sql.Tx, iconName string, forUpdate bool) (domain.Icon,
 	}
 
 	return domain.Icon{
-		Name:      iconName,
-		Iconfiles: iconfiles,
-		Tags:      tags,
+		Name:       iconName,
+		ModifiedBy: modifiedBy,
+		Tags:       tags,
+		Iconfiles:  iconfiles,
 	}, nil
 }
 
@@ -97,8 +98,7 @@ func CreateIcon(db *sql.DB, iconName string, iconfile domain.Iconfile, modifiedB
 	}
 	defer tx.Rollback()
 
-	const insertIconSQL string = "INSERT INTO icon(name, modified_by) " +
-		"VALUES($1, $2) RETURNING id"
+	const insertIconSQL string = "INSERT INTO icon(name, modified_by) VALUES($1, $2) RETURNING id"
 	_, err = tx.Exec(insertIconSQL, iconName, modifiedBy)
 	if err != nil {
 		return fmt.Errorf("failed to create icon %v: %w", iconName, err)
@@ -319,6 +319,32 @@ func DeleteIcon(db *sql.DB, iconName string, createSideEffect CreateSideEffect) 
 		err = createSideEffect()
 		if err != nil {
 			return fmt.Errorf("failed to execute side effect while deleting icon %v: %w", iconName, err)
+		}
+	}
+
+	tx.Commit()
+	return nil
+}
+
+func DeleteIconfile(db *sql.DB, iconName string, iconfile domain.Iconfile, createSideEffect CreateSideEffect) error {
+	var err error
+	var tx *sql.Tx
+
+	tx, err = db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to create TX for deleting iconfile %v from %s: %w", iconfile, iconName, err)
+	}
+	defer tx.Rollback()
+
+	err = deleteIconfileBare(tx, iconName, iconfile)
+	if err != nil {
+		return fmt.Errorf("failed to delete iconfile %v from %s: %w", iconfile, iconName, err)
+	}
+
+	if createSideEffect != nil {
+		err = createSideEffect()
+		if err != nil {
+			return fmt.Errorf("failed to create side-effect for removing iconfile %v from %s: %w", iconfile, iconName, err)
 		}
 	}
 

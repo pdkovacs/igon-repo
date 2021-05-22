@@ -172,3 +172,21 @@ func (s *dbTestSuite) BeforeTest(suiteName, testName string) {
 func (s *dbTestSuite) AfterTest(suiteName, testName string) {
 	manageTestResourcesAfterEach()
 }
+
+func (s *dbTestSuite) equalIconAttributes(icon1 domain.Icon, icon2 domain.Icon, expectedTags []string) {
+	s.Equal(icon1.Name, icon2.Name)
+	s.Equal(icon1.ModifiedBy, icon2.ModifiedBy)
+	if expectedTags != nil {
+		s.Equal(expectedTags, icon2.Tags)
+	}
+}
+
+func (s *dbTestSuite) getIconfile(iconName string, iconfile domain.Iconfile) ([]byte, error) {
+	return repositories.GetIconFile(getPool(), iconName, iconfile.Format, iconfile.Size)
+}
+
+func (s *dbTestSuite) getIconfileChecked(iconName string, iconfile domain.Iconfile) {
+	content, err := s.getIconfile(iconName, iconfile)
+	s.NoError(err)
+	s.Equal(iconfile.Content, content)
+}

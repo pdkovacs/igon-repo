@@ -18,21 +18,15 @@ func TestAddIconToDBTestSuite(t *testing.T) {
 	suite.Run(t, &addIconToDBTestSuite{})
 }
 
-func (s *addIconToDBTestSuite) getIconfile(iconName string, iconfile domain.Iconfile) ([]byte, error) {
-	return repositories.GetIconFile(getPool(), iconName, iconfile.Format, iconfile.Size)
-}
-
-func (s *addIconToDBTestSuite) getIconfileChecked(iconName string, iconfile domain.Iconfile) {
-	content, err := s.getIconfile(iconName, iconfile)
-	s.NoError(err)
-	s.Equal(iconfile.Content, content)
-}
-
 func (s *addIconToDBTestSuite) TestAddFirstIcon() {
 	var icon = testData[0]
 	fmt.Printf("Hello, First Icon %v\n", icon.Name)
 	err := repositories.CreateIcon(getPool(), icon.Name, icon.Iconfiles[0], icon.ModifiedBy, nil)
 	s.NoError(err)
+	var iconDesc domain.Icon
+	iconDesc, err = repositories.DescribeIcon(getPool(), icon.Name)
+	s.NoError(err)
+	s.equalIconAttributes(icon, iconDesc, nil)
 	s.getIconfileChecked(icon.Name, icon.Iconfiles[0])
 }
 
