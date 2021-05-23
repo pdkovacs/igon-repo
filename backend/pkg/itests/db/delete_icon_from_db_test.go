@@ -22,10 +22,10 @@ func (s *deleteIconFromDBTestSuite) TestDeleteAllAssociatedEntries() {
 
 	err = repositories.CreateIcon(getPool(), icon.Name, icon.Iconfiles[0], icon.ModifiedBy, nil)
 	s.NoError(err)
-	err = repositories.AddTag(getPool(), icon.Name, icon.Tags[0])
+	err = repositories.AddTag(getPool(), icon.Name, icon.Tags[0], icon.ModifiedBy)
 	s.NoError(err)
 
-	err = repositories.DeleteIcon(getPool(), icon.Name, nil)
+	err = repositories.DeleteIcon(getPool(), icon.Name, icon.ModifiedBy, nil)
 	s.NoError(err)
 
 	var rowCount int

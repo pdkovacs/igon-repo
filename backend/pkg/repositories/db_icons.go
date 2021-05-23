@@ -77,6 +77,7 @@ func describeIconInTx(tx *sql.Tx, iconName string, forUpdate bool) (domain.Icon,
 	}, nil
 }
 
+// DescribeIcon returns the attributes of the icon having the specified name, "attributes" meaning here the entire icon without iconfiles' contents
 func DescribeIcon(db *sql.DB, iconName string) (domain.Icon, error) {
 	tx, err := db.Begin()
 	if err != nil {
@@ -120,6 +121,14 @@ func CreateIcon(db *sql.DB, iconName string, iconfile domain.Iconfile, modifiedB
 	return nil
 }
 
+func updateModifier(tx *sql.Tx, iconName string, modifiedBy string) error {
+	_, err := tx.Exec("UPDATE icon SET modified_by = $1 WHERE name = $2", modifiedBy, iconName)
+	if err != nil {
+		return fmt.Errorf("failed to update icon %s with the modifier %s: %w", iconName, modifiedBy, err)
+	}
+	return nil
+}
+
 func AddIconfileToIcon(db *sql.DB, iconName string, iconfile domain.Iconfile, modifiedBy string, createSideEffect CreateSideEffect) error {
 	var tx *sql.Tx
 	var err error
@@ -133,6 +142,11 @@ func AddIconfileToIcon(db *sql.DB, iconName string, iconfile domain.Iconfile, mo
 	err = insertIconfile(tx, iconName, iconfile, modifiedBy)
 	if err != nil {
 		return fmt.Errorf("failed to create icon-file %v: %w", iconName, err)
+	}
+
+	err = updateModifier(tx, iconName, modifiedBy)
+	if err != nil {
+		return fmt.Errorf("failed to add iconfile '%v' to icon '%s': %w", iconfile, iconName, err)
 	}
 
 	if createSideEffect != nil {
@@ -234,7 +248,7 @@ func GetTagId(tx *sql.Tx, tag string) (int64, error) {
 	return tagId, nil
 }
 
-func AddTag(db *sql.DB, iconName string, tag string) error {
+func AddTag(db *sql.DB, iconName string, tag string, modifiedBy string) error {
 	tx, trError := db.Begin()
 	if trError != nil {
 		return fmt.Errorf("failed to obtain transaction for adding tag '%s' to '%s': %w", tag, iconName, trError)
@@ -248,6 +262,11 @@ func AddTag(db *sql.DB, iconName string, tag string) error {
 	addRefErr := addTagReferenceToIcon(tx, tagId, iconName)
 	if addRefErr != nil {
 		return fmt.Errorf("failed to connect tag '%s' to icon '%s': %w", tag, iconName, addRefErr)
+	}
+
+	err := updateModifier(tx, iconName, modifiedBy)
+	if err != nil {
+		return fmt.Errorf("failed to add tag '%s' to icon '%s': %w", tag, iconName, err)
 	}
 
 	tx.Commit()
@@ -292,7 +311,7 @@ func deleteIconfileBare(tx *sql.Tx, iconName string, iconfile domain.Iconfile) e
 	return nil
 }
 
-func DeleteIcon(db *sql.DB, iconName string, createSideEffect CreateSideEffect) error {
+func DeleteIcon(db *sql.DB, iconName string, modifiedBy string, createSideEffect CreateSideEffect) error {
 	var tx *sql.Tx
 	var err error
 
@@ -326,7 +345,7 @@ func DeleteIcon(db *sql.DB, iconName string, createSideEffect CreateSideEffect) 
 	return nil
 }
 
-func DeleteIconfile(db *sql.DB, iconName string, iconfile domain.Iconfile, createSideEffect CreateSideEffect) error {
+func DeleteIconfile(db *sql.DB, iconName string, iconfile domain.Iconfile, modifiedBy string, createSideEffect CreateSideEffect) error {
 	var err error
 	var tx *sql.Tx
 
@@ -339,6 +358,11 @@ func DeleteIconfile(db *sql.DB, iconName string, iconfile domain.Iconfile, creat
 	err = deleteIconfileBare(tx, iconName, iconfile)
 	if err != nil {
 		return fmt.Errorf("failed to delete iconfile %v from %s: %w", iconfile, iconName, err)
+	}
+
+	err = updateModifier(tx, iconName, modifiedBy)
+	if err != nil {
+		return fmt.Errorf("failed to delete iconfile %v from icon '%s': %w", iconfile, iconName, err)
 	}
 
 	if createSideEffect != nil {

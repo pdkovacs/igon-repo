@@ -34,7 +34,7 @@ func (s *addTagTestSuite) TestCreateAssociateNonExistingTag() {
 	s.NoError(err)
 	s.Empty(iconDesc.Tags)
 
-	err = repositories.AddTag(db, icon.Name, tag)
+	err = repositories.AddTag(db, icon.Name, tag, icon.ModifiedBy)
 	s.NoError(err)
 
 	tags, err = repositories.GetExistingTags(getPool())
@@ -61,7 +61,7 @@ func (s *addTagTestSuite) TestReuseExistingTag() {
 	err = repositories.CreateIcon(getPool(), icon2.Name, icon2.Iconfiles[0], icon2.ModifiedBy, nil)
 	s.NoError(err)
 
-	err = repositories.AddTag(db, icon1.Name, tag)
+	err = repositories.AddTag(db, icon1.Name, tag, icon1.ModifiedBy)
 	s.NoError(err)
 
 	tags, err = repositories.GetExistingTags(getPool())
@@ -78,7 +78,7 @@ func (s *addTagTestSuite) TestReuseExistingTag() {
 	s.NoError(err)
 	s.Empty(iconDesc2.Tags)
 
-	err = repositories.AddTag(db, icon2.Name, tag)
+	err = repositories.AddTag(db, icon2.Name, tag, icon2.ModifiedBy)
 	s.NoError(err)
 
 	iconDesc1, err = repositories.DescribeIcon(db, icon1.Name)

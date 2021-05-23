@@ -144,6 +144,29 @@ func createTestIconfile(format, size string) domain.Iconfile {
 	}
 }
 
+func cloneIconfile(iconfile domain.Iconfile) domain.Iconfile {
+	var contentClone = make([]byte, len(iconfile.Content))
+	copy(contentClone, iconfile.Content)
+	return domain.Iconfile{
+		Format:  iconfile.Format,
+		Size:    iconfile.Size,
+		Content: contentClone,
+	}
+}
+
+func cloneIcon(icon domain.Icon) domain.Icon {
+	var iconfilesClone = make([]domain.Iconfile, len(icon.Iconfiles))
+	for _, iconfile := range icon.Iconfiles {
+		iconfilesClone = append(iconfilesClone, cloneIconfile(iconfile))
+	}
+	return domain.Icon{
+		Name:       icon.Name,
+		ModifiedBy: icon.ModifiedBy,
+		Tags:       icon.Tags,
+		Iconfiles:  iconfilesClone,
+	}
+}
+
 func randomBytes(len int) []byte {
 	b := make([]byte, len)
 	_, err := rand.Read(b)
