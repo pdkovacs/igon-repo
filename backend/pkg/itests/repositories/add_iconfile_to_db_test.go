@@ -1,10 +1,11 @@
-package db
+package repositories
 
 import (
 	"errors"
 	"testing"
 
 	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
+	"github.com/pdkovacs/igo-repo/backend/pkg/itests"
 	"github.com/pdkovacs/igo-repo/backend/pkg/repositories"
 	"github.com/stretchr/testify/suite"
 )
@@ -19,7 +20,7 @@ func TestAddIconfileToDBTestSuite(t *testing.T) {
 
 func (s *addIconfileToDBTestSuite) TestErrorOnDuplicateIconfile() {
 	var err error
-	var icon = testData[0]
+	var icon = itests.TestData[0]
 	var iconfile = icon.Iconfiles[0]
 
 	err = repositories.CreateIcon(getPool(), icon.Name, iconfile, icon.ModifiedBy, nil)
@@ -31,7 +32,7 @@ func (s *addIconfileToDBTestSuite) TestErrorOnDuplicateIconfile() {
 
 func (s *addIconfileToDBTestSuite) TestSecondIconfile() {
 	var err error
-	var icon = testData[0]
+	var icon = itests.TestData[0]
 	var iconfile1 = icon.Iconfiles[0]
 	var iconfile2 = icon.Iconfiles[1]
 
@@ -49,7 +50,7 @@ func (s *addIconfileToDBTestSuite) TestSecondIconfile() {
 
 func (s *addIconfileToDBTestSuite) TestAddSecondIconfileBySecondUser() {
 	var err error
-	var icon = testData[0]
+	var icon = itests.TestData[0]
 	var iconfile1 = icon.Iconfiles[0]
 	var iconfile2 = icon.Iconfiles[1]
 
@@ -64,7 +65,7 @@ func (s *addIconfileToDBTestSuite) TestAddSecondIconfileBySecondUser() {
 	var iconDesc domain.Icon
 	iconDesc, err = repositories.DescribeIcon(getPool(), icon.Name)
 	s.NoError(err)
-	clone := cloneIcon(icon)
+	clone := itests.CloneIcon(icon)
 	clone.ModifiedBy = secondUser
 	s.equalIconAttributes(clone, iconDesc, nil)
 }

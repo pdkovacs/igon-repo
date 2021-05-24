@@ -1,9 +1,10 @@
-package db
+package repositories
 
 import (
 	"testing"
 
 	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
+	"github.com/pdkovacs/igo-repo/backend/pkg/itests"
 	"github.com/pdkovacs/igo-repo/backend/pkg/repositories"
 	"github.com/stretchr/testify/suite"
 )
@@ -19,7 +20,7 @@ func TestDeleteIconfileFromDBTestSuite(t *testing.T) {
 func (s *deleteIconfileFromDBTestSuite) TestDeleteTheOnlyIconfile() {
 	var err error
 
-	icon := testData[0]
+	icon := itests.TestData[0]
 	iconfile := icon.Iconfiles[0]
 
 	err = repositories.CreateIcon(getPool(), icon.Name, iconfile, icon.ModifiedBy, nil)
@@ -48,7 +49,7 @@ func (s *deleteIconfileFromDBTestSuite) TestDeleteTheOnlyIconfile() {
 func (s *deleteIconfileFromDBTestSuite) TestDeleteNextToLastIconfile() {
 	var err error
 
-	icon := testData[0]
+	icon := itests.TestData[0]
 	iconfile1 := icon.Iconfiles[0]
 	iconfile2 := icon.Iconfiles[1]
 
@@ -74,7 +75,7 @@ func (s *deleteIconfileFromDBTestSuite) TestDeleteNextToLastIconfileBySecondUser
 
 	const secondUser = "second-user"
 
-	icon := testData[0]
+	icon := itests.TestData[0]
 	iconfile1 := icon.Iconfiles[0]
 	iconfile2 := icon.Iconfiles[1]
 
@@ -88,7 +89,7 @@ func (s *deleteIconfileFromDBTestSuite) TestDeleteNextToLastIconfileBySecondUser
 	err = repositories.DeleteIconfile(getPool(), icon.Name, iconfile1, secondUser, nil)
 	s.NoError(err)
 
-	clone := cloneIcon(icon)
+	clone := itests.CloneIcon(icon)
 	clone.ModifiedBy = secondUser
 	var iconDesc domain.Icon
 	iconDesc, err = repositories.DescribeIcon(getPool(), icon.Name)

@@ -1,8 +1,9 @@
-package db
+package repositories
 
 import (
 	"testing"
 
+	"github.com/pdkovacs/igo-repo/backend/pkg/itests"
 	"github.com/pdkovacs/igo-repo/backend/pkg/repositories"
 	"github.com/stretchr/testify/suite"
 )
@@ -18,7 +19,7 @@ func TestDeleteIconFromDBTestSuite(t *testing.T) {
 func (s *deleteIconFromDBTestSuite) TestDeleteAllAssociatedEntries() {
 	var err error
 
-	icon := testData[0]
+	icon := itests.TestData[0]
 
 	err = repositories.CreateIcon(getPool(), icon.Name, icon.Iconfiles[0], icon.ModifiedBy, nil)
 	s.NoError(err)

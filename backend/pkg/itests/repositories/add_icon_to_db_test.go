@@ -1,4 +1,4 @@
-package db
+package repositories
 
 import (
 	"errors"
@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
+	"github.com/pdkovacs/igo-repo/backend/pkg/itests"
 	"github.com/pdkovacs/igo-repo/backend/pkg/repositories"
 	"github.com/stretchr/testify/suite"
 )
@@ -19,7 +20,7 @@ func TestAddIconToDBTestSuite(t *testing.T) {
 }
 
 func (s *addIconToDBTestSuite) TestAddFirstIcon() {
-	var icon = testData[0]
+	var icon = itests.TestData[0]
 	fmt.Printf("Hello, First Icon %v\n", icon.Name)
 	err := repositories.CreateIcon(getPool(), icon.Name, icon.Iconfiles[0], icon.ModifiedBy, nil)
 	s.NoError(err)
@@ -32,8 +33,8 @@ func (s *addIconToDBTestSuite) TestAddFirstIcon() {
 
 func (s *addIconToDBTestSuite) TestAddASecondIcon() {
 	var err error
-	var icon1 = testData[0]
-	var icon2 = testData[1]
+	var icon1 = itests.TestData[0]
+	var icon2 = itests.TestData[1]
 	err = repositories.CreateIcon(getPool(), icon1.Name, icon1.Iconfiles[0], icon1.ModifiedBy, nil)
 	s.NoError(err)
 	err = repositories.CreateIcon(getPool(), icon2.Name, icon2.Iconfiles[1], icon2.ModifiedBy, nil)
@@ -56,8 +57,8 @@ func (s *addIconToDBTestSuite) TestRollbackOnErrorInSideEffect() {
 		return sideEffectTestError
 	}
 
-	var icon1 = testData[0]
-	var icon2 = testData[1]
+	var icon1 = itests.TestData[0]
+	var icon2 = itests.TestData[1]
 	err = repositories.CreateIcon(getPool(), icon1.Name, icon1.Iconfiles[0], icon1.ModifiedBy, nil)
 	s.NoError(err)
 	err = repositories.CreateIcon(getPool(), icon2.Name, icon2.Iconfiles[1], icon2.ModifiedBy, createSideEffect)
