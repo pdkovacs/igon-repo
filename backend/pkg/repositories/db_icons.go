@@ -78,8 +78,8 @@ func describeIconInTx(tx *sql.Tx, iconName string, forUpdate bool) (domain.Icon,
 }
 
 // DescribeIcon returns the attributes of the icon having the specified name, "attributes" meaning here the entire icon without iconfiles' contents
-func DescribeIcon(db *sql.DB, iconName string) (domain.Icon, error) {
-	tx, err := db.Begin()
+func (repo DatabaseRepository) DescribeIcon(iconName string) (domain.Icon, error) {
+	tx, err := repo.ConnectionPool.Begin()
 	if err != nil {
 		return domain.Icon{}, err
 	}
@@ -89,11 +89,10 @@ func DescribeIcon(db *sql.DB, iconName string) (domain.Icon, error) {
 
 type CreateSideEffect func() error
 
-func CreateIcon(db *sql.DB, iconName string, iconfile domain.Iconfile, modifiedBy string, createSideEffect CreateSideEffect) error {
+func (repo DatabaseRepository) CreateIcon(iconName string, iconfile domain.Iconfile, modifiedBy string, createSideEffect CreateSideEffect) error {
 	var tx *sql.Tx
 	var err error
-
-	tx, err = db.Begin()
+	tx, err = repo.ConnectionPool.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to start transaction when creating icon %v: %w", iconName, err)
 	}
@@ -129,11 +128,11 @@ func updateModifier(tx *sql.Tx, iconName string, modifiedBy string) error {
 	return nil
 }
 
-func AddIconfileToIcon(db *sql.DB, iconName string, iconfile domain.Iconfile, modifiedBy string, createSideEffect CreateSideEffect) error {
+func (repo DatabaseRepository) AddIconfileToIcon(iconName string, iconfile domain.Iconfile, modifiedBy string, createSideEffect CreateSideEffect) error {
 	var tx *sql.Tx
 	var err error
 
-	tx, err = db.Begin()
+	tx, err = repo.ConnectionPool.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to start transaction when creating icon-file for %v: %w", iconName, err)
 	}
@@ -175,7 +174,7 @@ func insertIconfile(tx *sql.Tx, iconName string, iconfile domain.Iconfile, modif
 	return nil
 }
 
-func GetIconFile(db *sql.DB, iconName, format, iconSize string) ([]byte, error) {
+func (repo DatabaseRepository) GetIconFile(iconName, format, iconSize string) ([]byte, error) {
 	const getIconfileSQL = "SELECT content FROM icon, icon_file " +
 		"WHERE icon_id = icon.id AND " +
 		"file_format = $2 AND " +
@@ -184,7 +183,7 @@ func GetIconFile(db *sql.DB, iconName, format, iconSize string) ([]byte, error) 
 
 	var err error
 	var content = []byte{}
-	err = db.QueryRow(getIconfileSQL, iconName, format, iconSize).Scan(&content)
+	err = repo.ConnectionPool.QueryRow(getIconfileSQL, iconName, format, iconSize).Scan(&content)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return content, domain.ErrIconNotFound
@@ -194,8 +193,8 @@ func GetIconFile(db *sql.DB, iconName, format, iconSize string) ([]byte, error) 
 	return content, nil
 }
 
-func GetExistingTags(db *sql.DB) ([]string, error) {
-	rows, err := db.Query("SELECT text FROM tag")
+func (repo DatabaseRepository) GetExistingTags() ([]string, error) {
+	rows, err := repo.ConnectionPool.Query("SELECT text FROM tag")
 	if err != nil {
 		return nil, err
 	}
@@ -248,8 +247,8 @@ func GetTagId(tx *sql.Tx, tag string) (int64, error) {
 	return tagId, nil
 }
 
-func AddTag(db *sql.DB, iconName string, tag string, modifiedBy string) error {
-	tx, trError := db.Begin()
+func (repo DatabaseRepository) AddTag(iconName string, tag string, modifiedBy string) error {
+	tx, trError := repo.ConnectionPool.Begin()
 	if trError != nil {
 		return fmt.Errorf("failed to obtain transaction for adding tag '%s' to '%s': %w", tag, iconName, trError)
 	}
@@ -311,11 +310,11 @@ func deleteIconfileBare(tx *sql.Tx, iconName string, iconfile domain.Iconfile) e
 	return nil
 }
 
-func DeleteIcon(db *sql.DB, iconName string, modifiedBy string, createSideEffect CreateSideEffect) error {
+func (repo DatabaseRepository) DeleteIcon(iconName string, modifiedBy string, createSideEffect CreateSideEffect) error {
 	var tx *sql.Tx
 	var err error
 
-	tx, err = db.Begin()
+	tx, err = repo.ConnectionPool.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to start Tx for deleting icon %s: %w", iconName, err)
 	}
@@ -345,11 +344,11 @@ func DeleteIcon(db *sql.DB, iconName string, modifiedBy string, createSideEffect
 	return nil
 }
 
-func DeleteIconfile(db *sql.DB, iconName string, iconfile domain.Iconfile, modifiedBy string, createSideEffect CreateSideEffect) error {
+func (repo DatabaseRepository) DeleteIconfile(iconName string, iconfile domain.Iconfile, modifiedBy string, createSideEffect CreateSideEffect) error {
 	var err error
 	var tx *sql.Tx
 
-	tx, err = db.Begin()
+	tx, err = repo.ConnectionPool.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to create TX for deleting iconfile %v from %s: %w", iconfile, iconName, err)
 	}

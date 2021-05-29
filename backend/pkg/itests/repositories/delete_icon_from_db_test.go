@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/pdkovacs/igo-repo/backend/pkg/itests"
-	"github.com/pdkovacs/igo-repo/backend/pkg/repositories"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -21,22 +20,22 @@ func (s *deleteIconFromDBTestSuite) TestDeleteAllAssociatedEntries() {
 
 	icon := itests.TestData[0]
 
-	err = repositories.CreateIcon(getPool(), icon.Name, icon.Iconfiles[0], icon.ModifiedBy, nil)
+	err = s.CreateIcon(icon.Name, icon.Iconfiles[0], icon.ModifiedBy, nil)
 	s.NoError(err)
-	err = repositories.AddTag(getPool(), icon.Name, icon.Tags[0], icon.ModifiedBy)
+	err = s.AddTag(icon.Name, icon.Tags[0], icon.ModifiedBy)
 	s.NoError(err)
 
-	err = repositories.DeleteIcon(getPool(), icon.Name, icon.ModifiedBy, nil)
+	err = s.DeleteIcon(icon.Name, icon.ModifiedBy, nil)
 	s.NoError(err)
 
 	var rowCount int
-	err = db.QueryRow("select count(*) as row_count from icon").Scan(&rowCount)
+	err = s.ConnectionPool.QueryRow("select count(*) as row_count from icon").Scan(&rowCount)
 	s.NoError(err)
 	s.Equal(0, rowCount)
-	err = db.QueryRow("select count(*) as row_count from icon_file").Scan(&rowCount)
+	err = s.ConnectionPool.QueryRow("select count(*) as row_count from icon_file").Scan(&rowCount)
 	s.NoError(err)
 	s.Equal(0, rowCount)
-	err = db.QueryRow("select count(*) as row_count from icon_to_tags").Scan(&rowCount)
+	err = s.ConnectionPool.QueryRow("select count(*) as row_count from icon_to_tags").Scan(&rowCount)
 	s.NoError(err)
 	s.Equal(0, rowCount)
 }

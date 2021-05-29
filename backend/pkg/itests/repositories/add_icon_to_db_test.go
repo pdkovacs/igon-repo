@@ -7,7 +7,6 @@ import (
 
 	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
 	"github.com/pdkovacs/igo-repo/backend/pkg/itests"
-	"github.com/pdkovacs/igo-repo/backend/pkg/repositories"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -22,10 +21,10 @@ func TestAddIconToDBTestSuite(t *testing.T) {
 func (s *addIconToDBTestSuite) TestAddFirstIcon() {
 	var icon = itests.TestData[0]
 	fmt.Printf("Hello, First Icon %v\n", icon.Name)
-	err := repositories.CreateIcon(getPool(), icon.Name, icon.Iconfiles[0], icon.ModifiedBy, nil)
+	err := s.CreateIcon(icon.Name, icon.Iconfiles[0], icon.ModifiedBy, nil)
 	s.NoError(err)
 	var iconDesc domain.Icon
-	iconDesc, err = repositories.DescribeIcon(getPool(), icon.Name)
+	iconDesc, err = s.DescribeIcon(icon.Name)
 	s.NoError(err)
 	s.equalIconAttributes(icon, iconDesc, nil)
 	s.getIconfileChecked(icon.Name, icon.Iconfiles[0])
@@ -35,12 +34,12 @@ func (s *addIconToDBTestSuite) TestAddASecondIcon() {
 	var err error
 	var icon1 = itests.TestData[0]
 	var icon2 = itests.TestData[1]
-	err = repositories.CreateIcon(getPool(), icon1.Name, icon1.Iconfiles[0], icon1.ModifiedBy, nil)
+	err = s.CreateIcon(icon1.Name, icon1.Iconfiles[0], icon1.ModifiedBy, nil)
 	s.NoError(err)
-	err = repositories.CreateIcon(getPool(), icon2.Name, icon2.Iconfiles[1], icon2.ModifiedBy, nil)
+	err = s.CreateIcon(icon2.Name, icon2.Iconfiles[1], icon2.ModifiedBy, nil)
 	s.NoError(err)
 	var count int
-	count, err = getIconCount()
+	count, err = s.getIconCount()
 	s.NoError(err)
 	s.Equal(2, count)
 	s.getIconfileChecked(icon1.Name, icon1.Iconfiles[0])
@@ -59,12 +58,12 @@ func (s *addIconToDBTestSuite) TestRollbackOnErrorInSideEffect() {
 
 	var icon1 = itests.TestData[0]
 	var icon2 = itests.TestData[1]
-	err = repositories.CreateIcon(getPool(), icon1.Name, icon1.Iconfiles[0], icon1.ModifiedBy, nil)
+	err = s.CreateIcon(icon1.Name, icon1.Iconfiles[0], icon1.ModifiedBy, nil)
 	s.NoError(err)
-	err = repositories.CreateIcon(getPool(), icon2.Name, icon2.Iconfiles[1], icon2.ModifiedBy, createSideEffect)
+	err = s.CreateIcon(icon2.Name, icon2.Iconfiles[1], icon2.ModifiedBy, createSideEffect)
 	s.True(errors.Is(err, sideEffectTestError))
 
-	count, err = getIconCount()
+	count, err = s.getIconCount()
 	s.NoError(err)
 	s.Equal(1, count)
 	s.getIconfileChecked(icon1.Name, icon1.Iconfiles[0])

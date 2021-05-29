@@ -12,37 +12,18 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-var db *sql.DB
+type dbTestSuite struct {
+	suite.Suite
+	*repositories.DatabaseRepository
+}
 
 var testIconRepoSchema = "test_iconrepo"
 
-func createTestDBPool() {
-	connProps := repositories.CreateConnectionProperties(auxiliaries.GetDefaultConfiguration())
-	connStr := fmt.Sprintf(
-		"postgres://%s:%s@%s/%s?sslmode=disable&options=-csearch_path=%s",
-		connProps.User,
-		connProps.Password,
-		connProps.Host,
-		connProps.Database,
-		testIconRepoSchema,
-	)
-	var err error
-	db, err = sql.Open("postgres", connStr)
-	if err != nil {
-		panic(err)
-	}
-	db.Ping()
-}
-
-func terminatePool() {
-	db.Close()
-}
-
-func deleteData() error {
+func (s *dbTestSuite) deleteData() error {
 	var tx *sql.Tx
 	var err error
 
-	tx, err = db.Begin()
+	tx, err = s.ConnectionPool.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to start Tx for deleting test data: %w", err)
 	}
@@ -60,68 +41,50 @@ func deleteData() error {
 	return nil
 }
 
-func makeSureHasUptodateDBSchemaWithNoData() {
+func (s *dbTestSuite) makeSureHasUptodateDBSchemaWithNoData() {
 	var logger = log.WithField("prefix", "make-sure-has-uptodate-db-schema-with-no-data")
 	var err error
-	err = repositories.CreateSchemaRetry(db, testIconRepoSchema)
+	connProps := repositories.CreateConnectionProperties(auxiliaries.GetDefaultConfiguration())
+	repo, errNewDB := repositories.NewDB(connProps, testIconRepoSchema)
+	if errNewDB != nil {
+		logger.Errorf("Failed to create schema %v", errNewDB)
+		panic(errNewDB)
+	}
+	s.DatabaseRepository = repo
+	err = repo.ExecuteSchemaUpgrade()
 	if err != nil {
-		logger.Errorf("Failed to create schema %v", err)
 		panic(err)
 	}
-	err = repositories.ExecuteSchemaUpgrade(db)
-	if err != nil {
-		panic(err)
-	}
-	err = deleteData()
+	err = s.deleteData()
 	if err != nil {
 		logger.Errorf("failed to delete test data: %v", err)
 		panic(err)
 	}
 }
 
-func getPool() *sql.DB {
-	return db
-}
-
-func getIconCount() (int, error) {
+func (s dbTestSuite) getIconCount() (int, error) {
 	var getIconCountSQL = "SELECT count(*) from icon"
 	var count int
-	err := db.QueryRow(getIconCountSQL).Scan(&count)
+	err := s.DatabaseRepository.ConnectionPool.QueryRow(getIconCountSQL).Scan(&count)
 	if err != nil {
 		return 0, nil
 	}
 	return count, nil
 }
 
-func manageTestResourcesBeforeAll() {
-	createTestDBPool()
-}
-
-func manageTestResourcesAfterAll() {
-	terminatePool()
-}
-
-func manageTestResourcesBeforeEach() {
-	makeSureHasUptodateDBSchemaWithNoData()
-}
-
 func manageTestResourcesAfterEach() {
 }
 
-type dbTestSuite struct {
-	suite.Suite
-}
-
 func (s *dbTestSuite) SetupSuite() {
-	manageTestResourcesBeforeAll()
+
 }
 
 func (s *dbTestSuite) TearDownSuite() {
-	manageTestResourcesAfterAll()
+	s.DatabaseRepository.Close()
 }
 
 func (s *dbTestSuite) BeforeTest(suiteName, testName string) {
-	manageTestResourcesBeforeEach()
+	s.makeSureHasUptodateDBSchemaWithNoData()
 }
 
 func (s *dbTestSuite) AfterTest(suiteName, testName string) {
@@ -137,7 +100,7 @@ func (s *dbTestSuite) equalIconAttributes(icon1 domain.Icon, icon2 domain.Icon, 
 }
 
 func (s *dbTestSuite) getIconfile(iconName string, iconfile domain.Iconfile) ([]byte, error) {
-	return repositories.GetIconFile(getPool(), iconName, iconfile.Format, iconfile.Size)
+	return s.GetIconFile(iconName, iconfile.Format, iconfile.Size)
 }
 
 func (s *dbTestSuite) getIconfileChecked(iconName string, iconfile domain.Iconfile) {

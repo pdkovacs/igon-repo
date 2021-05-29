@@ -98,13 +98,13 @@ func applyUpgrade(tx *sql.Tx, upgrStep upgradeStep) error {
 	return nil
 }
 
-func ExecuteSchemaUpgrade(db *sql.DB) error {
+func (repo DatabaseRepository) ExecuteSchemaUpgrade() error {
 	var err error
 	logger := log.WithField("prefix", "execute-schema-upgrade")
 	sort.Slice(upgradeSteps, func(i int, j int) bool { return compareVersions(upgradeSteps[i], upgradeSteps[j]) < 0 })
 
 	var tx *sql.Tx
-	tx, err = db.Begin()
+	tx, err = repo.ConnectionPool.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to execute schema upgrade: %w", err)
 	}
