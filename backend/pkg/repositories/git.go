@@ -10,7 +10,12 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var IntrusiveTestEnvvarName = "GIT_COMMIT_FAIL_INTRUSIVE_TEST"
+type GitRepository struct {
+	Location string
+}
+
+var IntrusiveGitTestEnvvarName = "GIT_COMMIT_FAIL_INTRUSIVE_TEST"
+var intrusiveGitTestCommand = "procyon lotor"
 
 type iconfilePathComponents struct {
 	pathToFormatDir      string
@@ -87,8 +92,8 @@ func defaultCommitMessageProvider(messageBase string) getCommitMessageFn {
 }
 
 func getCommitCommand() string {
-	if os.Getenv(IntrusiveTestEnvvarName) == "true" {
-		return "procyon lotor"
+	if os.Getenv(IntrusiveGitTestEnvvarName) == "true" {
+		return intrusiveGitTestCommand
 	} else {
 		return "commit"
 	}
@@ -143,16 +148,12 @@ func (g GitRepository) createIconfileJob(iconfileOperation func() ([]string, err
 	return err
 }
 
-type GitRepository struct {
-	Location string
-}
-
 func (g GitRepository) createIconfile(iconName string, iconfile domain.Iconfile, modifiedBy string) (string, error) {
 	pathComponents := g.getPathComponents1(iconName, iconfile)
 	var err error
-	err = os.Mkdir(pathComponents.pathToFormatDir, 0700)
+	err = os.MkdirAll(pathComponents.pathToFormatDir, 0700)
 	if err == nil {
-		err = os.Mkdir(pathComponents.pathToSizeDir, 0700)
+		err = os.MkdirAll(pathComponents.pathToSizeDir, 0700)
 		if err == nil {
 			err = os.WriteFile(pathComponents.pathToIconfile, iconfile.Content, 0700)
 		}

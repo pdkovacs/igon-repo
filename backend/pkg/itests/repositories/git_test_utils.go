@@ -17,10 +17,6 @@ var homeTmpDir = filepath.Join(os.Getenv("HOME"), "tmp")
 var testTmpDir = filepath.Join(homeTmpDir, "tmp-icon-repo-test")
 var repoDir = filepath.Join(testTmpDir, strconv.Itoa(os.Getpid()))
 
-func getTestRepoDir() string {
-	return repoDir
-}
-
 func createTestGitRepo() (*repositories.GitRepository, error) {
 	var gitRepo *repositories.GitRepository
 	var err error
@@ -85,7 +81,7 @@ func (s *gitTestSuite) BeforeTest(suiteName, testName string) {
 }
 
 func (s gitTestSuite) AfterTest(suiteName, testName string) {
-	os.Unsetenv(repositories.IntrusiveTestEnvvarName)
+	os.Unsetenv(repositories.IntrusiveGitTestEnvvarName)
 	err := deleteTestGitRepo()
 	if err != nil {
 		panic(err)
