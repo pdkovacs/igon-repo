@@ -1,4 +1,4 @@
-package itests
+package api
 
 import (
 	"testing"
@@ -7,19 +7,11 @@ import (
 )
 
 type basicAuthnTestSuite struct {
-	suite.Suite
+	apiTestSuite
 }
 
 func TestBasicAuthnTestSuite(t *testing.T) {
 	suite.Run(t, &basicAuthnTestSuite{})
-}
-
-func (s *basicAuthnTestSuite) BeforeTest(suiteName, testName string) {
-	startTestServer(defaultOptions)
-}
-
-func (s *basicAuthnTestSuite) AfterTest() {
-	terminateTestServer()
 }
 
 func (s *basicAuthnTestSuite) TestShouldFailWith401WithoutCredentials() {
@@ -30,7 +22,7 @@ func (s *basicAuthnTestSuite) TestShouldFailWith401WithoutCredentials() {
 		body:               nil,
 		testSuite:          &s.Suite,
 	}
-	resp, requestError := get(&req)
+	resp, requestError := s.get(&req)
 	s.NoError(requestError)
 	challenge, hasChallange := resp.headers["Www-Authenticate"]
 	s.True(hasChallange)
@@ -47,7 +39,7 @@ func (s *basicAuthnTestSuite) TestShouldFailWith401WithWrongCredentials() {
 		body:               nil,
 		testSuite:          &s.Suite,
 	}
-	resp, requestError := get(&req)
+	resp, requestError := s.get(&req)
 	s.NoError(requestError)
 	challenge, hasChallange := resp.headers["Www-Authenticate"]
 	s.True(hasChallange)
@@ -64,7 +56,7 @@ func (s *basicAuthnTestSuite) TestShouldPasssWithCorrectCredentials() {
 		body:               nil,
 		testSuite:          &s.Suite,
 	}
-	resp, requestError := get(&req)
+	resp, requestError := s.get(&req)
 	s.NoError(requestError)
 	_, hasChallange := resp.headers["Www-Authenticate"]
 	s.False(hasChallange)

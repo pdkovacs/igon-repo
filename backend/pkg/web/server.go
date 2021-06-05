@@ -1,4 +1,4 @@
-package server
+package web
 
 import (
 	"fmt"
@@ -10,24 +10,29 @@ import (
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"github.com/pdkovacs/igo-repo/backend/pkg/auxiliaries"
+	"github.com/pdkovacs/igo-repo/backend/pkg/repositories"
 	"github.com/pdkovacs/igo-repo/backend/pkg/security"
-	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
-var listener net.Listener
+type Server struct {
+	listener      net.Listener
+	DBRepository  *repositories.DatabaseRepository
+	GitRepository *repositories.GitRepository
+}
 
 // Start starts the server
-var Start = func(portRequested int, r http.Handler, ready func(port int)) {
-	logger := logrus.WithField("prefix", "StartServer")
+func (s *Server) Start(portRequested int, r http.Handler, ready func(port int)) {
+	logger := log.WithField("prefix", "StartServer")
 	logger.Info("Starting server on ephemeral....")
 	var err error
 
-	listener, err = net.Listen("tcp", fmt.Sprintf(":%d", portRequested))
+	s.listener, err = net.Listen("tcp", fmt.Sprintf(":%d", portRequested))
 	if err != nil {
 		logger.Fatalf("Error while starting to listen at an ephemeral port: %v", err)
 	}
 
-	_, port, err := net.SplitHostPort(listener.Addr().String())
+	_, port, err := net.SplitHostPort(s.listener.Addr().String())
 	if err != nil {
 		logger.Fatalf("Error while parsing the server address: %v", err)
 	}
@@ -42,11 +47,28 @@ var Start = func(portRequested int, r http.Handler, ready func(port int)) {
 		ready(portAsInt)
 	}
 
-	http.Serve(listener, r)
+	http.Serve(s.listener, r)
 }
 
 // SetupAndStart sets up and starts server.
-var SetupAndStart = func(port int, options auxiliaries.Options, ready func(port int)) {
+func (s *Server) SetupAndStart(options auxiliaries.Options, ready func(port int)) {
+	var err error
+	s.DBRepository, err = repositories.InitDBRepo(options)
+	if err != nil {
+		panic(err)
+	}
+
+	s.GitRepository = &repositories.GitRepository{Location: options.IconDataLocationGit}
+	err = s.GitRepository.InitMaybe()
+	if err != nil {
+		panic(err)
+	}
+
+	r := initEndpoints(options)
+	s.Start(options.ServerPort, r, ready)
+}
+
+func initEndpoints(options auxiliaries.Options) *gin.Engine {
 	r := gin.Default()
 	store := cookie.NewStore([]byte("secret"))
 	r.Use(sessions.Sessions("mysession", store))
@@ -57,14 +79,15 @@ var SetupAndStart = func(port int, options auxiliaries.Options, ready func(port 
 	r.GET("/info", func(c *gin.Context) {
 		c.JSON(200, auxiliaries.GetBuildInfo())
 	})
-	Start(port, r, ready)
+
+	return r
 }
 
 // KillListener kills the listener
-var KillListener = func() {
-	logger := logrus.WithField("prefix", "ListenerKiller")
-	logger.Debug("listener: ", listener)
-	error := listener.Close()
+func (s *Server) KillListener() {
+	logger := log.WithField("prefix", "ListenerKiller")
+	logger.Infof("listener: %v", s.listener)
+	error := s.listener.Close()
 	if error != nil {
 		logger.Errorf("Error while closing listener: %v", error)
 	} else {

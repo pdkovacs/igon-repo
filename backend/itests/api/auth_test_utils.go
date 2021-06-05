@@ -1,4 +1,4 @@
-package itests
+package api
 
 import (
 	"encoding/base64"

@@ -1,42 +1,75 @@
-package itests
+package api
 
 import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"sync"
 
+	repositories_itests "github.com/pdkovacs/igo-repo/backend/itests/repositories"
 	"github.com/pdkovacs/igo-repo/backend/pkg/auxiliaries"
-	"github.com/pdkovacs/igo-repo/backend/pkg/server"
+	"github.com/pdkovacs/igo-repo/backend/pkg/repositories"
+	"github.com/pdkovacs/igo-repo/backend/pkg/web"
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"
 )
 
-var defaultOptions auxiliaries.Options
-
-func init() {
-	defaultOptions = auxiliaries.GetDefaultConfiguration()
-	defaultOptions.PasswordCredentials = []auxiliaries.PasswordCredentials{
-		{User: "ux", Password: "ux"},
-	}
+type apiTestSuite struct {
+	suite.Suite
+	defaultOptions auxiliaries.Options
+	server         web.Server
+	serverPort     int
 }
 
-var serverPort int
+func manageTestResourcesAfterEach() {
+}
+
+func (s *apiTestSuite) SetupSuite() {
+	s.defaultOptions = auxiliaries.GetDefaultConfiguration()
+	s.defaultOptions.PasswordCredentials = []auxiliaries.PasswordCredentials{
+		{User: "ux", Password: "ux"},
+	}
+	s.defaultOptions.ServerPort = 0
+
+	s.defaultOptions.DBSchemaName = "itest_api"
+	s.defaultOptions.IconDataCreateNew = "itest-api"
+}
+
+func (s *apiTestSuite) BeforeTest(suiteName, testName string) {
+	s.startTestServer(s.defaultOptions)
+}
+
+func (s *apiTestSuite) AfterTest(suiteName, testName string) {
+	s.terminateTestServer()
+	err := repositories_itests.DeleteTestGitRepo(s.defaultOptions.IconDataLocationGit)
+	if err != nil {
+		panic(err)
+	}
+	os.Unsetenv(repositories.IntrusiveGitTestEnvvarName)
+
+	repositories_itests.DeleteDBData(s.server.DBRepository.ConnectionPool)
+	s.server.DBRepository.Close()
+}
 
 // startTestServer starts a test server
-func startTestServer(options auxiliaries.Options) {
+func (s *apiTestSuite) startTestServer(options auxiliaries.Options) {
+	options.ServerPort = 0
 	var wg sync.WaitGroup
 	wg.Add(1)
-	go server.SetupAndStart(0, options, func(port int) {
-		serverPort = port
+	s.server = web.Server{}
+	go s.server.SetupAndStart(options, func(port int) {
+		s.serverPort = port
+		log.Infof("Server is listening on port %d", port)
 		wg.Done()
 	})
 	wg.Wait()
 }
 
 // terminateTestServer terminates a test server
-func terminateTestServer() {
-	server.KillListener()
+func (s *apiTestSuite) terminateTestServer() {
+	s.server.KillListener()
 }
 
 type requestCredentials struct {
@@ -57,8 +90,8 @@ type response struct {
 	body    interface{}
 }
 
-func get(req *request) (response, error) {
-	request, requestCreationError := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d%s", serverPort, req.path), nil)
+func (s *apiTestSuite) get(req *request) (response, error) {
+	request, requestCreationError := http.NewRequest("GET", fmt.Sprintf("http://localhost:%d%s", s.serverPort, req.path), nil)
 	if requestCreationError != nil {
 		return response{}, fmt.Errorf("Failed to create request: %w", requestCreationError)
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/pdkovacs/igo-repo/backend/pkg/auxiliaries"
 	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
@@ -186,27 +187,67 @@ func (g GitRepository) AddIconfile(iconName string, iconfile domain.Iconfile, mo
 	return nil
 }
 
-func NewGitRepo(location string) (*GitRepository, error) {
+func (s *GitRepository) createInitializeGitRepo() error {
 	var err error
 	var out string
 
 	var cmds []auxiliaries.ExecCmdParams = []auxiliaries.ExecCmdParams{
-		{Name: "rm", Args: []string{"-rf", location}, Opts: nil},
-		{Name: "mkdir", Args: []string{"-p", location}, Opts: nil},
-		{Name: "git", Args: []string{"init"}, Opts: &auxiliaries.CmdOpts{Cwd: location}},
-		{Name: "git", Args: []string{"config", "user.name", "Icon Repo Server"}, Opts: &auxiliaries.CmdOpts{Cwd: location}},
-		{Name: "git", Args: []string{"config", "user.email", "IconRepoServer@UIToolBox"}, Opts: &auxiliaries.CmdOpts{Cwd: location}},
+		{Name: "rm", Args: []string{"-rf", s.Location}, Opts: nil},
+		{Name: "mkdir", Args: []string{"-p", s.Location}, Opts: nil},
+		{Name: "git", Args: []string{"init"}, Opts: &auxiliaries.CmdOpts{Cwd: s.Location}},
+		{Name: "git", Args: []string{"config", "user.name", "Icon Repo Server"}, Opts: &auxiliaries.CmdOpts{Cwd: s.Location}},
+		{Name: "git", Args: []string{"config", "user.email", "IconRepoServer@UIToolBox"}, Opts: &auxiliaries.CmdOpts{Cwd: s.Location}},
 	}
 
 	for _, cmd := range cmds {
 		out, err = auxiliaries.ExecuteCommand(cmd)
 		println(out)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create git repo at %s: %w", location, err)
+			return fmt.Errorf("failed to create git repo at %s: %w", s.Location, err)
 		}
 	}
 
-	return &GitRepository{
-		Location: location,
-	}, nil
+	return nil
+}
+
+func (s *GitRepository) test() bool {
+	if GitRepoLocationExists(s.Location) {
+		testCommand := auxiliaries.ExecCmdParams{Name: "git", Args: []string{"init"}, Opts: &auxiliaries.CmdOpts{Cwd: s.Location}}
+		outOrErr, err := auxiliaries.ExecuteCommand(testCommand)
+		if err != nil {
+			if strings.Contains(outOrErr, "not a git repository") {
+				return false
+			}
+			panic(err)
+		}
+	}
+	return false
+}
+
+// Init initializes the Git repository if it already doesn't exist
+func (s *GitRepository) InitMaybe() error {
+	if !s.test() {
+		return s.createInitializeGitRepo()
+	}
+	return nil
+}
+
+func GitRepoLocationExists(location string) bool {
+	var err error
+	var fi os.FileInfo
+
+	fi, err = os.Stat(location)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// nothing to do here
+			return false
+		}
+		panic(err)
+	}
+
+	if fi.Mode().IsRegular() {
+		panic(fmt.Errorf("file exists, but it is not a directory: %s", location))
+	}
+
+	return true
 }

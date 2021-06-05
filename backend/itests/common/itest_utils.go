@@ -1,4 +1,4 @@
-package itests
+package common
 
 import (
 	"crypto/rand"

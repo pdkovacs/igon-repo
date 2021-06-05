@@ -1,4 +1,4 @@
-package itests
+package api
 
 import (
 	"testing"
@@ -9,18 +9,11 @@ import (
 
 type buildinfoAPITestSuite struct {
 	suite.Suite
+	apiTestSuite
 }
 
 func TestBuildinfoAPITestSuite(t *testing.T) {
 	suite.Run(t, &buildinfoAPITestSuite{})
-}
-
-func (s *buildinfoAPITestSuite) BeforeTest(suiteName, testName string) {
-	startTestServer(defaultOptions)
-}
-
-func (s *buildinfoAPITestSuite) AfterTest(suiteName, testName string) {
-	terminateTestServer()
 }
 
 func (s *buildinfoAPITestSuite) TestMustIncludeVersionInfo() {
@@ -32,7 +25,7 @@ func (s *buildinfoAPITestSuite) TestMustIncludeVersionInfo() {
 		expectedStatusCode: 200,
 		body:               &auxiliaries.BuildInfo{},
 	}
-	resp, err := get(&req)
+	resp, err := s.get(&req)
 	s.Require().NoError(err)
 	s.Equal(&expected, resp.body)
 }

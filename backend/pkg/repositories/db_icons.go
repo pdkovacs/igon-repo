@@ -6,6 +6,7 @@ import (
 
 	"github.com/lib/pq"
 	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
+	log "github.com/sirupsen/logrus"
 )
 
 func describeIconInTx(tx *sql.Tx, iconName string, forUpdate bool) (domain.Icon, error) {
@@ -29,44 +30,57 @@ func describeIconInTx(tx *sql.Tx, iconName string, forUpdate bool) (domain.Icon,
 	err = tx.QueryRow(iconSQL, iconName).Scan(&iconId, &modifiedBy)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return domain.Icon{}, domain.ErrIconNotFound
+			return domain.Icon{}, fmt.Errorf("icon %s not found: %w", iconName, domain.ErrIconNotFound)
 		} else {
 			return domain.Icon{}, fmt.Errorf("error while retrieving icon '%s' from database: %w", iconName, err)
 		}
 	}
 
 	iconfiles := make([]domain.Iconfile, 0, 10)
-	rows, err = tx.Query(iconfilesSQL, iconId)
-	if err != nil {
-		return domain.Icon{}, fmt.Errorf("error while retrieving iconfiles for '%s' from database: %w", iconName, err)
-	}
-	defer rows.Close()
-	var format string
-	var size string
-	for rows.Next() {
-		err = rows.Scan(&format, &size)
+	emptyIcon := domain.Icon{}
+	err = func() error {
+		rows, err = tx.Query(iconfilesSQL, iconId)
 		if err != nil {
-			return domain.Icon{}, fmt.Errorf("error while retrieving iconfiles for '%s' from database: %w", iconName, err)
+			return fmt.Errorf("error while retrieving iconfiles for '%s' from database: %w", iconName, err)
 		}
-		iconfiles = append(iconfiles, domain.Iconfile{
-			Format: format,
-			Size:   size,
-		})
+		defer rows.Close()
+		var format string
+		var size string
+		for rows.Next() {
+			err = rows.Scan(&format, &size)
+			if err != nil {
+				return fmt.Errorf("error while retrieving iconfiles for '%s' from database: %w", iconName, err)
+			}
+			iconfiles = append(iconfiles, domain.Iconfile{
+				Format: format,
+				Size:   size,
+			})
+		}
+		return nil
+	}()
+	if err != nil {
+		return emptyIcon, err
 	}
 
 	tags := make([]string, 0, 50)
-	rows, err = tx.Query(tagsSQL, iconId)
-	if err != nil {
-		return domain.Icon{}, fmt.Errorf("error while retrieving tags for '%s' from database: %w", iconName, err)
-	}
-	defer rows.Close()
-	var tag string
-	for rows.Next() {
-		err = rows.Scan(&tag)
+	err = func() error {
+		rows, err = tx.Query(tagsSQL, iconId)
 		if err != nil {
-			return domain.Icon{}, fmt.Errorf("error while retrieving tags for '%s' from database: %w", iconName, err)
+			return fmt.Errorf("error while retrieving tags for '%s' from database: %w", iconName, err)
 		}
-		tags = append(tags, tag)
+		defer rows.Close()
+		var tag string
+		for rows.Next() {
+			err = rows.Scan(&tag)
+			if err != nil {
+				return fmt.Errorf("error while retrieving tags for '%s' from database: %w", iconName, err)
+			}
+			tags = append(tags, tag)
+		}
+		return nil
+	}()
+	if err != nil {
+		return emptyIcon, err
 	}
 
 	return domain.Icon{
@@ -112,10 +126,11 @@ func (repo DatabaseRepository) CreateIcon(iconName string, iconfile domain.Iconf
 	if createSideEffect != nil {
 		err = createSideEffect()
 		if err != nil {
-			return fmt.Errorf("failed to create icon file %s, %w", iconName, err)
+			return fmt.Errorf("failed to create icon file %s due to error while creating side-effect, %w", iconName, err)
 		}
 	}
 
+	log.Infof("Icon %s with iconfile %v created", iconName, iconfile)
 	tx.Commit()
 	return nil
 }
@@ -151,7 +166,7 @@ func (repo DatabaseRepository) AddIconfileToIcon(iconName string, iconfile domai
 	if createSideEffect != nil {
 		err = createSideEffect()
 		if err != nil {
-			return fmt.Errorf("failed to create icon file %s, %w", iconName, err)
+			return fmt.Errorf("failed to create icon file %s due to error while creating side-effect: %w", iconName, err)
 		}
 	}
 
@@ -186,7 +201,10 @@ func (repo DatabaseRepository) GetIconFile(iconName, format, iconSize string) ([
 	err = repo.ConnectionPool.QueryRow(getIconfileSQL, iconName, format, iconSize).Scan(&content)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return content, domain.ErrIconNotFound
+			return content, fmt.Errorf("iconfile %v for icon %s not found %w", domain.Iconfile{
+				Format: format,
+				Size:   iconSize,
+			}, iconName, domain.ErrIconfileNotFound)
 		}
 		return []byte{}, fmt.Errorf("failed to get iconfile %v: %w", iconName, err)
 	}
@@ -284,7 +302,7 @@ func deleteIconfileBare(tx *sql.Tx, iconName string, iconfile domain.Iconfile) e
 	err = tx.QueryRow(getIdAndLockIcon, iconName).Scan(&iconId)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return domain.ErrIconNotFound
+			return fmt.Errorf("icon %s not found: %w", iconName, domain.ErrIconNotFound)
 		}
 		return fmt.Errorf("failed to obtain iconfile id for %v: %w", iconfile, err)
 	}

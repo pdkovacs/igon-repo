@@ -21,6 +21,7 @@ type ConnectionProperties struct {
 	Host     string
 	Port     int
 	Database string
+	Schema   string
 	User     string
 	Password string
 }
@@ -44,6 +45,7 @@ func CreateConnectionProperties(options auxiliaries.Options) ConnectionPropertie
 		Host:     options.DBHost,
 		Port:     options.DBPort,
 		Database: options.DBName,
+		Schema:   options.DBSchemaName,
 		User:     options.DBUser,
 		Password: options.DBPassword,
 	}
@@ -85,18 +87,18 @@ func (repo DatabaseRepository) createSchema() error {
 	return nil
 }
 
-func openConnection(connProps ConnectionProperties, schemaName string) (DatabaseRepository, error) {
+func openConnection(connProps ConnectionProperties) (DatabaseRepository, error) {
 	connStr := fmt.Sprintf(
 		"postgres://%s:%s@%s/%s?sslmode=disable&options=-csearch_path=%s",
 		connProps.User,
 		connProps.Password,
 		connProps.Host,
 		connProps.Database,
-		schemaName,
+		connProps.Schema,
 	)
 
 	db, err := sql.Open("postgres", connStr)
-	repo := DatabaseRepository{db, schemaName}
+	repo := DatabaseRepository{db, connProps.Schema}
 	if err != nil {
 		return repo, err
 	}
@@ -104,10 +106,10 @@ func openConnection(connProps ConnectionProperties, schemaName string) (Database
 	return repo, err
 }
 
-func NewDB(connectionProperties ConnectionProperties, schemaName string) (*DatabaseRepository, error) {
+func NewDBRepo(connectionProperties ConnectionProperties) (*DatabaseRepository, error) {
 	var err error
 
-	repo, errDBOpen := openConnection(connectionProperties, schemaName)
+	repo, errDBOpen := openConnection(connectionProperties)
 	if errDBOpen != nil {
 		return &repo, errDBOpen
 	}
@@ -156,4 +158,15 @@ func maybeTransient(err error) bool {
 		}
 	}
 	return false
+}
+
+func InitDBRepo(configuration auxiliaries.Options) (*DatabaseRepository, error) {
+	logger := log.WithField("prefix", "repositories.InitDBRepo")
+	connProps := CreateConnectionProperties(configuration)
+	dbRepo, errNewDB := NewDBRepo(connProps)
+	if errNewDB != nil {
+		logger.Errorf("Failed to create schema %v", errNewDB)
+		panic(errNewDB)
+	}
+	return dbRepo, dbRepo.ExecuteSchemaUpgrade()
 }

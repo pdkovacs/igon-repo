@@ -1,4 +1,4 @@
-package itests
+package api
 
 import (
 	"github.com/pdkovacs/igo-repo/backend/pkg/domain"

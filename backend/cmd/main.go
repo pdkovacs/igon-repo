@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/pdkovacs/igo-repo/backend/pkg/auxiliaries"
-	"github.com/pdkovacs/igo-repo/backend/pkg/server"
+	"github.com/pdkovacs/igo-repo/backend/pkg/web"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -27,7 +27,8 @@ func main() {
 
 	if serverWanted {
 		conf := auxiliaries.ParseCommandLineArgs(os.Args)
-		server.SetupAndStart(conf.ServerPort, conf, func(port int) {
+		server := web.Server{}
+		server.SetupAndStart(conf, func(port int) {
 		})
 	}
 }

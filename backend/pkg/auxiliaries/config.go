@@ -49,6 +49,7 @@ type Options struct {
 	DBUser                      string         `json:"dbUser" env:"DB_USER" long:"db-user" short:"" default:"iconrepo" description:"DB user"`
 	DBPassword                  string         `json:"dbPassword" env:"DB_PASSWORD" long:"db-password" short:"" default:"iconrepo" description:"DB password"`
 	DBName                      string         `json:"dbName" env:"DB_NAME" long:"db-name" short:"" default:"iconrepo" description:"Name of the database"`
+	DBSchemaName                string         `json:"dbSchemaName" env:"DB_SCHEMA_NAME" long:"db-schema-name" short:"" default:"icon_repo" description:"Name of the database schemma"`
 	EnableBackdoors             bool           `json:"enableBackdoors" env:"ENABLE_BACKDOORS" long:"enable-backdoors" short:"" description:"Enable backdoors"`
 	LoggerLevel                 string         `json:"loggerLevel" env:"LOGGER_LEVEL" long:"logger-level" short:"" default:"info" description:"Logger level"`
 	PackageRootDir              string         `json:"packageRootDir" env:"PACKAGE_ROOT_DIR" long:"package-root-dir" short:"" default:"" description:"Package root dir"`
