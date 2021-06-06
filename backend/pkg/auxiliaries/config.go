@@ -3,7 +3,6 @@ package auxiliaries
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -11,6 +10,9 @@ import (
 	"github.com/jessevdk/go-flags"
 	log "github.com/sirupsen/logrus"
 )
+
+const BasicAuthentication = "basic"
+const OIDCAuthentication = "oidc"
 
 // PasswordCredentials holds password-credentials
 type PasswordCredentials struct {
@@ -120,7 +122,7 @@ func ReadConfigurationFromFile(filePath string) (map[string]interface{}, error) 
 		return nil, fmt.Errorf("failed to locate configuration file %v: %w", filePath, fileStatError)
 	}
 
-	fileContent, fileReadError := ioutil.ReadFile(filePath)
+	fileContent, fileReadError := os.ReadFile(filePath)
 	if fileReadError != nil {
 		return nil, fmt.Errorf("failed to read configuration file %v: %w", filePath, fileReadError)
 	}

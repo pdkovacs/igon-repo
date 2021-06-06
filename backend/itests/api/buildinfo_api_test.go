@@ -19,13 +19,12 @@ func TestBuildinfoAPITestSuite(t *testing.T) {
 func (s *buildinfoAPITestSuite) TestMustIncludeVersionInfo() {
 	expected := auxiliaries.GetBuildInfo()
 
-	req := request{
+	req := requestType{
 		path:               "/info",
-		testSuite:          &s.Suite,
 		expectedStatusCode: 200,
-		body:               &auxiliaries.BuildInfo{},
+		respBodyProto:      &auxiliaries.BuildInfo{},
 	}
-	resp, err := s.get(&req)
+	resp, err := s.client.get(&req)
 	s.Require().NoError(err)
 	s.Equal(&expected, resp.body)
 }

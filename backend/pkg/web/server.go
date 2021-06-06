@@ -1,13 +1,14 @@
 package web
 
 import (
+	"encoding/gob"
 	"fmt"
 	"net"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/cookie"
+	"github.com/gin-contrib/sessions/memstore"
 	"github.com/gin-gonic/gin"
 	"github.com/pdkovacs/igo-repo/backend/pkg/auxiliaries"
 	"github.com/pdkovacs/igo-repo/backend/pkg/repositories"
@@ -17,6 +18,7 @@ import (
 
 type Server struct {
 	listener      net.Listener
+	Configuration auxiliaries.Options
 	DBRepository  *repositories.DatabaseRepository
 	GitRepository *repositories.GitRepository
 }
@@ -63,14 +65,16 @@ func (s *Server) SetupAndStart(options auxiliaries.Options, ready func(port int)
 	if err != nil {
 		panic(err)
 	}
-
+	s.Configuration = options
 	r := initEndpoints(options)
 	s.Start(options.ServerPort, r, ready)
 }
 
 func initEndpoints(options auxiliaries.Options) *gin.Engine {
+	gob.Register(security.UserSession{})
 	r := gin.Default()
-	store := cookie.NewStore([]byte("secret"))
+	store := memstore.NewStore([]byte("secret"))
+	store.Options(sessions.Options{MaxAge: 60 * 60 * 24})
 	r.Use(sessions.Sessions("mysession", store))
 	if options.PasswordCredentials != nil && len(options.PasswordCredentials) > 0 {
 		r.Use(security.HandlerProvider(security.BasicConfig{PasswordCredentialsList: options.PasswordCredentials}))
@@ -79,6 +83,12 @@ func initEndpoints(options auxiliaries.Options) *gin.Engine {
 	r.GET("/info", func(c *gin.Context) {
 		c.JSON(200, auxiliaries.GetBuildInfo())
 	})
+
+	r.GET("/user", security.UserInfoHandler)
+
+	if options.EnableBackdoors {
+		r.PUT("/backdoor/authentication", security.HandlePutIntoBackdoorRequest)
+	}
 
 	return r
 }

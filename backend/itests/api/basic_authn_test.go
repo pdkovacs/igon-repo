@@ -3,6 +3,7 @@ package api
 import (
 	"testing"
 
+	"github.com/pdkovacs/igo-repo/backend/pkg/auxiliaries"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -15,14 +16,13 @@ func TestBasicAuthnTestSuite(t *testing.T) {
 }
 
 func (s *basicAuthnTestSuite) TestShouldFailWith401WithoutCredentials() {
-	req := request{
+	req := requestType{
 		path:               "/info",
 		credentials:        &requestCredentials{"", ""},
 		expectedStatusCode: 401,
-		body:               nil,
-		testSuite:          &s.Suite,
+		respBodyProto:      nil,
 	}
-	resp, requestError := s.get(&req)
+	resp, requestError := s.client.get(&req)
 	s.NoError(requestError)
 	challenge, hasChallange := resp.headers["Www-Authenticate"]
 	s.True(hasChallange)
@@ -30,16 +30,15 @@ func (s *basicAuthnTestSuite) TestShouldFailWith401WithoutCredentials() {
 }
 
 func (s *basicAuthnTestSuite) TestShouldFailWith401WithWrongCredentials() {
-	reqCreds, makeReqCredErr := makeRequestCredentials(basicAuthScheme, "ux", "definitely-wrong-password....!~")
+	reqCreds, makeReqCredErr := makeRequestCredentials(auxiliaries.BasicAuthentication, "ux", "definitely-wrong-password....!~")
 	s.Require().NoError(makeReqCredErr)
-	req := request{
+	req := requestType{
 		path:               "/info",
 		credentials:        &reqCreds,
 		expectedStatusCode: 401,
-		body:               nil,
-		testSuite:          &s.Suite,
+		respBodyProto:      nil,
 	}
-	resp, requestError := s.get(&req)
+	resp, requestError := s.client.get(&req)
 	s.NoError(requestError)
 	challenge, hasChallange := resp.headers["Www-Authenticate"]
 	s.True(hasChallange)
@@ -47,16 +46,15 @@ func (s *basicAuthnTestSuite) TestShouldFailWith401WithWrongCredentials() {
 }
 
 func (s *basicAuthnTestSuite) TestShouldPasssWithCorrectCredentials() {
-	reqCreds, makeReqCredErr := makeRequestCredentials(basicAuthScheme, defaultCredentials.User, defaultCredentials.Password)
+	reqCreds, makeReqCredErr := makeRequestCredentials(auxiliaries.BasicAuthentication, defaultCredentials.User, defaultCredentials.Password)
 	s.Require().NoError(makeReqCredErr)
-	req := request{
+	req := requestType{
 		path:               "/info",
 		credentials:        &reqCreds,
 		expectedStatusCode: 200,
-		body:               nil,
-		testSuite:          &s.Suite,
+		respBodyProto:      nil,
 	}
-	resp, requestError := s.get(&req)
+	resp, requestError := s.client.get(&req)
 	s.NoError(requestError)
 	_, hasChallange := resp.headers["Www-Authenticate"]
 	s.False(hasChallange)

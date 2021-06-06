@@ -48,7 +48,8 @@ func basicScheme(config BasicConfig) gin.HandlerFunc {
 				if decodeOK {
 					for _, pc := range config.PasswordCredentialsList {
 						if pc.User == username && pc.Password == password {
-							session.Set(userKey, userSession{username, []string{}})
+							session.Set(userKey, UserSession{username, []string{}})
+							session.Save()
 							authorized = true
 							break
 						}
@@ -56,6 +57,7 @@ func basicScheme(config BasicConfig) gin.HandlerFunc {
 				}
 			}
 		}
+		session.Save()
 
 		if authorized {
 			c.Next()

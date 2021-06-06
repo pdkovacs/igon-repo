@@ -2,7 +2,9 @@ package common
 
 import (
 	"crypto/rand"
+	"encoding/json"
 
+	"github.com/pdkovacs/igo-repo/backend/pkg/auxiliaries"
 	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
 )
 
@@ -44,6 +46,23 @@ func randomBytes(len int) []byte {
 		panic(err)
 	}
 	return b
+}
+
+func CloneConfig(config auxiliaries.Options) auxiliaries.Options {
+	var clone auxiliaries.Options
+	var err error
+
+	var configAsJSON []byte
+	configAsJSON, err = json.Marshal(config)
+	if err != nil {
+		panic(err)
+	}
+	err = json.Unmarshal([]byte(configAsJSON), &clone)
+	if err != nil {
+		panic(err)
+	}
+
+	return clone
 }
 
 var TestData = []domain.Icon{

@@ -14,4 +14,4 @@ func TestIconCreateTestSuite(t *testing.T) {
 	suite.Run(t, &iconCreateTestSuite{})
 }
 
-func (s *apiTestSuite) TestPOSTShouldFailWith403WithoutCREATE_ICONPrivilegeTest() {}
+func (s *iconCreateTestSuite) TestPOSTShouldFailWith403WithoutCREATE_ICONPrivilegeTest() {}
