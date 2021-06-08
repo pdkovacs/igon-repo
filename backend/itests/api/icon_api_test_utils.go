@@ -1,8 +1,29 @@
 package api
 
 import (
+	"fmt"
+	"os"
+	"path"
+
 	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
 )
+
+var backendSourceHome = os.Getenv("BACKEND_SOURCE_HOME")
+
+func init() {
+	if backendSourceHome == "" {
+		backendSourceHome = fmt.Sprintf("%s/github/pdkovacs/igo-repo/backend", os.Getenv("HOME"))
+	}
+}
+
+func getDemoIconfileContent(iconName string, iconfile domain.Iconfile) []byte {
+	pathToContent := path.Join(backendSourceHome, "demo-data", iconfile.Format, iconfile.Size, fmt.Sprintf("%s.%s", iconName, iconfile.Format))
+	content, err := os.ReadFile(pathToContent)
+	if err != nil {
+		panic(err)
+	}
+	return content
+}
 
 type testIconDescriptor struct {
 	name       string

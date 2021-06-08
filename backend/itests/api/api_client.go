@@ -2,16 +2,18 @@ package api
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
+	"strings"
 
 	"github.com/pdkovacs/igo-repo/backend/pkg/auxiliaries"
+	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
 )
-
-var errUnexpectedStatusCode = errors.New("unexpected status code")
 
 var authenticationBackdoorPath = "/backdoor/authentication"
 
@@ -24,23 +26,42 @@ type requestCredentials struct {
 	headerValue string
 }
 
-type requestType struct {
-	path               string
-	credentials        *requestCredentials
-	jar                http.CookieJar
-	expectedStatusCode int
-	json               bool
-	body               interface{}
-	respBodyProto      interface{}
+type testRequest struct {
+	path          string
+	credentials   *requestCredentials
+	jar           http.CookieJar
+	headers       map[string]string
+	json          bool
+	body          interface{}
+	respBodyProto interface{}
 }
 
-type responseType struct {
-	headers map[string][]string
-	body    interface{}
+type testResponse struct {
+	headers    map[string][]string
+	statusCode int
+	body       interface{}
 }
 
-func (s *apiTestClient) get(req *requestType) (responseType, error) {
-	return s.req("GET", req)
+func (c *apiTestClient) makeRequestCredentials(pwCreds auxiliaries.PasswordCredentials) requestCredentials {
+	var username, password string
+	if len(pwCreds.User) == 0 {
+		username = defaultCredentials.User
+		password = defaultCredentials.Password
+	} else {
+		username = pwCreds.User
+		password = pwCreds.Password
+	}
+
+	reqCr, err := makeRequestCredentials(auxiliaries.BasicAuthentication, username, password)
+	if err != nil {
+		panic(err)
+	}
+
+	return reqCr
+}
+
+func (c *apiTestClient) get(req *testRequest) (testResponse, error) {
+	return c.doRequest("GET", req)
 }
 
 func encodeRequestBody(requestBody interface{}, isJSON bool) (io.Reader, error) {
@@ -61,19 +82,19 @@ func encodeRequestBody(requestBody interface{}, isJSON bool) (io.Reader, error) 
 	return bytes.NewBuffer(bodyAsBytes), nil
 }
 
-func (s *apiTestClient) req(method string, req *requestType) (responseType, error) {
+func (c *apiTestClient) doRequest(method string, req *testRequest) (testResponse, error) {
 	body, errBodyEncode := encodeRequestBody(req.body, req.json)
 	if errBodyEncode != nil {
-		return responseType{}, errBodyEncode
+		return testResponse{}, errBodyEncode
 	}
 
 	request, requestCreationError := http.NewRequest(
 		method,
-		fmt.Sprintf("http://localhost:%d%s", s.serverPort, req.path),
+		fmt.Sprintf("http://localhost:%d%s", c.serverPort, req.path),
 		body,
 	)
 	if requestCreationError != nil {
-		return responseType{}, fmt.Errorf("Failed to create request: %w", requestCreationError)
+		return testResponse{}, fmt.Errorf("Failed to create request: %w", requestCreationError)
 	}
 
 	var credentials requestCredentials
@@ -82,7 +103,7 @@ func (s *apiTestClient) req(method string, req *requestType) (responseType, erro
 			var credError error
 			credentials, credError = makeRequestCredentials(auxiliaries.BasicAuthentication, defaultCredentials.User, defaultCredentials.Password)
 			if credError != nil {
-				return responseType{}, fmt.Errorf("Failed to create default request credentials: %w", credError)
+				return testResponse{}, fmt.Errorf("Failed to create default request credentials: %w", credError)
 			}
 		}
 	} else {
@@ -95,25 +116,30 @@ func (s *apiTestClient) req(method string, req *requestType) (responseType, erro
 	if req.json {
 		request.Header.Set("Content-Type", "application/json")
 	}
+
+	for headerName, headerValue := range req.headers {
+		request.Header.Set(headerName, headerValue)
+	}
+
 	client := http.Client{
 		Jar: req.jar,
 	}
 	resp, requestExecutionError := client.Do(request)
 	if requestExecutionError != nil {
-		return responseType{}, fmt.Errorf("Failed to execute request: %w", requestExecutionError)
-	}
-	if resp.StatusCode != req.expectedStatusCode {
-		return responseType{}, fmt.Errorf("%w expected: %d, got: %d", errUnexpectedStatusCode, req.expectedStatusCode, resp.StatusCode)
+		return testResponse{}, fmt.Errorf("Failed to execute request: %w", requestExecutionError)
 	}
 
 	if req.respBodyProto != nil {
 		byteBody, responseReadError := io.ReadAll(resp.Body)
 		if responseReadError != nil {
-			return responseType{}, fmt.Errorf("Failed to read response body: %w", responseReadError)
+			return testResponse{}, fmt.Errorf("Failed to read response body: %w", responseReadError)
 		}
 		jsonUnmarshalError := json.Unmarshal(byteBody, req.respBodyProto)
 		if jsonUnmarshalError != nil {
-			return responseType{}, fmt.Errorf("Failed to unmarshal JSON response: %w", jsonUnmarshalError)
+			return testResponse{
+				headers:    resp.Header,
+				statusCode: resp.StatusCode,
+			}, fmt.Errorf("Failed to unmarshal JSON response: %w", jsonUnmarshalError)
 		}
 	}
 
@@ -124,8 +150,58 @@ func (s *apiTestClient) req(method string, req *requestType) (responseType, erro
 
 	var responseBody = req.respBodyProto
 	req.respBodyProto = nil
-	return responseType{
-		headers: resp.Header,
-		body:    responseBody,
+	return testResponse{
+		headers:    resp.Header,
+		statusCode: resp.StatusCode,
+		body:       responseBody,
 	}, nil
+}
+
+// https://stackoverflow.com/questions/20205796/post-data-using-the-content-type-multipart-form-data
+func (c *apiTestClient) createIcon(iconName string, initialIconfile []byte, withPrivileges []string) (int, domain.Iconfile, error) {
+	var err error
+	var resp testResponse
+
+	var b bytes.Buffer
+	w := multipart.NewWriter(&b)
+
+	var fw io.Writer
+	if fw, err = w.CreateFormField("iconName"); err != nil {
+		panic(err)
+	}
+	if _, err = io.Copy(fw, strings.NewReader(iconName)); err != nil {
+		panic(err)
+	}
+
+	if fw, err = w.CreateFormFile("iconfile", iconName); err != nil {
+		panic(err)
+	}
+	if _, err = io.Copy(fw, bytes.NewReader([]byte(base64.StdEncoding.EncodeToString(initialIconfile)))); err != nil {
+		panic(err)
+	}
+	w.Close()
+
+	creds := c.makeRequestCredentials(defaultCredentials)
+
+	headers := map[string]string{
+		"Content-Type": w.FormDataContentType(),
+	}
+
+	resp, err = c.doRequest("POST", &testRequest{
+		path:          "/icon",
+		credentials:   &creds,
+		jar:           nil,
+		headers:       headers,
+		body:          b.Bytes(),
+		respBodyProto: &domain.Iconfile{},
+	})
+	if err != nil {
+		return resp.statusCode, domain.Iconfile{}, err
+	}
+
+	if respIconfile, ok := resp.body.(*domain.Iconfile); ok {
+		return resp.statusCode, *respIconfile, nil
+	}
+
+	return resp.statusCode, domain.Iconfile{}, errors.New(fmt.Sprintf("failed to cast %T to domain.Iconfile", resp.body))
 }

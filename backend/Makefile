@@ -1,3 +1,6 @@
+mkfile_path = $(abspath $(lastword $(MAKEFILE_LIST)))
+export BACKEND_SOURCE_HOME = $(dir $(mkfile_path))
+
 .PHONY: clean test run
 clean:
 	go clean -testcache

@@ -16,14 +16,14 @@ func TestBasicAuthnTestSuite(t *testing.T) {
 }
 
 func (s *basicAuthnTestSuite) TestShouldFailWith401WithoutCredentials() {
-	req := requestType{
-		path:               "/info",
-		credentials:        &requestCredentials{"", ""},
-		expectedStatusCode: 401,
-		respBodyProto:      nil,
+	req := testRequest{
+		path:          "/info",
+		credentials:   &requestCredentials{"", ""},
+		respBodyProto: nil,
 	}
 	resp, requestError := s.client.get(&req)
 	s.NoError(requestError)
+	s.Equal(401, resp.statusCode)
 	challenge, hasChallange := resp.headers["Www-Authenticate"]
 	s.True(hasChallange)
 	s.Equal("Basic", challenge[0])
@@ -32,14 +32,14 @@ func (s *basicAuthnTestSuite) TestShouldFailWith401WithoutCredentials() {
 func (s *basicAuthnTestSuite) TestShouldFailWith401WithWrongCredentials() {
 	reqCreds, makeReqCredErr := makeRequestCredentials(auxiliaries.BasicAuthentication, "ux", "definitely-wrong-password....!~")
 	s.Require().NoError(makeReqCredErr)
-	req := requestType{
-		path:               "/info",
-		credentials:        &reqCreds,
-		expectedStatusCode: 401,
-		respBodyProto:      nil,
+	req := testRequest{
+		path:          "/info",
+		credentials:   &reqCreds,
+		respBodyProto: nil,
 	}
 	resp, requestError := s.client.get(&req)
 	s.NoError(requestError)
+	s.Equal(401, resp.statusCode)
 	challenge, hasChallange := resp.headers["Www-Authenticate"]
 	s.True(hasChallange)
 	s.Equal("Basic", challenge[0])
@@ -48,14 +48,14 @@ func (s *basicAuthnTestSuite) TestShouldFailWith401WithWrongCredentials() {
 func (s *basicAuthnTestSuite) TestShouldPasssWithCorrectCredentials() {
 	reqCreds, makeReqCredErr := makeRequestCredentials(auxiliaries.BasicAuthentication, defaultCredentials.User, defaultCredentials.Password)
 	s.Require().NoError(makeReqCredErr)
-	req := requestType{
-		path:               "/info",
-		credentials:        &reqCreds,
-		expectedStatusCode: 200,
-		respBodyProto:      nil,
+	req := testRequest{
+		path:          "/info",
+		credentials:   &reqCreds,
+		respBodyProto: nil,
 	}
 	resp, requestError := s.client.get(&req)
 	s.NoError(requestError)
+	s.Equal(200, resp.statusCode)
 	_, hasChallange := resp.headers["Www-Authenticate"]
 	s.False(hasChallange)
 }

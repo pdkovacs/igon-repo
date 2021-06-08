@@ -18,6 +18,15 @@ type UserSession struct {
 	Permissions []string
 }
 
+func GetUserSession(c *gin.Context) UserSession {
+	session := sessions.Default(c)
+	user := session.Get(userKey)
+	if userSession, ok := user.(UserSession); ok {
+		return userSession
+	}
+	panic(fmt.Errorf("unexpected user session type: %T", user))
+}
+
 func oidcScheme(c *gin.Context) {
 	session := sessions.Default(c)
 	fmt.Printf("OIDC authentication: session: %v\n", session)

@@ -90,6 +90,8 @@ func initEndpoints(options auxiliaries.Options) *gin.Engine {
 		r.PUT("/backdoor/authentication", security.HandlePutIntoBackdoorRequest)
 	}
 
+	r.POST("/icon", createIconHandler)
+
 	return r
 }
 
