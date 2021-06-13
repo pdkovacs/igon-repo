@@ -1,11 +1,13 @@
 package api
 
 import (
-	"net/http/cookiejar"
 	"testing"
 
 	"github.com/pdkovacs/igo-repo/backend/itests/common"
-	"github.com/pdkovacs/igo-repo/backend/pkg/security"
+	"github.com/pdkovacs/igo-repo/backend/pkg/security/authn"
+	"github.com/pdkovacs/igo-repo/backend/pkg/security/authr"
+	"github.com/pdkovacs/igo-repo/backend/pkg/services"
+	"github.com/pdkovacs/igo-repo/backend/pkg/web"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -48,9 +50,9 @@ func (s *authBackDoorTestSuite) TestBackDoorMustntBeAvailableByDefault() {
 		path:        authenticationBackdoorPath,
 		credentials: &creds,
 		json:        true,
-		body: security.Authorization{
-			Username:   defaultCredentials.User,
-			Privileges: []string{},
+		body: web.BackdoorAuthorization{
+			Username:    defaultCredentials.Username,
+			Permissions: []authr.PermissionID{},
 		},
 	})
 	s.NoError(err)
@@ -58,56 +60,39 @@ func (s *authBackDoorTestSuite) TestBackDoorMustntBeAvailableByDefault() {
 }
 
 func (s *authBackDoorTestSuite) TestBackDoorShouldBeAvailableWhenEnabled() {
-	var credentials requestCredentials
-	credentials = s.client.makeRequestCredentials(defaultCredentials)
-	resp, err := s.client.doRequest("PUT", &testRequest{
-		path:        authenticationBackdoorPath,
-		credentials: &credentials,
-		json:        true,
-		body: security.Authorization{
-			Username:   defaultCredentials.User,
-			Privileges: []string{},
+	resp, err := s.client.setAuthorization(
+		s.client.MustCreateCookieJar(),
+		web.BackdoorAuthorization{
+			Username:    defaultCredentials.Username,
+			Permissions: []authr.PermissionID{},
 		},
-	})
+	)
 	s.NoError(err)
 	s.Equal(200, resp.statusCode)
 }
 
 func (s *authBackDoorTestSuite) TestBackDoorShouldAllowToSetPrivileges() {
-	var err error
-	var resp testResponse
-
-	requestedAuthorization := security.Authorization{
-		Username:   defaultCredentials.User,
-		Privileges: []string{"galagonya", "ide-oda"},
+	requestedAuthorization := web.BackdoorAuthorization{
+		Username:    defaultCredentials.Username,
+		Permissions: []authr.PermissionID{"galagonya", "ide-oda"},
+	}
+	expectedUserInfo := services.UserInfo{
+		UserId:      authn.LocalDomain.CreateUserID(defaultCredentials.Username),
+		Permissions: requestedAuthorization.Permissions,
 	}
 
-	cjar, errCreatingJar := cookiejar.New(nil)
-	if errCreatingJar != nil {
-		panic(errCreatingJar)
-	}
+	cjar := s.client.MustCreateCookieJar()
 
-	var credentials requestCredentials
-	credentials = s.client.makeRequestCredentials(defaultCredentials)
-	if err != nil {
-		panic(err)
-	}
-	resp, err = s.client.doRequest("PUT", &testRequest{
-		path:        authenticationBackdoorPath,
-		credentials: &credentials,
-		jar:         cjar,
-		json:        true,
-		body:        requestedAuthorization,
-	})
+	resp, err := s.client.setAuthorization(cjar, requestedAuthorization)
 	s.NoError(err)
-	s.Equal(200, resp.statusCode)
+	s.Equal(resp.statusCode, 200)
 
 	resp, errUserInfo := s.client.doRequest("GET", &testRequest{
-		path:          "/user",
+		path:          authenticationBackdoorPath,
 		jar:           cjar,
-		respBodyProto: &security.Authorization{},
+		respBodyProto: &services.UserInfo{},
 	})
 	s.NoError(errUserInfo)
 	s.Equal(200, resp.statusCode)
-	s.Equal(&requestedAuthorization, resp.body)
+	s.Equal(&expectedUserInfo, resp.body)
 }

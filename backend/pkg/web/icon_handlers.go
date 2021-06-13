@@ -2,12 +2,13 @@ package web
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pdkovacs/igo-repo/backend/pkg/security"
+	"github.com/pdkovacs/igo-repo/backend/pkg/security/authr"
 	"github.com/pdkovacs/igo-repo/backend/pkg/services"
 	log "github.com/sirupsen/logrus"
 )
@@ -45,8 +46,17 @@ func createIconHandler(c *gin.Context) {
 	logger.Infof("received %d bytes for icon %s", buf.Len(), iconName)
 
 	// do something with the contents...
-	iconfile := services.CreateIcon(iconName, buf.Bytes(), security.GetUserSession(c).Username)
-	c.JSON(201, iconfile)
+	icon, errCreate := services.CreateIcon(iconName, buf.Bytes(), MustGetUserSession(c).UserInfo)
+	if errCreate != nil {
+		logger.Errorf("failed to create icon %v", errCreate)
+		if errors.Is(errCreate, authr.ErrPermission) {
+			c.AbortWithStatusJSON(403, icon)
+			return
+		} else {
+			c.AbortWithStatusJSON(500, icon)
+		}
+	}
+	c.JSON(201, icon)
 
 	buf.Reset()
 	// do something else

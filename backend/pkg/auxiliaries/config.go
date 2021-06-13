@@ -16,7 +16,7 @@ const OIDCAuthentication = "oidc"
 
 // PasswordCredentials holds password-credentials
 type PasswordCredentials struct {
-	User     string
+	Username string
 	Password string
 }
 

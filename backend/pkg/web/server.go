@@ -12,7 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pdkovacs/igo-repo/backend/pkg/auxiliaries"
 	"github.com/pdkovacs/igo-repo/backend/pkg/repositories"
-	"github.com/pdkovacs/igo-repo/backend/pkg/security"
+	"github.com/pdkovacs/igo-repo/backend/pkg/services"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -71,23 +71,27 @@ func (s *Server) SetupAndStart(options auxiliaries.Options, ready func(port int)
 }
 
 func initEndpoints(options auxiliaries.Options) *gin.Engine {
-	gob.Register(security.UserSession{})
+	authorizationService := services.NewAuthorizationService(options)
+	userService := services.NewUserService(&authorizationService)
+
+	gob.Register(SessionData{})
 	r := gin.Default()
 	store := memstore.NewStore([]byte("secret"))
 	store.Options(sessions.Options{MaxAge: 60 * 60 * 24})
 	r.Use(sessions.Sessions("mysession", store))
 	if options.PasswordCredentials != nil && len(options.PasswordCredentials) > 0 {
-		r.Use(security.HandlerProvider(security.BasicConfig{PasswordCredentialsList: options.PasswordCredentials}))
+		r.Use(HandlerProvider(BasicConfig{PasswordCredentialsList: options.PasswordCredentials}, &userService))
 	}
 
 	r.GET("/info", func(c *gin.Context) {
 		c.JSON(200, auxiliaries.GetBuildInfo())
 	})
 
-	r.GET("/user", security.UserInfoHandler)
+	r.GET("/user", UserInfoHandler(userService))
 
 	if options.EnableBackdoors {
-		r.PUT("/backdoor/authentication", security.HandlePutIntoBackdoorRequest)
+		r.PUT("/backdoor/authentication", HandlePutIntoBackdoorRequest)
+		r.GET("/backdoor/authentication", HandleGetIntoBackdoorRequest)
 	}
 
 	r.POST("/icon", createIconHandler)

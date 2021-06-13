@@ -1,4 +1,4 @@
-package security
+package web
 
 import (
 	"encoding/base64"
@@ -7,6 +7,8 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/pdkovacs/igo-repo/backend/pkg/auxiliaries"
+	"github.com/pdkovacs/igo-repo/backend/pkg/security/authn"
+	"github.com/pdkovacs/igo-repo/backend/pkg/services"
 )
 
 // BasicConfig holds the configuration for the Basic authentication scheme
@@ -14,7 +16,7 @@ type BasicConfig struct {
 	PasswordCredentialsList []auxiliaries.PasswordCredentials
 }
 
-func decodeBasicAuthnHeaderValue(headerValue string) (username, password string, decodeOK bool) {
+func decodeBasicAuthnHeaderValue(headerValue string) (userid string, password string, decodeOK bool) {
 	s := strings.SplitN(headerValue, " ", 2)
 	if len(s) != 2 {
 		return "", "", false
@@ -33,12 +35,12 @@ func decodeBasicAuthnHeaderValue(headerValue string) (username, password string,
 	return pair[0], pair[1], true
 }
 
-func basicScheme(config BasicConfig) gin.HandlerFunc {
+func basicScheme(config BasicConfig, userService *services.UserService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authorized := false
 
 		session := sessions.Default(c)
-		user := session.Get(userKey)
+		user := session.Get(UserKey)
 		if user != nil {
 			authorized = true
 		} else {
@@ -47,8 +49,16 @@ func basicScheme(config BasicConfig) gin.HandlerFunc {
 				username, password, decodeOK := decodeBasicAuthnHeaderValue(authnHeaderValue[0])
 				if decodeOK {
 					for _, pc := range config.PasswordCredentialsList {
-						if pc.User == username && pc.Password == password {
-							session.Set(userKey, UserSession{username, []string{}})
+						if pc.Username == username && pc.Password == password {
+							userId := authn.LocalDomain.CreateUserID(username)
+							userInfo := userService.GetUserInfo(userId)
+							session.Set(UserKey, SessionData{
+								services.UserInfo{
+									UserId:      userId,
+									Permissions: userInfo.Permissions,
+									Groups:      userInfo.Groups,
+								},
+							})
 							session.Save()
 							authorized = true
 							break

@@ -46,7 +46,7 @@ func (s *basicAuthnTestSuite) TestShouldFailWith401WithWrongCredentials() {
 }
 
 func (s *basicAuthnTestSuite) TestShouldPasssWithCorrectCredentials() {
-	reqCreds, makeReqCredErr := makeRequestCredentials(auxiliaries.BasicAuthentication, defaultCredentials.User, defaultCredentials.Password)
+	reqCreds, makeReqCredErr := makeRequestCredentials(auxiliaries.BasicAuthentication, defaultCredentials.Username, defaultCredentials.Password)
 	s.Require().NoError(makeReqCredErr)
 	req := testRequest{
 		path:          "/info",

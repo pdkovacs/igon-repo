@@ -52,7 +52,7 @@ var testIconInputDataDescriptor = []testIconDescriptor{
 	},
 	{
 		name:       "cast_connected",
-		modifiedBy: defaultCredentials.User,
+		modifiedBy: defaultCredentials.Username,
 		files: []domain.Iconfile{
 			{
 				Format: "svg",

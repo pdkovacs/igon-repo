@@ -71,4 +71,4 @@ func (s *apiTestSuite) terminateTestServer() {
 }
 
 // defaultCredentials holds the test PasswordCredentials
-var defaultCredentials = auxiliaries.PasswordCredentials{User: "ux", Password: "ux"}
+var defaultCredentials = auxiliaries.PasswordCredentials{Username: "ux", Password: "ux"}
