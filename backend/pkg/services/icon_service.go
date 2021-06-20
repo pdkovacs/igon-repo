@@ -8,17 +8,30 @@ import (
 	"strings"
 
 	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
+	"github.com/pdkovacs/igo-repo/backend/pkg/repositories"
 	"github.com/pdkovacs/igo-repo/backend/pkg/security/authr"
 	log "github.com/sirupsen/logrus"
 )
 
-func CreateIcon(iconName string, initialIconfileContent []byte, modifiedBy UserInfo) (domain.Iconfile, error) {
+type IconService struct {
+	DBRepo *repositories.DatabaseRepository
+}
+
+func (server *IconService) DescribeAllIcons() ([]domain.Icon, error) {
+	icons, err := server.DBRepo.DescribeAllIcons()
+	if err != nil {
+		return []domain.Icon{}, fmt.Errorf("failed to describe all icons: %w", err)
+	}
+	return icons, err
+}
+
+func (service *IconService) CreateIcon(iconName string, initialIconfileContent []byte, modifiedBy UserInfo) (domain.Icon, error) {
 	logger := log.WithField("prefix", "CreateIcon")
 	err := authr.HasRequiredPermissions(modifiedBy.UserId, modifiedBy.Permissions, []authr.PermissionID{
 		authr.CREATE_ICON,
 	})
 	if err != nil {
-		return domain.Iconfile{}, fmt.Errorf("failed to create icon %v: %w", iconName, err)
+		return domain.Icon{}, fmt.Errorf("failed to create icon %v: %w", iconName, err)
 	}
 	logger.Infof("iconName: %s, initialIconfileContent: %v, modifiedBy: %s", iconName, string(initialIconfileContent), modifiedBy)
 	reader := base64.NewDecoder(base64.StdEncoding, strings.NewReader(string(initialIconfileContent)))
@@ -34,5 +47,12 @@ func CreateIcon(iconName string, initialIconfileContent []byte, modifiedBy UserI
 		"iconName: %s, iconfile: %v, initialIconfileContent size: %d, modifiedBy: %s",
 		iconName, iconfile, len(initialIconfileContent), modifiedBy,
 	)
-	return iconfile, nil
+	return domain.Icon{
+		Name: iconName,
+		Iconfiles: []domain.Iconfile{
+			iconfile,
+		},
+		ModifiedBy: modifiedBy.UserId.String(),
+		Tags:       []string{},
+	}, nil
 }

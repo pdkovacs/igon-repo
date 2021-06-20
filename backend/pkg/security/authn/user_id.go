@@ -13,5 +13,5 @@ func (userId *UserID) Equal(idInDomain, domainID string) bool {
 }
 
 func (userId *UserID) String() string {
-	return fmt.Sprintf("%s@%s", userId.IDInDomain, userId.DomainID)
+	return fmt.Sprintf("%s::%s", userId.DomainID, userId.IDInDomain)
 }

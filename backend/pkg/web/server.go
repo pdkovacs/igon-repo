@@ -66,11 +66,11 @@ func (s *Server) SetupAndStart(options auxiliaries.Options, ready func(port int)
 		panic(err)
 	}
 	s.Configuration = options
-	r := initEndpoints(options)
+	r := s.initEndpoints(options)
 	s.Start(options.ServerPort, r, ready)
 }
 
-func initEndpoints(options auxiliaries.Options) *gin.Engine {
+func (s *Server) initEndpoints(options auxiliaries.Options) *gin.Engine {
 	logger := log.WithField("prefix", "server:initEndpoints")
 	authorizationService := services.NewAuthorizationService(options)
 	userService := services.NewUserService(&authorizationService)
@@ -101,7 +101,10 @@ func initEndpoints(options auxiliaries.Options) *gin.Engine {
 		r.GET("/backdoor/authentication", HandleGetIntoBackdoorRequest)
 	}
 
-	r.POST("/icon", createIconHandler)
+	iconService := services.IconService{DBRepo: s.DBRepository}
+
+	r.GET("/icon", describeAllIconsHanler(&iconService))
+	r.POST("/icon", createIconHandler(&iconService))
 
 	return r
 }

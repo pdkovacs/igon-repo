@@ -5,6 +5,7 @@ import (
 
 	"github.com/pdkovacs/igo-repo/backend/itests/common"
 	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
+	"github.com/pdkovacs/igo-repo/backend/pkg/security/authn"
 	"github.com/pdkovacs/igo-repo/backend/pkg/security/authr"
 	"github.com/stretchr/testify/suite"
 )
@@ -36,6 +37,10 @@ func (s *iconCreateTestSuite) TestPOSTShouldFailWith403WithoutCREATE_ICONPrivile
 	statusCode, _, err := session.createIcon(iconName, iconfileContent)
 	s.NoError(err)
 	s.Equal(403, statusCode)
+
+	icons, errDesc := session.describeAllIcons()
+	s.NoError(errDesc)
+	s.Equal(0, len(icons))
 }
 
 func (s *iconCreateTestSuite) TestPOSTShouldCompleteWithCREATE_ICONPrivilegeTest() {
@@ -46,9 +51,27 @@ func (s *iconCreateTestSuite) TestPOSTShouldCompleteWithCREATE_ICONPrivilegeTest
 	}
 	iconfileContent := getDemoIconfileContent(iconName, iconFile)
 
+	expectedIconfile := iconFile
+	expectedIconfile.Size = "54px" // TODO: preserve size in DP
+	expectedModifier := authn.LocalDomain.CreateUserID(defaultCredentials.Username)
+	expectedResult := domain.Icon{
+		Name:       iconName,
+		ModifiedBy: expectedModifier.String(),
+		Iconfiles: []domain.Iconfile{
+			expectedIconfile,
+		},
+		Tags: []string{},
+	}
+
 	session := s.client.mustLogin(nil)
 	session.mustSetAuthorization([]authr.PermissionID{authr.CREATE_ICON})
-	statusCode, _, err := session.createIcon(iconName, iconfileContent)
+	statusCode, resultIcon, err := session.createIcon(iconName, iconfileContent)
 	s.NoError(err)
 	s.Equal(201, statusCode)
+	s.Equal(expectedResult, resultIcon)
+
+	icons, errDesc := session.describeAllIcons()
+	s.NoError(errDesc)
+	s.Equal(1, len(icons))
+	s.Equal(expectedResult, icons[0])
 }

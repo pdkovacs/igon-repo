@@ -111,8 +111,24 @@ func (session *apiTestSession) mustSetAuthorization(requestedPermissions []authr
 	}
 }
 
+func (session *apiTestSession) describeAllIcons() ([]domain.Icon, error) {
+	resp, err := session.get(&testRequest{
+		path:          "/icon",
+		jar:           session.cjar,
+		respBodyProto: &[]domain.Icon{},
+	})
+	if err != nil {
+		return []domain.Icon{}, fmt.Errorf("GET /icon failed: %w", err)
+	}
+	icons, ok := resp.body.(*[]domain.Icon)
+	if !ok {
+		return []domain.Icon{}, fmt.Errorf("failed to cast %T as []domain.Icon", resp.body)
+	}
+	return *icons, err
+}
+
 // https://stackoverflow.com/questions/20205796/post-data-using-the-content-type-multipart-form-data
-func (session *apiTestSession) createIcon(iconName string, initialIconfile []byte) (int, domain.Iconfile, error) {
+func (session *apiTestSession) createIcon(iconName string, initialIconfile []byte) (int, domain.Icon, error) {
 	var err error
 	var resp testResponse
 
@@ -135,27 +151,24 @@ func (session *apiTestSession) createIcon(iconName string, initialIconfile []byt
 	}
 	w.Close()
 
-	creds := session.makeRequestCredentials(defaultCredentials)
-
 	headers := map[string]string{
 		"Content-Type": w.FormDataContentType(),
 	}
 
 	resp, err = session.sendRequest("POST", &testRequest{
 		path:          "/icon",
-		credentials:   &creds,
 		jar:           session.cjar,
 		headers:       headers,
 		body:          b.Bytes(),
-		respBodyProto: &domain.Iconfile{},
+		respBodyProto: &domain.Icon{},
 	})
 	if err != nil {
-		return resp.statusCode, domain.Iconfile{}, err
+		return resp.statusCode, domain.Icon{}, err
 	}
 
-	if respIconfile, ok := resp.body.(*domain.Iconfile); ok {
+	if respIconfile, ok := resp.body.(*domain.Icon); ok {
 		return resp.statusCode, *respIconfile, nil
 	}
 
-	return resp.statusCode, domain.Iconfile{}, errors.New(fmt.Sprintf("failed to cast %T to domain.Iconfile", resp.body))
+	return resp.statusCode, domain.Icon{}, errors.New(fmt.Sprintf("failed to cast %T to domain.Icon", resp.body))
 }

@@ -101,6 +101,38 @@ func (repo DatabaseRepository) DescribeIcon(iconName string) (domain.Icon, error
 	return describeIconInTx(tx, iconName, false)
 }
 
+func (repo DatabaseRepository) DescribeAllIcons() ([]domain.Icon, error) {
+	tx, err := repo.ConnectionPool.Begin()
+	if err != nil {
+		return []domain.Icon{}, err
+	}
+	defer tx.Rollback()
+
+	rows, errQuery := tx.Query("SELECT name FROM icon")
+	if errQuery != nil {
+		return []domain.Icon{}, fmt.Errorf("failed to retrieve all icon names: %w", errQuery)
+	}
+	defer rows.Close()
+
+	result := []domain.Icon{}
+
+	for rows.Next() {
+		var name string
+		rows.Scan(&name)
+		icon, errIconDesc := describeIconInTx(tx, name, false)
+		if errIconDesc != nil {
+			return []domain.Icon{}, fmt.Errorf("failed to retrieve icon %s: %w", name, errIconDesc)
+		}
+		result = append(result, icon)
+	}
+	errProcessRows := rows.Err()
+	if errProcessRows != nil {
+		return []domain.Icon{}, fmt.Errorf("error while processing rows: %w", errProcessRows)
+	}
+
+	return result, nil
+}
+
 type CreateSideEffect func() error
 
 func (repo DatabaseRepository) CreateIcon(iconName string, iconfile domain.Iconfile, modifiedBy string, createSideEffect CreateSideEffect) error {
