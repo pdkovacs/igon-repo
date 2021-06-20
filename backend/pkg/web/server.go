@@ -71,6 +71,7 @@ func (s *Server) SetupAndStart(options auxiliaries.Options, ready func(port int)
 }
 
 func initEndpoints(options auxiliaries.Options) *gin.Engine {
+	logger := log.WithField("prefix", "server:initEndpoints")
 	authorizationService := services.NewAuthorizationService(options)
 	userService := services.NewUserService(&authorizationService)
 
@@ -82,6 +83,12 @@ func initEndpoints(options auxiliaries.Options) *gin.Engine {
 	if options.PasswordCredentials != nil && len(options.PasswordCredentials) > 0 {
 		r.Use(HandlerProvider(BasicConfig{PasswordCredentialsList: options.PasswordCredentials}, &userService))
 	}
+
+	r.POST("/login", func(c *gin.Context) {
+		session := MustGetUserSession(c)
+		logger.Infof("%v logged in", session.UserInfo)
+		c.JSON(200, session.UserInfo)
+	})
 
 	r.GET("/info", func(c *gin.Context) {
 		c.JSON(200, auxiliaries.GetBuildInfo())

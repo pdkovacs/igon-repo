@@ -31,9 +31,9 @@ func (s *iconCreateTestSuite) TestPOSTShouldFailWith403WithoutCREATE_ICONPrivile
 	}
 	iconfileContent := getDemoIconfileContent(iconName, iconFile)
 
-	cjar := s.client.MustCreateCookieJar()
-	s.client.mustSetAuthorization(cjar, []authr.PermissionID{})
-	statusCode, _, err := s.client.createIcon(cjar, iconName, iconfileContent)
+	session := s.client.mustLogin(nil)
+	session.mustSetAuthorization([]authr.PermissionID{})
+	statusCode, _, err := session.createIcon(iconName, iconfileContent)
 	s.NoError(err)
 	s.Equal(403, statusCode)
 }
@@ -46,9 +46,9 @@ func (s *iconCreateTestSuite) TestPOSTShouldCompleteWithCREATE_ICONPrivilegeTest
 	}
 	iconfileContent := getDemoIconfileContent(iconName, iconFile)
 
-	cjar := s.client.MustCreateCookieJar()
-	s.client.mustSetAuthorization(cjar, []authr.PermissionID{authr.CREATE_ICON})
-	statusCode, _, err := s.client.createIcon(cjar, iconName, iconfileContent)
+	session := s.client.mustLogin(nil)
+	session.mustSetAuthorization([]authr.PermissionID{authr.CREATE_ICON})
+	statusCode, _, err := session.createIcon(iconName, iconfileContent)
 	s.NoError(err)
 	s.Equal(201, statusCode)
 }

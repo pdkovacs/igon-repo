@@ -45,11 +45,10 @@ func (s *authBackDoorTestSuite) BeforeTest(suiteName string, testName string) {
 }
 
 func (s *authBackDoorTestSuite) TestBackDoorMustntBeAvailableByDefault() {
-	creds := s.client.makeRequestCredentials(defaultCredentials)
-	resp, err := s.client.doRequest("PUT", &testRequest{
-		path:        authenticationBackdoorPath,
-		credentials: &creds,
-		json:        true,
+	session := s.client.mustLogin(nil)
+	resp, err := session.put(&testRequest{
+		path: authenticationBackdoorPath,
+		json: true,
 		body: web.BackdoorAuthorization{
 			Username:    defaultCredentials.Username,
 			Permissions: []authr.PermissionID{},
@@ -60,8 +59,8 @@ func (s *authBackDoorTestSuite) TestBackDoorMustntBeAvailableByDefault() {
 }
 
 func (s *authBackDoorTestSuite) TestBackDoorShouldBeAvailableWhenEnabled() {
-	resp, err := s.client.setAuthorization(
-		s.client.MustCreateCookieJar(),
+	session := s.client.mustLogin(nil)
+	resp, err := session.setAuthorization(
 		web.BackdoorAuthorization{
 			Username:    defaultCredentials.Username,
 			Permissions: []authr.PermissionID{},
@@ -81,15 +80,14 @@ func (s *authBackDoorTestSuite) TestBackDoorShouldAllowToSetPrivileges() {
 		Permissions: requestedAuthorization.Permissions,
 	}
 
-	cjar := s.client.MustCreateCookieJar()
+	session := s.client.mustLogin(nil)
 
-	resp, err := s.client.setAuthorization(cjar, requestedAuthorization)
+	resp, err := session.setAuthorization(requestedAuthorization)
 	s.NoError(err)
 	s.Equal(resp.statusCode, 200)
 
-	resp, errUserInfo := s.client.doRequest("GET", &testRequest{
+	resp, errUserInfo := session.get(&testRequest{
 		path:          authenticationBackdoorPath,
-		jar:           cjar,
 		respBodyProto: &services.UserInfo{},
 	})
 	s.NoError(errUserInfo)
