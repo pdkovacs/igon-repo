@@ -47,8 +47,8 @@ func (s *apiTestSuite) AfterTest(suiteName, testName string) {
 	}
 	os.Unsetenv(repositories.IntrusiveGitTestEnvvarName)
 
-	repositories_itests.DeleteDBData(s.server.DBRepository.ConnectionPool)
-	s.server.DBRepository.Close()
+	repositories_itests.DeleteDBData(s.server.Repositories.DB.ConnectionPool)
+	s.server.Repositories.DB.Close()
 }
 
 // startTestServer starts a test server

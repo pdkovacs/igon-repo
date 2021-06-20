@@ -19,8 +19,7 @@ import (
 type Server struct {
 	listener      net.Listener
 	Configuration auxiliaries.Options
-	DBRepository  *repositories.DatabaseRepository
-	GitRepository *repositories.GitRepository
+	Repositories  *repositories.Repositories
 }
 
 // Start starts the server
@@ -55,13 +54,15 @@ func (s *Server) Start(portRequested int, r http.Handler, ready func(port int)) 
 // SetupAndStart sets up and starts server.
 func (s *Server) SetupAndStart(options auxiliaries.Options, ready func(port int)) {
 	var err error
-	s.DBRepository, err = repositories.InitDBRepo(options)
+	s.Repositories = &repositories.Repositories{}
+
+	s.Repositories.DB, err = repositories.InitDBRepo(options)
 	if err != nil {
 		panic(err)
 	}
 
-	s.GitRepository = &repositories.GitRepository{Location: options.IconDataLocationGit}
-	err = s.GitRepository.InitMaybe()
+	s.Repositories.Git = &repositories.GitRepository{Location: options.IconDataLocationGit}
+	err = s.Repositories.Git.InitMaybe()
 	if err != nil {
 		panic(err)
 	}
@@ -101,7 +102,7 @@ func (s *Server) initEndpoints(options auxiliaries.Options) *gin.Engine {
 		r.GET("/backdoor/authentication", HandleGetIntoBackdoorRequest)
 	}
 
-	iconService := services.IconService{DBRepo: s.DBRepository}
+	iconService := services.IconService{Repositories: s.Repositories}
 
 	r.GET("/icon", describeAllIconsHanler(&iconService))
 	r.POST("/icon", createIconHandler(&iconService))

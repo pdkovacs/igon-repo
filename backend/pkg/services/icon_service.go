@@ -14,11 +14,11 @@ import (
 )
 
 type IconService struct {
-	DBRepo *repositories.DatabaseRepository
+	Repositories *repositories.Repositories
 }
 
 func (server *IconService) DescribeAllIcons() ([]domain.Icon, error) {
-	icons, err := server.DBRepo.DescribeAllIcons()
+	icons, err := server.Repositories.DB.DescribeAllIcons()
 	if err != nil {
 		return []domain.Icon{}, fmt.Errorf("failed to describe all icons: %w", err)
 	}
@@ -47,6 +47,9 @@ func (service *IconService) CreateIcon(iconName string, initialIconfileContent [
 		"iconName: %s, iconfile: %v, initialIconfileContent size: %d, modifiedBy: %s",
 		iconName, iconfile, len(initialIconfileContent), modifiedBy,
 	)
+	service.Repositories.DB.CreateIcon(iconName, iconfile, modifiedBy.UserId.String(), func() error {
+		return service.Repositories.Git.AddIconfile(iconName, iconfile, modifiedBy.UserId.String())
+	})
 	return domain.Icon{
 		Name: iconName,
 		Iconfiles: []domain.Iconfile{

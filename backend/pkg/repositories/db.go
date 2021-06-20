@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/pdkovacs/igo-repo/backend/pkg/auxiliaries"
 	log "github.com/sirupsen/logrus"
 )
@@ -97,7 +98,7 @@ func openConnection(connProps ConnectionProperties) (DatabaseRepository, error) 
 		connProps.Schema,
 	)
 
-	db, err := sql.Open("postgres", connStr)
+	db, err := sql.Open("pgx", connStr)
 	repo := DatabaseRepository{db, connProps.Schema}
 	if err != nil {
 		return repo, err

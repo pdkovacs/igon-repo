@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/lib/pq"
+	"github.com/jackc/pgx"
 	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
 	log "github.com/sirupsen/logrus"
 )
@@ -114,20 +114,24 @@ func (repo DatabaseRepository) DescribeAllIcons() ([]domain.Icon, error) {
 	}
 	defer rows.Close()
 
-	result := []domain.Icon{}
-
+	iconNames := []string{}
 	for rows.Next() {
 		var name string
 		rows.Scan(&name)
-		icon, errIconDesc := describeIconInTx(tx, name, false)
-		if errIconDesc != nil {
-			return []domain.Icon{}, fmt.Errorf("failed to retrieve icon %s: %w", name, errIconDesc)
-		}
-		result = append(result, icon)
+		iconNames = append(iconNames, name)
 	}
 	errProcessRows := rows.Err()
 	if errProcessRows != nil {
 		return []domain.Icon{}, fmt.Errorf("error while processing rows: %w", errProcessRows)
+	}
+
+	result := []domain.Icon{}
+	for _, iconName := range iconNames {
+		icon, errIconDesc := describeIconInTx(tx, iconName, false)
+		if errIconDesc != nil {
+			return []domain.Icon{}, fmt.Errorf("failed to retrieve icon %s: %w", iconName, errIconDesc)
+		}
+		result = append(result, icon)
 	}
 
 	return result, nil
@@ -211,10 +215,8 @@ func insertIconfile(tx *sql.Tx, iconName string, iconfile domain.Iconfile, modif
 		"SELECT id, $2, $3, $4 FROM icon WHERE name = $1 RETURNING id"
 	_, err := tx.Exec(insertIconfileSQL, iconName, iconfile.Format, iconfile.Size, iconfile.Content)
 	if err != nil {
-		if err, ok := err.(*pq.Error); ok {
-			if err.Code.Name() == "unique_violation" {
-				return domain.ErrIconfileAlreadyExists
-			}
+		if pgErr, ok := err.(*pgx.PgError); !ok || pgErr.Code != "23505" {
+			return domain.ErrIconfileAlreadyExists
 		}
 		return fmt.Errorf("failed to insert icon-file %v: %w", iconName, err)
 	}
