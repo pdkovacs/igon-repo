@@ -41,7 +41,7 @@ func (s *addIconfileToDBTestSuite) TestSecondIconfile() {
 	err = s.dbRepo.AddIconfileToIcon(icon.Name, iconfile2, icon.ModifiedBy, nil)
 	s.NoError(err)
 
-	var iconDesc domain.Icon
+	var iconDesc domain.IconDescriptor
 	iconDesc, err = s.dbRepo.DescribeIcon(icon.Name)
 	s.NoError(err)
 	s.equalIconAttributes(icon, iconDesc, nil)
@@ -61,7 +61,7 @@ func (s *addIconfileToDBTestSuite) TestAddSecondIconfileBySecondUser() {
 	err = s.dbRepo.AddIconfileToIcon(icon.Name, iconfile2, secondUser, nil)
 	s.NoError(err)
 
-	var iconDesc domain.Icon
+	var iconDesc domain.IconDescriptor
 	iconDesc, err = s.dbRepo.DescribeIcon(icon.Name)
 	s.NoError(err)
 	clone := itests_common.CloneIcon(icon)

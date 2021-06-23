@@ -23,7 +23,7 @@ func (s *addIconToDBTestSuite) TestAddFirstIcon() {
 	fmt.Printf("Hello, First Icon %v\n", icon.Name)
 	err := s.dbRepo.CreateIcon(icon.Name, icon.Iconfiles[0], icon.ModifiedBy, nil)
 	s.NoError(err)
-	var iconDesc domain.Icon
+	var iconDesc domain.IconDescriptor
 	iconDesc, err = s.dbRepo.DescribeIcon(icon.Name)
 	s.NoError(err)
 	s.equalIconAttributes(icon, iconDesc, nil)

@@ -2,10 +2,14 @@ package domain
 
 import "fmt"
 
-// Iconfile describes the file representation of an icon
+type IconfileDescriptor struct {
+	Format string
+	Size   string
+}
+
+// Iconfile the file representation of an icon
 type Iconfile struct {
-	Format  string
-	Size    string
+	IconfileDescriptor
 	Content []byte
 }
 
@@ -13,10 +17,19 @@ func (i Iconfile) String() string {
 	return fmt.Sprintf("Format: %s, Size: %s, Content: [%d bytes long]", i.Format, i.Size, len(i.Content))
 }
 
-// IconDescriptor describes an icon
-type Icon struct {
+type IconAttributes struct {
 	Name       string
 	ModifiedBy string
-	Iconfiles  []Iconfile
 	Tags       []string
+}
+
+type IconDescriptor struct {
+	IconAttributes
+	Iconfiles []IconfileDescriptor
+}
+
+// IconDescriptor describes an icon
+type Icon struct {
+	IconAttributes
+	Iconfiles []Iconfile
 }

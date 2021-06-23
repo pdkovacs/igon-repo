@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/base64"
 	"testing"
 
 	"github.com/pdkovacs/igo-repo/backend/itests/common"
@@ -11,7 +12,7 @@ import (
 )
 
 type iconCreateTestSuite struct {
-	apiTestSuite
+	iconTestSuite
 }
 
 func TestIconCreateTestSuite(t *testing.T) {
@@ -24,9 +25,9 @@ func (s *iconCreateTestSuite) BeforeTest(suiteName string, testName string) {
 	s.startTestServer(serverConfig)
 }
 
-func (s *iconCreateTestSuite) TestPOSTShouldFailWith403WithoutCREATE_ICONPrivilegeTest() {
+func (s *iconCreateTestSuite) TestFailsWith403WithoutPrivilege() {
 	const iconName = "dock"
-	var iconFile = domain.Iconfile{
+	var iconFile = domain.IconfileDescriptor{
 		Format: "png",
 		Size:   "36dp",
 	}
@@ -43,24 +44,41 @@ func (s *iconCreateTestSuite) TestPOSTShouldFailWith403WithoutCREATE_ICONPrivile
 	s.Equal(0, len(icons))
 }
 
-func (s *iconCreateTestSuite) TestPOSTShouldCompleteWithCREATE_ICONPrivilegeTest() {
+func (s *iconCreateTestSuite) TestCompletesWithPrivilege() {
 	const iconName = "dock"
-	var iconFile = domain.Iconfile{
+	var iconfileDescriptor = domain.IconfileDescriptor{
 		Format: "png",
 		Size:   "36dp",
 	}
-	iconfileContent := getDemoIconfileContent(iconName, iconFile)
+	iconfileContent := getDemoIconfileContent(iconName, iconfileDescriptor)
 
-	expectedIconfile := iconFile
+	expectedIconfile := createIconfile(iconfileDescriptor, nil)
 	expectedIconfile.Size = "54px" // TODO: preserve size in DP
+	expectedIconfile.Content = []byte(base64.StdEncoding.EncodeToString(iconfileContent))
 	expectedModifier := authn.LocalDomain.CreateUserID(defaultCredentials.Username)
-	expectedResult := domain.Icon{
-		Name:       iconName,
-		ModifiedBy: expectedModifier.String(),
+	expectedIcon := domain.Icon{
+		IconAttributes: domain.IconAttributes{
+			Name:       iconName,
+			ModifiedBy: expectedModifier.String(),
+			Tags:       []string{},
+		},
 		Iconfiles: []domain.Iconfile{
 			expectedIconfile,
 		},
-		Tags: []string{},
+	}
+
+	expectedIconfileDescriptor := iconfileDescriptor
+	expectedIconfileDescriptor.Size = dp2px[iconfileDescriptor.Size]
+
+	expectedIconDescriptor := domain.IconDescriptor{
+		IconAttributes: domain.IconAttributes{
+			Name:       iconName,
+			ModifiedBy: expectedModifier.String(),
+			Tags:       []string{},
+		},
+		Iconfiles: []domain.IconfileDescriptor{
+			expectedIconfileDescriptor,
+		},
 	}
 
 	session := s.client.mustLogin(nil)
@@ -68,10 +86,29 @@ func (s *iconCreateTestSuite) TestPOSTShouldCompleteWithCREATE_ICONPrivilegeTest
 	statusCode, resultIcon, err := session.createIcon(iconName, iconfileContent)
 	s.NoError(err)
 	s.Equal(201, statusCode)
-	s.Equal(expectedResult, resultIcon)
+	s.Equal(expectedIcon, resultIcon)
 
 	icons, errDesc := session.describeAllIcons()
 	s.NoError(errDesc)
 	s.Equal(1, len(icons))
-	s.Equal(expectedResult, icons[0])
+	s.Equal(expectedIconDescriptor, icons[0])
+}
+
+func (s *iconCreateTestSuite) TestAddMultipleIconsInARow() {
+	sampleIconName1 := testIconInputData[0].Name
+	sampleIconfileDesc1 := testIconInputData[0].Iconfiles[0]
+	sampleIconName2 := testIconInputData[1].Name
+	sampleIconfileDesc2 := testIconInputData[1].Iconfiles[1]
+
+	session := s.client.mustLogin(nil)
+	session.mustSetAuthorization([]authr.PermissionID{authr.CREATE_ICON})
+
+	mustAddTestData(&session, &testIconInputData)
+	s.getCheckIconfile(session, sampleIconName1, sampleIconfileDesc1)
+	s.getCheckIconfile(session, sampleIconName2, sampleIconfileDesc2)
+	s.assertGitCleanStatus()
+
+	iconDescriptors, describeError := session.describeAllIcons()
+	s.NoError(describeError)
+	s.Equal(ingestedTestIconDataDescription, iconDescriptors)
 }

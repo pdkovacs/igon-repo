@@ -83,7 +83,7 @@ func (s *DBTestSuite) AfterTest(suiteName, testName string) {
 	manageTestResourcesAfterEach()
 }
 
-func (s *DBTestSuite) equalIconAttributes(icon1 domain.Icon, icon2 domain.Icon, expectedTags []string) {
+func (s *DBTestSuite) equalIconAttributes(icon1 domain.Icon, icon2 domain.IconDescriptor, expectedTags []string) {
 	s.Equal(icon1.Name, icon2.Name)
 	s.Equal(icon1.ModifiedBy, icon2.ModifiedBy)
 	if expectedTags != nil {

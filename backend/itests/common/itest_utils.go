@@ -10,8 +10,10 @@ import (
 
 func createTestIconfile(format, size string) domain.Iconfile {
 	return domain.Iconfile{
-		Format:  format,
-		Size:    size,
+		IconfileDescriptor: domain.IconfileDescriptor{
+			Format: format,
+			Size:   size,
+		},
 		Content: randomBytes(4096),
 	}
 }
@@ -20,8 +22,10 @@ func cloneIconfile(iconfile domain.Iconfile) domain.Iconfile {
 	var contentClone = make([]byte, len(iconfile.Content))
 	copy(contentClone, iconfile.Content)
 	return domain.Iconfile{
-		Format:  iconfile.Format,
-		Size:    iconfile.Size,
+		IconfileDescriptor: domain.IconfileDescriptor{
+			Format: iconfile.Format,
+			Size:   iconfile.Size,
+		},
 		Content: contentClone,
 	}
 }
@@ -32,10 +36,12 @@ func CloneIcon(icon domain.Icon) domain.Icon {
 		iconfilesClone = append(iconfilesClone, cloneIconfile(iconfile))
 	}
 	return domain.Icon{
-		Name:       icon.Name,
-		ModifiedBy: icon.ModifiedBy,
-		Tags:       icon.Tags,
-		Iconfiles:  iconfilesClone,
+		IconAttributes: domain.IconAttributes{
+			Name:       icon.Name,
+			ModifiedBy: icon.ModifiedBy,
+			Tags:       icon.Tags,
+		},
+		Iconfiles: iconfilesClone,
 	}
 }
 
@@ -67,27 +73,31 @@ func CloneConfig(config auxiliaries.Options) auxiliaries.Options {
 
 var TestData = []domain.Icon{
 	{
-		Name:       "metro-zazie",
-		ModifiedBy: "ux",
+		IconAttributes: domain.IconAttributes{
+			Name:       "metro-zazie",
+			ModifiedBy: "ux",
+			Tags: []string{
+				"used-in-marvinjs",
+				"some other tag",
+			},
+		},
 		Iconfiles: []domain.Iconfile{
 			createTestIconfile("french", "great"),
 			createTestIconfile("french", "huge"),
 		},
-		Tags: []string{
-			"used-in-marvinjs",
-			"some other tag",
-		},
 	},
 	{
-		Name:       "zazie-icon",
-		ModifiedBy: "ux",
+		IconAttributes: domain.IconAttributes{
+			Name:       "zazie-icon",
+			ModifiedBy: "ux",
+			Tags: []string{
+				"used-in-marvinjs",
+				"yet another tag",
+			},
+		},
 		Iconfiles: []domain.Iconfile{
 			createTestIconfile("french", "great"),
 			createTestIconfile("dutch", "cute"),
-		},
-		Tags: []string{
-			"used-in-marvinjs",
-			"yet another tag",
 		},
 	},
 }

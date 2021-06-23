@@ -6,15 +6,9 @@ import (
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"github.com/pdkovacs/igo-repo/backend/pkg/security/authn"
 	"github.com/pdkovacs/igo-repo/backend/pkg/security/authr"
 	log "github.com/sirupsen/logrus"
 )
-
-type BackdoorAuthorization struct {
-	Username    string
-	Permissions []authr.PermissionID
-}
 
 func HandlePutIntoBackdoorRequest(c *gin.Context) {
 	logger := log.WithField("prefix", "PUT /backdoor/authentication")
@@ -24,15 +18,15 @@ func HandlePutIntoBackdoorRequest(c *gin.Context) {
 		logger.Errorf("failed to read request body %T: %v", c.Request.Body, errReadRequest)
 		c.JSON(500, nil)
 	}
-	var requestedAuthorization BackdoorAuthorization
-	errBodyUnmarshal := json.Unmarshal(requestBody, &requestedAuthorization)
+	permissions := []authr.PermissionID{}
+	errBodyUnmarshal := json.Unmarshal(requestBody, &permissions)
 	if errBodyUnmarshal != nil {
 		logger.Errorf("failed to unmarshal request body %T: %v", requestBody, errBodyUnmarshal)
 		c.JSON(400, nil)
 	}
 	session := sessions.Default(c)
 	user := session.Get(UserKey)
-	logger.Infof("%v requested authorization: %v", user, requestedAuthorization)
+	logger.Infof("%v requested authorization: %v", user, permissions)
 
 	sessionData, ok := user.(SessionData)
 	if !ok {
@@ -42,8 +36,7 @@ func HandlePutIntoBackdoorRequest(c *gin.Context) {
 	}
 
 	updatedCachedUserInfo := sessionData
-	updatedCachedUserInfo.UserInfo.UserId = authn.LocalDomain.CreateUserID(requestedAuthorization.Username)
-	updatedCachedUserInfo.UserInfo.Permissions = requestedAuthorization.Permissions
+	updatedCachedUserInfo.UserInfo.Permissions = permissions
 	session.Set(UserKey, SessionData{updatedCachedUserInfo.UserInfo})
 	session.Save()
 	c.JSON(200, nil)

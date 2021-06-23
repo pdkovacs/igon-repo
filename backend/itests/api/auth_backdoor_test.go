@@ -7,7 +7,6 @@ import (
 	"github.com/pdkovacs/igo-repo/backend/pkg/security/authn"
 	"github.com/pdkovacs/igo-repo/backend/pkg/security/authr"
 	"github.com/pdkovacs/igo-repo/backend/pkg/services"
-	"github.com/pdkovacs/igo-repo/backend/pkg/web"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -49,10 +48,7 @@ func (s *authBackDoorTestSuite) TestBackDoorMustntBeAvailableByDefault() {
 	resp, err := session.put(&testRequest{
 		path: authenticationBackdoorPath,
 		json: true,
-		body: web.BackdoorAuthorization{
-			Username:    defaultCredentials.Username,
-			Permissions: []authr.PermissionID{},
-		},
+		body: []authr.PermissionID{},
 	})
 	s.NoError(err)
 	s.Equal(404, resp.statusCode)
@@ -61,23 +57,17 @@ func (s *authBackDoorTestSuite) TestBackDoorMustntBeAvailableByDefault() {
 func (s *authBackDoorTestSuite) TestBackDoorShouldBeAvailableWhenEnabled() {
 	session := s.client.mustLogin(nil)
 	resp, err := session.setAuthorization(
-		web.BackdoorAuthorization{
-			Username:    defaultCredentials.Username,
-			Permissions: []authr.PermissionID{},
-		},
+		[]authr.PermissionID{},
 	)
 	s.NoError(err)
 	s.Equal(200, resp.statusCode)
 }
 
 func (s *authBackDoorTestSuite) TestBackDoorShouldAllowToSetPrivileges() {
-	requestedAuthorization := web.BackdoorAuthorization{
-		Username:    defaultCredentials.Username,
-		Permissions: []authr.PermissionID{"galagonya", "ide-oda"},
-	}
+	requestedAuthorization := []authr.PermissionID{"galagonya", "ide-oda"}
 	expectedUserInfo := services.UserInfo{
 		UserId:      authn.LocalDomain.CreateUserID(defaultCredentials.Username),
-		Permissions: requestedAuthorization.Permissions,
+		Permissions: requestedAuthorization,
 	}
 
 	session := s.client.mustLogin(nil)

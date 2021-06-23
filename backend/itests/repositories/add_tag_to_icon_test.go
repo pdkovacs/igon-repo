@@ -29,7 +29,7 @@ func (s *addTagTestSuite) TestCreateAssociateNonExistingTag() {
 	s.NoError(err)
 	s.Empty(tags)
 
-	var iconDesc domain.Icon
+	var iconDesc domain.IconDescriptor
 	iconDesc, err = s.dbRepo.DescribeIcon(icon.Name)
 	s.NoError(err)
 	s.Empty(iconDesc.Tags)
@@ -68,12 +68,12 @@ func (s *addTagTestSuite) TestReuseExistingTag() {
 	s.NoError(err)
 	s.Equal([]string{tag}, tags)
 
-	var iconDesc1 domain.Icon
+	var iconDesc1 domain.IconDescriptor
 	iconDesc1, err = s.dbRepo.DescribeIcon(icon1.Name)
 	s.NoError(err)
 	s.Equal([]string{tag}, iconDesc1.Tags)
 
-	var iconDesc2 domain.Icon
+	var iconDesc2 domain.IconDescriptor
 	iconDesc2, err = s.dbRepo.DescribeIcon(icon2.Name)
 	s.NoError(err)
 	s.Empty(iconDesc2.Tags)

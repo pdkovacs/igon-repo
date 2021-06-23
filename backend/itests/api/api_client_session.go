@@ -13,7 +13,6 @@ import (
 	"github.com/pdkovacs/igo-repo/backend/pkg/auxiliaries"
 	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
 	"github.com/pdkovacs/igo-repo/backend/pkg/security/authr"
-	"github.com/pdkovacs/igo-repo/backend/pkg/web"
 )
 
 type apiTestSession struct {
@@ -80,7 +79,7 @@ func (session *apiTestSession) put(request *testRequest) (testResponse, error) {
 	return session.sendRequest("PUT", request)
 }
 
-func (session *apiTestSession) setAuthorization(requestedAuthorization web.BackdoorAuthorization) (testResponse, error) {
+func (session *apiTestSession) setAuthorization(requestedAuthorization []authr.PermissionID) (testResponse, error) {
 	var err error
 	var resp testResponse
 	credentials := session.makeRequestCredentials(defaultCredentials)
@@ -98,11 +97,7 @@ func (session *apiTestSession) setAuthorization(requestedAuthorization web.Backd
 }
 
 func (session *apiTestSession) mustSetAuthorization(requestedPermissions []authr.PermissionID) {
-	requestedAuthorization := web.BackdoorAuthorization{
-		Username:    defaultCredentials.Username,
-		Permissions: requestedPermissions,
-	}
-	resp, err := session.setAuthorization(requestedAuthorization)
+	resp, err := session.setAuthorization(requestedPermissions)
 	if err != nil {
 		panic(err)
 	}
@@ -111,18 +106,18 @@ func (session *apiTestSession) mustSetAuthorization(requestedPermissions []authr
 	}
 }
 
-func (session *apiTestSession) describeAllIcons() ([]domain.Icon, error) {
+func (session *apiTestSession) describeAllIcons() ([]domain.IconDescriptor, error) {
 	resp, err := session.get(&testRequest{
 		path:          "/icon",
 		jar:           session.cjar,
-		respBodyProto: &[]domain.Icon{},
+		respBodyProto: &[]domain.IconDescriptor{},
 	})
 	if err != nil {
-		return []domain.Icon{}, fmt.Errorf("GET /icon failed: %w", err)
+		return []domain.IconDescriptor{}, fmt.Errorf("GET /icon failed: %w", err)
 	}
-	icons, ok := resp.body.(*[]domain.Icon)
+	icons, ok := resp.body.(*[]domain.IconDescriptor)
 	if !ok {
-		return []domain.Icon{}, fmt.Errorf("failed to cast %T as []domain.Icon", resp.body)
+		return []domain.IconDescriptor{}, fmt.Errorf("failed to cast %T as []domain.Icon", resp.body)
 	}
 	return *icons, err
 }
@@ -171,4 +166,66 @@ func (session *apiTestSession) createIcon(iconName string, initialIconfile []byt
 	}
 
 	return resp.statusCode, domain.Icon{}, errors.New(fmt.Sprintf("failed to cast %T to domain.Icon", resp.body))
+}
+
+func (s *apiTestSession) GetIconfile(iconName string, iconfileDescriptor domain.IconfileDescriptor) ([]byte, error) {
+	content := []byte{}
+	resp, reqErr := s.get(&testRequest{
+		path: getFilePath(iconName, iconfileDescriptor),
+		body: &content,
+	})
+	if reqErr != nil {
+		return content, fmt.Errorf("failed to retrieve iconfile %v of %s", iconfileDescriptor, iconName)
+	}
+
+	if byteArr, ok := resp.body.([]byte); ok {
+		return byteArr, nil
+	}
+
+	return content, fmt.Errorf("failed to cast the reply %T to []byte while retrieving iconfile %v of %s", resp.body, iconfileDescriptor, iconName)
+}
+
+func (session *apiTestSession) addIconfile(iconName string, iconfile domain.Iconfile) (int, domain.Iconfile, error) {
+	var err error
+	var resp testResponse
+
+	var b bytes.Buffer
+	w := multipart.NewWriter(&b)
+
+	var fw io.Writer
+	if fw, err = w.CreateFormField("iconName"); err != nil {
+		panic(err)
+	}
+	if _, err = io.Copy(fw, strings.NewReader(iconName)); err != nil {
+		panic(err)
+	}
+
+	if fw, err = w.CreateFormFile("iconfile", iconName); err != nil {
+		panic(err)
+	}
+	if _, err = io.Copy(fw, bytes.NewReader([]byte(base64.StdEncoding.EncodeToString(iconfile.Content)))); err != nil {
+		panic(err)
+	}
+	w.Close()
+
+	headers := map[string]string{
+		"Content-Type": w.FormDataContentType(),
+	}
+
+	resp, err = session.sendRequest("POST", &testRequest{
+		path:          fmt.Sprintf("/icon%s", iconName),
+		jar:           session.cjar,
+		headers:       headers,
+		body:          b.Bytes(),
+		respBodyProto: &domain.Iconfile{},
+	})
+	if err != nil {
+		return resp.statusCode, domain.Iconfile{}, err
+	}
+
+	if respIconfile, ok := resp.body.(*domain.Iconfile); ok {
+		return resp.statusCode, *respIconfile, nil
+	}
+
+	return resp.statusCode, domain.Iconfile{}, errors.New(fmt.Sprintf("failed to cast %T to domain.Icon", resp.body))
 }

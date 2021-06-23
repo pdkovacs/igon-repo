@@ -9,7 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func describeIconInTx(tx *sql.Tx, iconName string, forUpdate bool) (domain.Icon, error) {
+func describeIconInTx(tx *sql.Tx, iconName string, forUpdate bool) (domain.IconDescriptor, error) {
 	var err error
 	var rows *sql.Rows
 
@@ -30,14 +30,14 @@ func describeIconInTx(tx *sql.Tx, iconName string, forUpdate bool) (domain.Icon,
 	err = tx.QueryRow(iconSQL, iconName).Scan(&iconId, &modifiedBy)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return domain.Icon{}, fmt.Errorf("icon %s not found: %w", iconName, domain.ErrIconNotFound)
+			return domain.IconDescriptor{}, fmt.Errorf("icon %s not found: %w", iconName, domain.ErrIconNotFound)
 		} else {
-			return domain.Icon{}, fmt.Errorf("error while retrieving icon '%s' from database: %w", iconName, err)
+			return domain.IconDescriptor{}, fmt.Errorf("error while retrieving icon '%s' from database: %w", iconName, err)
 		}
 	}
 
-	iconfiles := make([]domain.Iconfile, 0, 10)
-	emptyIcon := domain.Icon{}
+	iconfiles := make([]domain.IconfileDescriptor, 0, 10)
+	emptyIcon := domain.IconDescriptor{}
 	err = func() error {
 		rows, err = tx.Query(iconfilesSQL, iconId)
 		if err != nil {
@@ -51,7 +51,7 @@ func describeIconInTx(tx *sql.Tx, iconName string, forUpdate bool) (domain.Icon,
 			if err != nil {
 				return fmt.Errorf("error while retrieving iconfiles for '%s' from database: %w", iconName, err)
 			}
-			iconfiles = append(iconfiles, domain.Iconfile{
+			iconfiles = append(iconfiles, domain.IconfileDescriptor{
 				Format: format,
 				Size:   size,
 			})
@@ -83,34 +83,36 @@ func describeIconInTx(tx *sql.Tx, iconName string, forUpdate bool) (domain.Icon,
 		return emptyIcon, err
 	}
 
-	return domain.Icon{
-		Name:       iconName,
-		ModifiedBy: modifiedBy,
-		Tags:       tags,
-		Iconfiles:  iconfiles,
+	return domain.IconDescriptor{
+		domain.IconAttributes{
+			Name:       iconName,
+			ModifiedBy: modifiedBy,
+			Tags:       tags,
+		},
+		iconfiles,
 	}, nil
 }
 
 // DescribeIcon returns the attributes of the icon having the specified name, "attributes" meaning here the entire icon without iconfiles' contents
-func (repo DatabaseRepository) DescribeIcon(iconName string) (domain.Icon, error) {
+func (repo DatabaseRepository) DescribeIcon(iconName string) (domain.IconDescriptor, error) {
 	tx, err := repo.ConnectionPool.Begin()
 	if err != nil {
-		return domain.Icon{}, err
+		return domain.IconDescriptor{}, err
 	}
 	defer tx.Rollback()
 	return describeIconInTx(tx, iconName, false)
 }
 
-func (repo DatabaseRepository) DescribeAllIcons() ([]domain.Icon, error) {
+func (repo DatabaseRepository) DescribeAllIcons() ([]domain.IconDescriptor, error) {
 	tx, err := repo.ConnectionPool.Begin()
 	if err != nil {
-		return []domain.Icon{}, err
+		return []domain.IconDescriptor{}, err
 	}
 	defer tx.Rollback()
 
 	rows, errQuery := tx.Query("SELECT name FROM icon")
 	if errQuery != nil {
-		return []domain.Icon{}, fmt.Errorf("failed to retrieve all icon names: %w", errQuery)
+		return []domain.IconDescriptor{}, fmt.Errorf("failed to retrieve all icon names: %w", errQuery)
 	}
 	defer rows.Close()
 
@@ -122,14 +124,14 @@ func (repo DatabaseRepository) DescribeAllIcons() ([]domain.Icon, error) {
 	}
 	errProcessRows := rows.Err()
 	if errProcessRows != nil {
-		return []domain.Icon{}, fmt.Errorf("error while processing rows: %w", errProcessRows)
+		return []domain.IconDescriptor{}, fmt.Errorf("error while processing rows: %w", errProcessRows)
 	}
 
-	result := []domain.Icon{}
+	result := []domain.IconDescriptor{}
 	for _, iconName := range iconNames {
 		icon, errIconDesc := describeIconInTx(tx, iconName, false)
 		if errIconDesc != nil {
-			return []domain.Icon{}, fmt.Errorf("failed to retrieve icon %s: %w", iconName, errIconDesc)
+			return []domain.IconDescriptor{}, fmt.Errorf("failed to retrieve icon %s: %w", iconName, errIconDesc)
 		}
 		result = append(result, icon)
 	}
@@ -235,10 +237,11 @@ func (repo DatabaseRepository) GetIconFile(iconName, format, iconSize string) ([
 	err = repo.ConnectionPool.QueryRow(getIconfileSQL, iconName, format, iconSize).Scan(&content)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return content, fmt.Errorf("iconfile %v for icon %s not found %w", domain.Iconfile{
-				Format: format,
-				Size:   iconSize,
-			}, iconName, domain.ErrIconfileNotFound)
+			return content, fmt.Errorf("iconfile %v for icon %s not found %w",
+				domain.IconfileDescriptor{
+					Format: format,
+					Size:   iconSize,
+				}, iconName, domain.ErrIconfileNotFound)
 		}
 		return []byte{}, fmt.Errorf("failed to get iconfile %v: %w", iconName, err)
 	}
@@ -324,7 +327,7 @@ func (repo DatabaseRepository) AddTag(iconName string, tag string, modifiedBy st
 	return nil
 }
 
-func deleteIconfileBare(tx *sql.Tx, iconName string, iconfile domain.Iconfile) error {
+func deleteIconfileBare(tx *sql.Tx, iconName string, iconfile domain.IconfileDescriptor) error {
 	var err error
 
 	var getIdAndLockIcon = "SELECT id FROM icon WHERE name = $1 FOR UPDATE"
@@ -372,7 +375,7 @@ func (repo DatabaseRepository) DeleteIcon(iconName string, modifiedBy string, cr
 	}
 	defer tx.Rollback()
 
-	var iconDesc domain.Icon
+	var iconDesc domain.IconDescriptor
 	iconDesc, err = describeIconInTx(tx, iconName, true)
 	if err != nil {
 		return fmt.Errorf("failed to describe icon %v: %w", iconName, err)
@@ -396,7 +399,7 @@ func (repo DatabaseRepository) DeleteIcon(iconName string, modifiedBy string, cr
 	return nil
 }
 
-func (repo DatabaseRepository) DeleteIconfile(iconName string, iconfile domain.Iconfile, modifiedBy string, createSideEffect CreateSideEffect) error {
+func (repo DatabaseRepository) DeleteIconfile(iconName string, iconfile domain.IconfileDescriptor, modifiedBy string, createSideEffect CreateSideEffect) error {
 	var err error
 	var tx *sql.Tx
 

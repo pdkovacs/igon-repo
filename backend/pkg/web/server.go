@@ -107,6 +107,9 @@ func (s *Server) initEndpoints(options auxiliaries.Options) *gin.Engine {
 	r.GET("/icon", describeAllIconsHanler(&iconService))
 	r.POST("/icon", createIconHandler(&iconService))
 
+	r.POST("/icon/:name", addIconfileHandler(&iconService))
+	r.GET("/icon/:name/format/:format/size/:size", getIconfileHandler(&iconService))
+
 	return r
 }
 

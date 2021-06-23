@@ -74,20 +74,10 @@ func (s GitTestSuite) getCurrentCommit() (string, error) {
 	return strings.TrimSpace(out), nil
 }
 
-func (s GitTestSuite) getGitStatus() (string, error) {
-	out, err := s.repo.ExecuteGitCommand([]string{"status"})
-	if err != nil {
-		return "", fmt.Errorf("failed to get current git commit: %w", err)
-	}
-	return strings.TrimSpace(out), nil
-}
-
 const cleanStatusMessageTail = "nothing to commit, working tree clean"
 
 func (s GitTestSuite) assertGitCleanStatus() {
-	status, err := s.getGitStatus()
-	s.NoError(err)
-	s.Contains(status, cleanStatusMessageTail)
+	AssertGitCleanStatus(&s.Suite, &s.repo)
 }
 
 func (s GitTestSuite) assertFileInRepo(iconName string, iconfile domain.Iconfile) {
@@ -104,4 +94,18 @@ func (s GitTestSuite) assertFileNotInRepo(iconName string, iconfile domain.Iconf
 	var filePath = s.repo.GetPathToIconfile(iconName, iconfile)
 	_, statErr := os.Stat(filePath)
 	s.True(os.IsNotExist(statErr))
+}
+
+func getGitStatus(repo *repositories.GitRepository) (string, error) {
+	out, err := repo.ExecuteGitCommand([]string{"status"})
+	if err != nil {
+		return "", fmt.Errorf("failed to get current git commit: %w", err)
+	}
+	return strings.TrimSpace(out), nil
+}
+
+func AssertGitCleanStatus(s *suite.Suite, repo *repositories.GitRepository) {
+	status, err := getGitStatus(repo)
+	s.NoError(err)
+	s.Contains(status, cleanStatusMessageTail)
 }
