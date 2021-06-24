@@ -13,7 +13,11 @@ var backendSourceHome = os.Getenv("BACKEND_SOURCE_HOME")
 
 func init() {
 	if backendSourceHome == "" {
-		backendSourceHome = fmt.Sprintf("%s/github/pdkovacs/igo-repo/backend", os.Getenv("HOME"))
+		homeDir := os.Getenv("HOME")
+		if homeDir == "" {
+			homeDir = os.Getenv("USERPROFILE")
+		}
+		backendSourceHome = fmt.Sprintf("%s/github/pdkovacs/igo-repo/backend", homeDir)
 	}
 }
 

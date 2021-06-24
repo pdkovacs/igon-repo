@@ -14,16 +14,18 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+const iconRootPath = "/icon"
+
 type IconPath struct {
 	domain.IconfileDescriptor
-	path string
+	Path string
 }
 
-type IconDTO struct {
-	name       string
-	modifiedBy string
-	paths      []IconPath
-	tags       []string
+type ResponseIcon struct {
+	Name       string
+	ModifiedBy string
+	Paths      []IconPath
+	Tags       []string
 }
 
 func createIconfilePath(baseUrl string, iconName string, iconfileDescriptor domain.IconfileDescriptor) string {
@@ -38,20 +40,38 @@ func createIconfilePaths(baseUrl string, iconDesc domain.IconDescriptor) []IconP
 				Format: iconfileDescriptor.Format,
 				Size:   iconfileDescriptor.Size,
 			},
-			path: createIconfilePath(baseUrl, iconDesc.Name, iconfileDescriptor),
+			Path: createIconfilePath(baseUrl, iconDesc.Name, iconfileDescriptor),
 		}
 		iconPaths = append(iconPaths, iconPath)
 	}
 	return iconPaths
 }
 
-func createIconDTO(iconPathRoot string, iconDesc domain.IconDescriptor) IconDTO {
-	return IconDTO{
-		name:       iconDesc.Name,
-		modifiedBy: iconDesc.ModifiedBy,
-		paths:      createIconfilePaths(iconPathRoot, iconDesc),
-		tags:       iconDesc.Tags,
+func createResponseIcon(iconPathRoot string, iconDesc domain.IconDescriptor) ResponseIcon {
+	return ResponseIcon{
+		Name:       iconDesc.Name,
+		ModifiedBy: iconDesc.ModifiedBy,
+		Paths:      createIconfilePaths(iconPathRoot, iconDesc),
+		Tags:       iconDesc.Tags,
 	}
+}
+
+func iconfilesToIconfileDescriptors(iconfiles []domain.Iconfile) []domain.IconfileDescriptor {
+	iconfileDescriptors := []domain.IconfileDescriptor{}
+	for _, iconfile := range iconfiles {
+		iconfileDescriptors = append(iconfileDescriptors, iconfile.IconfileDescriptor)
+	}
+	return iconfileDescriptors
+}
+
+func iconToResponseIcon(icon domain.Icon) ResponseIcon {
+	return createResponseIcon(
+		iconRootPath,
+		domain.IconDescriptor{
+			IconAttributes: icon.IconAttributes,
+			Iconfiles:      iconfilesToIconfileDescriptors(icon.Iconfiles),
+		},
+	)
 }
 
 func describeAllIconsHanler(iconService *services.IconService) func(c *gin.Context) {
@@ -62,7 +82,11 @@ func describeAllIconsHanler(iconService *services.IconService) func(c *gin.Conte
 			logger.Errorf("%v", err)
 			c.AbortWithStatus(500)
 		}
-		c.JSON(200, icons)
+		responseIcon := []ResponseIcon{}
+		for _, icon := range icons {
+			responseIcon = append(responseIcon, createResponseIcon(iconRootPath, icon))
+		}
+		c.JSON(200, responseIcon)
 	}
 }
 
@@ -104,13 +128,13 @@ func createIconHandler(iconService *services.IconService) func(c *gin.Context) {
 		if errCreate != nil {
 			logger.Errorf("failed to create icon %v", errCreate)
 			if errors.Is(errCreate, authr.ErrPermission) {
-				c.AbortWithStatusJSON(403, icon)
+				c.AbortWithStatusJSON(403, iconToResponseIcon(icon))
 				return
 			} else {
-				c.AbortWithStatusJSON(500, icon)
+				c.AbortWithStatusJSON(500, iconToResponseIcon(icon))
 			}
 		}
-		c.JSON(201, icon)
+		c.JSON(201, iconToResponseIcon(icon))
 
 		buf.Reset()
 		// do something else

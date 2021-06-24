@@ -13,6 +13,7 @@ import (
 	"github.com/pdkovacs/igo-repo/backend/pkg/auxiliaries"
 	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
 	"github.com/pdkovacs/igo-repo/backend/pkg/security/authr"
+	"github.com/pdkovacs/igo-repo/backend/pkg/web"
 )
 
 type apiTestSession struct {
@@ -106,24 +107,24 @@ func (session *apiTestSession) mustSetAuthorization(requestedPermissions []authr
 	}
 }
 
-func (session *apiTestSession) describeAllIcons() ([]domain.IconDescriptor, error) {
+func (session *apiTestSession) describeAllIcons() ([]web.ResponseIcon, error) {
 	resp, err := session.get(&testRequest{
 		path:          "/icon",
 		jar:           session.cjar,
-		respBodyProto: &[]domain.IconDescriptor{},
+		respBodyProto: &[]web.ResponseIcon{},
 	})
 	if err != nil {
-		return []domain.IconDescriptor{}, fmt.Errorf("GET /icon failed: %w", err)
+		return []web.ResponseIcon{}, fmt.Errorf("GET /icon failed: %w", err)
 	}
-	icons, ok := resp.body.(*[]domain.IconDescriptor)
+	icons, ok := resp.body.(*[]web.ResponseIcon)
 	if !ok {
-		return []domain.IconDescriptor{}, fmt.Errorf("failed to cast %T as []domain.Icon", resp.body)
+		return []web.ResponseIcon{}, fmt.Errorf("failed to cast %T as []domain.Icon", resp.body)
 	}
 	return *icons, err
 }
 
 // https://stackoverflow.com/questions/20205796/post-data-using-the-content-type-multipart-form-data
-func (session *apiTestSession) createIcon(iconName string, initialIconfile []byte) (int, domain.Icon, error) {
+func (session *apiTestSession) createIcon(iconName string, initialIconfile []byte) (int, web.ResponseIcon, error) {
 	var err error
 	var resp testResponse
 
@@ -155,17 +156,17 @@ func (session *apiTestSession) createIcon(iconName string, initialIconfile []byt
 		jar:           session.cjar,
 		headers:       headers,
 		body:          b.Bytes(),
-		respBodyProto: &domain.Icon{},
+		respBodyProto: &web.ResponseIcon{},
 	})
 	if err != nil {
-		return resp.statusCode, domain.Icon{}, err
+		return resp.statusCode, web.ResponseIcon{}, err
 	}
 
-	if respIconfile, ok := resp.body.(*domain.Icon); ok {
+	if respIconfile, ok := resp.body.(*web.ResponseIcon); ok {
 		return resp.statusCode, *respIconfile, nil
 	}
 
-	return resp.statusCode, domain.Icon{}, errors.New(fmt.Sprintf("failed to cast %T to domain.Icon", resp.body))
+	return resp.statusCode, web.ResponseIcon{}, errors.New(fmt.Sprintf("failed to cast %T to web.IconDTO", resp.body))
 }
 
 func (s *apiTestSession) GetIconfile(iconName string, iconfileDescriptor domain.IconfileDescriptor) ([]byte, error) {

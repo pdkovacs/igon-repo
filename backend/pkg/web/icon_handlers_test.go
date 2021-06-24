@@ -36,37 +36,37 @@ func (s *iconHandlerTestSuite) TestReturnIconsWithProperPaths() {
 		Iconfiles: iconfileDescs,
 	}
 
-	expectedDTO := IconDTO{
-		name:       name,
-		modifiedBy: modifiedBy,
-		paths: []IconPath{
+	expectedResponse := ResponseIcon{
+		Name:       name,
+		ModifiedBy: modifiedBy,
+		Paths: []IconPath{
 			{
 				IconfileDescriptor: domain.IconfileDescriptor{
 					Format: "french",
 					Size:   "great",
 				},
-				path: fmt.Sprintf("%s/cartouche/format/french/size/great", iconPathRoot)},
+				Path: fmt.Sprintf("%s/cartouche/format/french/size/great", iconPathRoot)},
 			{
 				IconfileDescriptor: domain.IconfileDescriptor{
 					Format: "french",
 					Size:   "huge",
 				},
-				path: fmt.Sprintf("%s/cartouche/format/french/size/huge", iconPathRoot)},
+				Path: fmt.Sprintf("%s/cartouche/format/french/size/huge", iconPathRoot)},
 			{
 				IconfileDescriptor: domain.IconfileDescriptor{
 					Format: "english",
 					Size:   "OK",
 				},
-				path: fmt.Sprintf("%s/cartouche/format/english/size/OK", iconPathRoot)},
+				Path: fmt.Sprintf("%s/cartouche/format/english/size/OK", iconPathRoot)},
 			{
 				IconfileDescriptor: domain.IconfileDescriptor{
 					Format: "english",
 					Size:   "nice",
 				},
-				path: fmt.Sprintf("%s/cartouche/format/english/size/nice", iconPathRoot)},
+				Path: fmt.Sprintf("%s/cartouche/format/english/size/nice", iconPathRoot)},
 		},
-		tags: []string{},
+		Tags: []string{},
 	}
 
-	s.Equal(expectedDTO, createIconDTO(iconPathRoot, iconDescriptor))
+	s.Equal(expectedResponse, createResponseIcon(iconPathRoot, iconDescriptor))
 }
