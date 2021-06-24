@@ -124,6 +124,7 @@ func createIconHandler(iconService *services.IconService) func(c *gin.Context) {
 
 		// Copy the file data to my buffer
 		io.Copy(&buf, file)
+		defer buf.Reset()
 		logger.Infof("received %d bytes for icon %s", buf.Len(), iconName)
 
 		// do something with the contents...
@@ -135,11 +136,11 @@ func createIconHandler(iconService *services.IconService) func(c *gin.Context) {
 				return
 			} else {
 				c.AbortWithStatusJSON(500, iconToResponseIcon(icon))
+				return
 			}
 		}
 		c.JSON(201, iconToResponseIcon(icon))
 
-		buf.Reset()
 		// do something else
 		// etc write header
 		return

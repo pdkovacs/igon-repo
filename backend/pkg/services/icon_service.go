@@ -50,9 +50,14 @@ func (service *IconService) CreateIcon(iconName string, initialIconfileContent [
 		"iconName: %s, iconfile: %v, initialIconfileContent size: %d, modifiedBy: %s",
 		iconName, iconfile, len(initialIconfileContent), modifiedBy,
 	)
-	service.Repositories.DB.CreateIcon(iconName, iconfile, modifiedBy.UserId.String(), func() error {
+
+	errCreate := service.Repositories.DB.CreateIcon(iconName, iconfile, modifiedBy.UserId.String(), func() error {
 		return service.Repositories.Git.AddIconfile(iconName, iconfile, modifiedBy.UserId.String())
 	})
+	if errCreate != nil {
+		return domain.Icon{}, errCreate
+	}
+
 	return domain.Icon{
 		IconAttributes: domain.IconAttributes{
 			Name:       iconName,
@@ -101,9 +106,13 @@ func (service *IconService) AddIconfile(iconName string, initialIconfileContent 
 		"iconName: %s, iconfile: %v, content of iconfile to add size: %d, modifiedBy: %s",
 		iconName, iconfile, len(initialIconfileContent), modifiedBy,
 	)
-	service.Repositories.DB.AddIconfileToIcon(iconName, iconfile, modifiedBy.UserId.String(), func() error {
+	errAddIconfile := service.Repositories.DB.AddIconfileToIcon(iconName, iconfile, modifiedBy.UserId.String(), func() error {
 		return service.Repositories.Git.AddIconfile(iconName, iconfile, modifiedBy.UserId.String())
 	})
+	if errAddIconfile != nil {
+		return domain.IconfileDescriptor{}, errAddIconfile
+	}
+
 	return iconfile.IconfileDescriptor, nil
 }
 

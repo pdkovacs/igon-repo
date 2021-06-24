@@ -67,11 +67,7 @@ func (s *GitTestSuite) BeforeTest(suiteName, testName string) {
 }
 
 func (s GitTestSuite) getCurrentCommit() (string, error) {
-	out, err := s.repo.ExecuteGitCommand([]string{"rev-parse", "HEAD"})
-	if err != nil {
-		return "", fmt.Errorf("failed to get current git commit: %w", err)
-	}
-	return strings.TrimSpace(out), nil
+	return GetCurrentCommit(&s.repo)
 }
 
 const cleanStatusMessageTail = "nothing to commit, working tree clean"
@@ -108,4 +104,12 @@ func AssertGitCleanStatus(s *suite.Suite, repo *repositories.GitRepository) {
 	status, err := getGitStatus(repo)
 	s.NoError(err)
 	s.Contains(status, cleanStatusMessageTail)
+}
+
+func GetCurrentCommit(repo *repositories.GitRepository) (string, error) {
+	out, err := repo.ExecuteGitCommand([]string{"rev-parse", "HEAD"})
+	if err != nil {
+		return "", fmt.Errorf("failed to get current git commit: %w", err)
+	}
+	return strings.TrimSpace(out), nil
 }

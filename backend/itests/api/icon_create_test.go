@@ -1,10 +1,13 @@
 package api
 
 import (
+	"os"
 	"testing"
 
 	"github.com/pdkovacs/igo-repo/backend/itests/common"
+	test_repositories "github.com/pdkovacs/igo-repo/backend/itests/repositories"
 	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
+	"github.com/pdkovacs/igo-repo/backend/pkg/repositories"
 	"github.com/pdkovacs/igo-repo/backend/pkg/security/authn"
 	"github.com/pdkovacs/igo-repo/backend/pkg/security/authr"
 	"github.com/pdkovacs/igo-repo/backend/pkg/web"
@@ -88,10 +91,9 @@ func (s *iconCreateTestSuite) TestAddMultipleIconsInARow() {
 	sampleIconName2 := testIconInputData[1].Name
 	sampleIconfileDesc2 := testIconInputData[1].Iconfiles[1]
 
-	session := s.client.mustLogin(nil)
-	session.mustSetAuthorization([]authr.PermissionID{authr.CREATE_ICON})
+	session := s.client.mustLoginSetAllPerms()
 
-	mustAddTestData(&session, &testIconInputData)
+	mustAddTestData(session, testIconInputData)
 	s.getCheckIconfile(session, sampleIconName1, sampleIconfileDesc1)
 	s.getCheckIconfile(session, sampleIconName2, sampleIconfileDesc2)
 	s.assertGitCleanStatus()
@@ -99,4 +101,30 @@ func (s *iconCreateTestSuite) TestAddMultipleIconsInARow() {
 	iconDescriptors, describeError := session.describeAllIcons()
 	s.NoError(describeError)
 	s.Equal(updatedTestIconDataResponse, iconDescriptors)
+}
+
+func (s *iconCreateTestSuite) TestRollbackToLastConsistentStateOnError() {
+	intactIcon := testIconInputData[0]
+
+	session := s.client.mustLoginSetAllPerms()
+	mustAddTestData(session, []domain.Icon{intactIcon})
+
+	lastStableSHA1, beforeIncidentGitErr := test_repositories.GetCurrentCommit(s.server.Repositories.Git)
+	s.NoError(beforeIncidentGitErr)
+
+	os.Setenv(repositories.IntrusiveGitTestEnvvarName, "true")
+
+	statusCode, _, _ := session.createIcon(testIconInputData[1].Name, testIconInputData[1].Iconfiles[0].Content)
+	s.Equal(500, statusCode)
+
+	test_repositories.AssertGitCleanStatus(&s.Suite, s.server.Repositories.Git)
+	afterIncidentSHA1, afterIncidentGitErr := test_repositories.GetCurrentCommit(s.server.Repositories.Git)
+	s.NoError(afterIncidentGitErr)
+
+	s.Equal(lastStableSHA1, afterIncidentSHA1)
+
+	iconDescriptors, describeError := session.describeAllIcons()
+	s.NoError(describeError)
+	s.Equal(1, len(iconDescriptors))
+	s.Equal([]web.ResponseIcon{updatedTestIconDataResponse[0]}, iconDescriptors)
 }

@@ -21,11 +21,11 @@ type apiTestSession struct {
 	cjar http.CookieJar
 }
 
-func (client *apiTestClient) login(credentials *requestCredentials) (apiTestSession, error) {
+func (client *apiTestClient) login(credentials *requestCredentials) (*apiTestSession, error) {
 	if credentials == nil {
 		calculatedCredentials, credError := makeRequestCredentials(auxiliaries.BasicAuthentication, defaultCredentials.Username, defaultCredentials.Password)
 		if credError != nil {
-			return apiTestSession{}, fmt.Errorf("Failed to create default request credentials: %w", credError)
+			return &apiTestSession{}, fmt.Errorf("Failed to create default request credentials: %w", credError)
 		}
 		credentials = &calculatedCredentials
 	}
@@ -39,17 +39,17 @@ func (client *apiTestClient) login(credentials *requestCredentials) (apiTestSess
 		body:        credentials,
 	})
 	if postError != nil {
-		return apiTestSession{}, fmt.Errorf("failed to login: %w", postError)
+		return &apiTestSession{}, fmt.Errorf("failed to login: %w", postError)
 	}
 	if resp.statusCode != 200 {
-		return apiTestSession{}, fmt.Errorf(
+		return &apiTestSession{}, fmt.Errorf(
 			"failed to login with status code %d: %w",
 			resp.statusCode,
 			errors.New("authentication error"),
 		)
 	}
 
-	return apiTestSession{
+	return &apiTestSession{
 		apiTestClient: apiTestClient{
 			serverPort: client.serverPort,
 		},
@@ -57,11 +57,17 @@ func (client *apiTestClient) login(credentials *requestCredentials) (apiTestSess
 	}, nil
 }
 
-func (client *apiTestClient) mustLogin(credentials *requestCredentials) apiTestSession {
+func (client *apiTestClient) mustLogin(credentials *requestCredentials) *apiTestSession {
 	session, err := client.login(credentials)
 	if err != nil {
 		panic(err)
 	}
+	return session
+}
+
+func (client *apiTestClient) mustLoginSetAllPerms() *apiTestSession {
+	session := client.mustLogin(nil)
+	session.setAuthorization([]authr.PermissionID{authr.CREATE_ICON})
 	return session
 }
 

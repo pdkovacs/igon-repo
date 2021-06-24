@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -13,6 +14,8 @@ import (
 	"github.com/pdkovacs/igo-repo/backend/pkg/security/authn"
 	log "github.com/sirupsen/logrus"
 )
+
+var errJSONUnmarshal = errors.New("failed to unmarshal JSON")
 
 var authenticationBackdoorPath = "/backdoor/authentication"
 
@@ -125,7 +128,7 @@ func (c *apiTestClient) sendRequest(method string, req *testRequest) (testRespon
 			return testResponse{
 				headers:    resp.Header,
 				statusCode: resp.StatusCode,
-			}, fmt.Errorf("Failed to unmarshal JSON response \"%s\": %w", string(byteBody), jsonUnmarshalError)
+			}, fmt.Errorf("Failed to unmarshal JSON response \"%s\": %w", string(byteBody), errJSONUnmarshal)
 		}
 	}
 
