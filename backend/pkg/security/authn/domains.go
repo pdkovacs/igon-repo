@@ -8,11 +8,11 @@ type Domain interface {
 type localDomain struct {
 }
 
-func (ld *localDomain) GetDomainID() string {
+func (ld localDomain) GetDomainID() string {
 	return "local"
 }
 
-func (ld *localDomain) CreateUserID(idInDomain string) UserID {
+func (ld localDomain) CreateUserID(idInDomain string) UserID {
 	return UserID{
 		DomainID:   ld.GetDomainID(),
 		IDInDomain: idInDomain,

@@ -10,6 +10,8 @@ import (
 
 	"github.com/pdkovacs/igo-repo/backend/pkg/auxiliaries"
 	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
+	"github.com/pdkovacs/igo-repo/backend/pkg/security/authn"
+	log "github.com/sirupsen/logrus"
 )
 
 var authenticationBackdoorPath = "/backdoor/authentication"
@@ -76,6 +78,7 @@ func encodeRequestBody(requestBody interface{}, isJSON bool) (io.Reader, error) 
 }
 
 func (c *apiTestClient) sendRequest(method string, req *testRequest) (testResponse, error) {
+	logger := log.WithField("prefix", "sendRequest")
 	body, errBodyEncode := encodeRequestBody(req.body, req.json)
 	if errBodyEncode != nil {
 		return testResponse{}, errBodyEncode
@@ -118,10 +121,11 @@ func (c *apiTestClient) sendRequest(method string, req *testRequest) (testRespon
 		}
 		jsonUnmarshalError := json.Unmarshal(byteBody, req.respBodyProto)
 		if jsonUnmarshalError != nil {
+			logger.Errorf("Failed to unmarshal JSON response: %v\n", jsonUnmarshalError)
 			return testResponse{
 				headers:    resp.Header,
 				statusCode: resp.StatusCode,
-			}, fmt.Errorf("Failed to unmarshal JSON response: %w", jsonUnmarshalError)
+			}, fmt.Errorf("Failed to unmarshal JSON response \"%s\": %w", string(byteBody), jsonUnmarshalError)
 		}
 	}
 
@@ -157,4 +161,9 @@ func (c *apiTestClient) post(req *testRequest) (testResponse, error) {
 
 func getFilePath(iconName string, fileDescriptor domain.IconfileDescriptor) string {
 	return fmt.Sprintf("/icon/%s/format/%s/size/%s", iconName, fileDescriptor.Format, fileDescriptor.Size)
+}
+
+func getDefaultUserIDAsString() string {
+	userID := authn.LocalDomain.CreateUserID(defaultCredentials.Username)
+	return userID.String()
 }

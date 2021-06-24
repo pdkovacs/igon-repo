@@ -169,24 +169,29 @@ func (session *apiTestSession) createIcon(iconName string, initialIconfile []byt
 	return resp.statusCode, web.ResponseIcon{}, errors.New(fmt.Sprintf("failed to cast %T to web.IconDTO", resp.body))
 }
 
-func (s *apiTestSession) GetIconfile(iconName string, iconfileDescriptor domain.IconfileDescriptor) ([]byte, error) {
-	content := []byte{}
+func (s *apiTestSession) GetIconfile(iconName string, iconfileDescriptor domain.IconfileDescriptor) (domain.Iconfile, error) {
+	iconfile := domain.Iconfile{}
 	resp, reqErr := s.get(&testRequest{
-		path: getFilePath(iconName, iconfileDescriptor),
-		body: &content,
+		path:          getFilePath(iconName, iconfileDescriptor),
+		respBodyProto: &iconfile,
 	})
 	if reqErr != nil {
-		return content, fmt.Errorf("failed to retrieve iconfile %v of %s", iconfileDescriptor, iconName)
+		return iconfile, fmt.Errorf("failed to retrieve iconfile %v of %s: %w", iconfileDescriptor, iconName, reqErr)
 	}
 
-	if byteArr, ok := resp.body.([]byte); ok {
-		return byteArr, nil
+	if respIconfile, ok := resp.body.(*domain.Iconfile); ok {
+		original, decodeErr := base64.StdEncoding.DecodeString(string(respIconfile.Content))
+		if decodeErr != nil {
+			return iconfile, fmt.Errorf("failed to decode iconfile %v of %s: %w", iconfileDescriptor, iconName, decodeErr)
+		}
+		iconfile.Content = original
+		return iconfile, nil
 	}
 
-	return content, fmt.Errorf("failed to cast the reply %T to []byte while retrieving iconfile %v of %s", resp.body, iconfileDescriptor, iconName)
+	return iconfile, fmt.Errorf("failed to cast the reply %T to []byte while retrieving iconfile %v of %s", resp.body, iconfileDescriptor, iconName)
 }
 
-func (session *apiTestSession) addIconfile(iconName string, iconfile domain.Iconfile) (int, domain.Iconfile, error) {
+func (session *apiTestSession) addIconfile(iconName string, iconfile domain.Iconfile) (int, web.IconPath, error) {
 	var err error
 	var resp testResponse
 
@@ -214,19 +219,19 @@ func (session *apiTestSession) addIconfile(iconName string, iconfile domain.Icon
 	}
 
 	resp, err = session.sendRequest("POST", &testRequest{
-		path:          fmt.Sprintf("/icon%s", iconName),
+		path:          fmt.Sprintf("/icon/%s", iconName),
 		jar:           session.cjar,
 		headers:       headers,
 		body:          b.Bytes(),
-		respBodyProto: &domain.Iconfile{},
+		respBodyProto: &web.IconPath{},
 	})
 	if err != nil {
-		return resp.statusCode, domain.Iconfile{}, err
+		return resp.statusCode, web.IconPath{}, err
 	}
 
-	if respIconfile, ok := resp.body.(*domain.Iconfile); ok {
+	if respIconfile, ok := resp.body.(*web.IconPath); ok {
 		return resp.statusCode, *respIconfile, nil
 	}
 
-	return resp.statusCode, domain.Iconfile{}, errors.New(fmt.Sprintf("failed to cast %T to domain.Icon", resp.body))
+	return resp.statusCode, web.IconPath{}, errors.New(fmt.Sprintf("failed to cast %T to domain.Icon", resp.body))
 }

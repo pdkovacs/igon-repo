@@ -98,5 +98,5 @@ func (s *iconCreateTestSuite) TestAddMultipleIconsInARow() {
 
 	iconDescriptors, describeError := session.describeAllIcons()
 	s.NoError(describeError)
-	s.Equal(ingestedTestIconDataDescription, iconDescriptors)
+	s.Equal(updatedTestIconDataResponse, iconDescriptors)
 }

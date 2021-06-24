@@ -32,17 +32,20 @@ func createIconfilePath(baseUrl string, iconName string, iconfileDescriptor doma
 	return fmt.Sprintf("%s/%s/format/%s/size/%s", baseUrl, iconName, iconfileDescriptor.Format, iconfileDescriptor.Size)
 }
 
+func createIconPath(baseUrl string, iconName string, iconfileDescriptor domain.IconfileDescriptor) IconPath {
+	return IconPath{
+		IconfileDescriptor: domain.IconfileDescriptor{
+			Format: iconfileDescriptor.Format,
+			Size:   iconfileDescriptor.Size,
+		},
+		Path: createIconfilePath(baseUrl, iconName, iconfileDescriptor),
+	}
+}
+
 func createIconfilePaths(baseUrl string, iconDesc domain.IconDescriptor) []IconPath {
 	iconPaths := []IconPath{}
 	for _, iconfileDescriptor := range iconDesc.Iconfiles {
-		iconPath := IconPath{
-			IconfileDescriptor: domain.IconfileDescriptor{
-				Format: iconfileDescriptor.Format,
-				Size:   iconfileDescriptor.Size,
-			},
-			Path: createIconfilePath(baseUrl, iconDesc.Name, iconfileDescriptor),
-		}
-		iconPaths = append(iconPaths, iconPath)
+		iconPaths = append(iconPaths, createIconPath(baseUrl, iconDesc.Name, iconfileDescriptor))
 	}
 	return iconPaths
 }
@@ -195,17 +198,17 @@ func addIconfileHandler(iconService *services.IconService) func(c *gin.Context) 
 		logger.Infof("received %d bytes as iconfile content for icon %s", buf.Len(), iconName)
 
 		// do something with the contents...
-		icon, errCreate := iconService.AddIconfile(iconName, buf.Bytes(), MustGetUserSession(c).UserInfo)
+		iconfileDescriptor, errCreate := iconService.AddIconfile(iconName, buf.Bytes(), MustGetUserSession(c).UserInfo)
 		if errCreate != nil {
 			logger.Errorf("failed to add iconfile %v", errCreate)
 			if errors.Is(errCreate, authr.ErrPermission) {
-				c.AbortWithStatusJSON(403, icon)
+				c.AbortWithStatus(403)
 				return
 			} else {
-				c.AbortWithStatusJSON(500, icon)
+				c.AbortWithStatus(500)
 			}
 		}
-		c.JSON(201, icon)
+		c.JSON(201, createIconPath(iconRootPath, iconName, iconfileDescriptor))
 
 		buf.Reset()
 		// do something else

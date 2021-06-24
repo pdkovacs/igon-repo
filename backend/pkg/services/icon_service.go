@@ -76,18 +76,19 @@ func (service *IconService) GetIconfile(iconName string, iconfile domain.Iconfil
 	}, nil
 }
 
-func (service *IconService) AddIconfile(iconName string, initialIconfileContent []byte, modifiedBy UserInfo) (domain.Iconfile, error) {
+func (service *IconService) AddIconfile(iconName string, initialIconfileContent []byte, modifiedBy UserInfo) (domain.IconfileDescriptor, error) {
 	logger := log.WithField("prefix", "AddIconfile")
 	err := authr.HasRequiredPermissions(modifiedBy.UserId, modifiedBy.Permissions, []authr.PermissionID{
 		authr.CREATE_ICON,
 	})
 	if err != nil {
-		return domain.Iconfile{}, fmt.Errorf("failed to create icon %v: %w", iconName, err)
+		return domain.IconfileDescriptor{}, fmt.Errorf("failed to create icon %v: %w", iconName, err)
 	}
 	reader := base64.NewDecoder(base64.StdEncoding, strings.NewReader(string(initialIconfileContent)))
 	config, format, err := image.DecodeConfig(reader)
 	if err != nil {
-		log.Fatal(err)
+		logger.Errorf("failed to decode image configuration of file for %s: %v", iconName, err)
+		return domain.IconfileDescriptor{}, fmt.Errorf("failed to decode image configuration of file for %s: %w", iconName, err)
 	}
 	iconfile := domain.Iconfile{
 		IconfileDescriptor: domain.IconfileDescriptor{
@@ -103,5 +104,9 @@ func (service *IconService) AddIconfile(iconName string, initialIconfileContent 
 	service.Repositories.DB.AddIconfileToIcon(iconName, iconfile, modifiedBy.UserId.String(), func() error {
 		return service.Repositories.Git.AddIconfile(iconName, iconfile, modifiedBy.UserId.String())
 	})
-	return iconfile, nil
+	return iconfile.IconfileDescriptor, nil
+}
+
+func init() {
+	registerSVGDecoder()
 }

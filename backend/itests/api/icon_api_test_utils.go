@@ -7,6 +7,7 @@ import (
 
 	"github.com/pdkovacs/igo-repo/backend/itests/repositories"
 	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
+	"github.com/pdkovacs/igo-repo/backend/pkg/web"
 )
 
 var backendSourceHome = os.Getenv("BACKEND_SOURCE_HOME")
@@ -124,26 +125,26 @@ type ingestedIconDataDescription struct {
 	tags       []string
 }
 
-var ingestedTestIconDataDescription = []ingestedIconDataDescription{
+var updatedTestIconDataResponse = []web.ResponseIcon{
 	{
-		name:       "attach_money",
-		modifiedBy: "ux",
-		paths: []ingestedIconfileData{
-			{format: "png", size: "36px", path: "/icon/attach_money/format/png/size/36px"},
-			{format: "svg", size: "18px", path: "/icon/attach_money/format/svg/size/18px"},
-			{format: "svg", size: "24px", path: "/icon/attach_money/format/svg/size/24px"},
+		Name:       "attach_money",
+		ModifiedBy: getDefaultUserIDAsString(),
+		Paths: []web.IconPath{
+			{IconfileDescriptor: domain.IconfileDescriptor{Format: "png", Size: "36px"}, Path: "/icon/attach_money/format/png/size/36px"},
+			{IconfileDescriptor: domain.IconfileDescriptor{Format: "svg", Size: "18px"}, Path: "/icon/attach_money/format/svg/size/18px"},
+			{IconfileDescriptor: domain.IconfileDescriptor{Format: "svg", Size: "24px"}, Path: "/icon/attach_money/format/svg/size/24px"},
 		},
-		tags: []string{},
+		Tags: []string{},
 	},
 	{
-		name:       "cast_connected",
-		modifiedBy: "ux",
-		paths: []ingestedIconfileData{
-			{format: "png", size: "36px", path: "/icon/cast_connected/format/png/size/36px"},
-			{format: "svg", size: "24px", path: "/icon/cast_connected/format/svg/size/24px"},
-			{format: "svg", size: "48px", path: "/icon/cast_connected/format/svg/size/48px"},
+		Name:       "cast_connected",
+		ModifiedBy: getDefaultUserIDAsString(),
+		Paths: []web.IconPath{
+			{IconfileDescriptor: domain.IconfileDescriptor{Format: "png", Size: "36px"}, Path: "/icon/cast_connected/format/png/size/36px"},
+			{IconfileDescriptor: domain.IconfileDescriptor{Format: "svg", Size: "24px"}, Path: "/icon/cast_connected/format/svg/size/24px"},
+			{IconfileDescriptor: domain.IconfileDescriptor{Format: "svg", Size: "48px"}, Path: "/icon/cast_connected/format/svg/size/48px"},
 		},
-		tags: []string{},
+		Tags: []string{},
 	},
 }
 
@@ -206,9 +207,9 @@ type iconTestSuite struct {
 }
 
 func (s *iconTestSuite) getCheckIconfile(session apiTestSession, iconName string, iconfile domain.Iconfile) {
-	iconfileContent, err := session.GetIconfile(iconName, iconfile.IconfileDescriptor)
+	actualIconfile, err := session.GetIconfile(iconName, iconfile.IconfileDescriptor)
 	s.NoError(err)
-	s.Equal(iconfile.Content, iconfileContent)
+	s.Equal(iconfile, actualIconfile)
 }
 
 func (s *iconTestSuite) assertGitCleanStatus() {
