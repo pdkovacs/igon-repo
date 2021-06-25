@@ -25,6 +25,14 @@ func (server *IconService) DescribeAllIcons() ([]domain.IconDescriptor, error) {
 	return icons, err
 }
 
+func (server *IconService) DescribeIcon(iconName string) (domain.IconDescriptor, error) {
+	icon, err := server.Repositories.DB.DescribeIcon(iconName)
+	if err != nil {
+		return domain.IconDescriptor{}, fmt.Errorf("failed to describe all icons: %w", err)
+	}
+	return icon, err
+}
+
 func (service *IconService) CreateIcon(iconName string, initialIconfileContent []byte, modifiedBy UserInfo) (domain.Icon, error) {
 	logger := log.WithField("prefix", "CreateIcon")
 	err := authr.HasRequiredPermissions(modifiedBy.UserId, modifiedBy.Permissions, []authr.PermissionID{

@@ -125,6 +125,8 @@ func (c *apiTestClient) sendRequest(method string, req *testRequest) (testRespon
 			return testResponse{}, fmt.Errorf("Failed to read response body: %w", responseReadError)
 		}
 		jsonUnmarshalError := json.Unmarshal(byteBody, req.respBodyProto)
+		// TODO: We should somehow better handle unmarshalling failed calls as well...
+		//       ... using some standard error JSON for example?
 		if jsonUnmarshalError != nil {
 			logger.Errorf("Failed to unmarshal JSON response: %v\n", jsonUnmarshalError)
 			return testResponse{

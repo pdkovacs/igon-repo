@@ -150,9 +150,25 @@ func (session *apiTestSession) describeAllIcons() ([]web.ResponseIcon, error) {
 	}
 	icons, ok := resp.body.(*[]web.ResponseIcon)
 	if !ok {
-		return []web.ResponseIcon{}, fmt.Errorf("failed to cast %T as []domain.Icon", resp.body)
+		return []web.ResponseIcon{}, fmt.Errorf("failed to cast %T as []web.ResponseIcon", resp.body)
 	}
 	return *icons, err
+}
+
+func (session *apiTestSession) describeIcon(iconName string) (int, web.ResponseIcon, error) {
+	resp, err := session.get(&testRequest{
+		path:          fmt.Sprintf("/icon/%s", iconName),
+		jar:           session.cjar,
+		respBodyProto: &web.ResponseIcon{},
+	})
+	if err != nil {
+		return resp.statusCode, web.ResponseIcon{}, fmt.Errorf("GET /icon/%s failed: %w", iconName, err)
+	}
+	icon, ok := resp.body.(*web.ResponseIcon)
+	if !ok {
+		return resp.statusCode, web.ResponseIcon{}, fmt.Errorf("failed to cast %T as web.ResponseIcon", resp.body)
+	}
+	return resp.statusCode, *icon, err
 }
 
 // https://stackoverflow.com/questions/20205796/post-data-using-the-content-type-multipart-form-data

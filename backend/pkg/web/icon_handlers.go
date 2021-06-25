@@ -93,6 +93,25 @@ func describeAllIconsHanler(iconService *services.IconService) func(c *gin.Conte
 	}
 }
 
+func describeIconHandler(iconService *services.IconService) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		logger := log.WithField("prefix", "createIconHandler")
+		iconName := c.Param("name")
+		icon, err := iconService.DescribeIcon(iconName)
+		if err != nil {
+			logger.Errorf("%v", err)
+			if errors.Is(err, domain.ErrIconNotFound) {
+				c.AbortWithStatus(404)
+				return
+			}
+			c.AbortWithStatus(500)
+			return
+		}
+		responseIcon := createResponseIcon(iconRootPath, icon)
+		c.JSON(200, responseIcon)
+	}
+}
+
 func createIconHandler(iconService *services.IconService) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		logger := log.WithField("prefix", "createIconHandler")

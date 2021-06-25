@@ -105,6 +105,7 @@ func (s *Server) initEndpoints(options auxiliaries.Options) *gin.Engine {
 	iconService := services.IconService{Repositories: s.Repositories}
 
 	r.GET("/icon", describeAllIconsHanler(&iconService))
+	r.GET("/icon/:name", describeIconHandler(&iconService))
 	r.POST("/icon", createIconHandler(&iconService))
 	r.DELETE("/icon/:name", deleteIconHandler(&iconService))
 
