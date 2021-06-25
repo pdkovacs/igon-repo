@@ -125,7 +125,7 @@ type ingestedIconDataDescription struct {
 	tags       []string
 }
 
-var updatedTestIconDataResponse = []web.ResponseIcon{
+var testIconDataResponse = []web.ResponseIcon{
 	{
 		Name:       "attach_money",
 		ModifiedBy: getDefaultUserIDAsString(),
@@ -142,6 +142,27 @@ var updatedTestIconDataResponse = []web.ResponseIcon{
 		Paths: []web.IconPath{
 			{IconfileDescriptor: domain.IconfileDescriptor{Format: "png", Size: "36px"}, Path: "/icon/cast_connected/format/png/size/36px"},
 			{IconfileDescriptor: domain.IconfileDescriptor{Format: "svg", Size: "24px"}, Path: "/icon/cast_connected/format/svg/size/24px"},
+			{IconfileDescriptor: domain.IconfileDescriptor{Format: "svg", Size: "48px"}, Path: "/icon/cast_connected/format/svg/size/48px"},
+		},
+		Tags: []string{},
+	},
+}
+
+var moreTestIconDataResponse = []web.ResponseIcon{
+	{
+		Name:       "format_clear",
+		ModifiedBy: getDefaultUserIDAsString(),
+		Paths: []web.IconPath{
+			{IconfileDescriptor: domain.IconfileDescriptor{Format: "png", Size: "36px"}, Path: "/icon/attach_money/format/png/size/36px"},
+			{IconfileDescriptor: domain.IconfileDescriptor{Format: "svg", Size: "48px"}, Path: "/icon/attach_money/format/svg/size/48px"},
+		},
+		Tags: []string{},
+	},
+	{
+		Name:       "insert_photo",
+		ModifiedBy: getDefaultUserIDAsString(),
+		Paths: []web.IconPath{
+			{IconfileDescriptor: domain.IconfileDescriptor{Format: "png", Size: "36px"}, Path: "/icon/cast_connected/format/png/size/36px"},
 			{IconfileDescriptor: domain.IconfileDescriptor{Format: "svg", Size: "48px"}, Path: "/icon/cast_connected/format/svg/size/48px"},
 		},
 		Tags: []string{},
@@ -174,9 +195,11 @@ func createTestIconInputData(descriptors []testIconDescriptor) []domain.Icon {
 }
 
 var testIconInputData []domain.Icon
+var moreIconInputData []domain.Icon
 
 func init() {
 	testIconInputData = createTestIconInputData(testIconInputDataDescriptor)
+	moreIconInputData = createTestIconInputData(moreTestIconInputDataDescriptor)
 }
 
 func createIconfile(desc domain.IconfileDescriptor, content []byte) domain.Iconfile {

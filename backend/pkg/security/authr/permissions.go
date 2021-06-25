@@ -19,18 +19,8 @@ const (
 	REMOVE_TAG      PermissionID = "REMOVE_TAG"
 )
 
-var permissionDictionary = map[PermissionID]string{
-	CREATE_ICON:     "CREATE_ICON",
-	UPDATE_ICON:     "UPDATE_ICON",
-	ADD_ICONFILE:    "ADD_ICONFILE",
-	REMOVE_ICONFILE: "REMOVE_ICONFILE",
-	REMOVE_ICON:     "REMOVE_ICON",
-	ADD_TAG:         "ADD_TAG",
-	REMOVE_TAG:      "REMOVE_TAG",
-}
-
 func GetPrivilegeString(id PermissionID) string {
-	return permissionDictionary[id]
+	return string(id)
 }
 
 type GroupID string
@@ -43,6 +33,7 @@ var permissionsByGroup = map[GroupID][]PermissionID{
 	ICON_EDITOR: {
 		CREATE_ICON,
 		UPDATE_ICON,
+		ADD_ICONFILE,
 		REMOVE_ICONFILE,
 		REMOVE_ICON,
 		ADD_TAG,
@@ -50,8 +41,8 @@ var permissionsByGroup = map[GroupID][]PermissionID{
 	},
 }
 
-func GetPermissionsByGroup() map[GroupID][]PermissionID {
-	return permissionsByGroup
+func GetPermissionsForGroup(group GroupID) []PermissionID {
+	return permissionsByGroup[group]
 }
 
 var ErrPermission = errors.New("permission error")

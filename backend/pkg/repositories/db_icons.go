@@ -84,12 +84,12 @@ func describeIconInTx(tx *sql.Tx, iconName string, forUpdate bool) (domain.IconD
 	}
 
 	return domain.IconDescriptor{
-		domain.IconAttributes{
+		IconAttributes: domain.IconAttributes{
 			Name:       iconName,
 			ModifiedBy: modifiedBy,
 			Tags:       tags,
 		},
-		iconfiles,
+		Iconfiles: iconfiles,
 	}, nil
 }
 

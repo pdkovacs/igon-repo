@@ -20,7 +20,7 @@ func (s *iconGetTestSuite) TestReturnAllIconDescriptions() {
 	session.mustAddTestData(testIconInputData)
 	all, err := session.describeAllIcons()
 	s.NoError(err)
-	s.Equal(updatedTestIconDataResponse, all)
+	s.Equal(testIconDataResponse, all)
 }
 
 func (s *iconGetTestSuite) TestDescribeSingleIcon() {
@@ -29,7 +29,7 @@ func (s *iconGetTestSuite) TestDescribeSingleIcon() {
 	statusCode, one, err := session.describeIcon(testIconInputData[0].Name)
 	s.NoError(err)
 	s.Equal(200, statusCode)
-	s.Equal(updatedTestIconDataResponse[0], one)
+	s.Equal(testIconDataResponse[0], one)
 }
 
 func (s *iconGetTestSuite) TestReturn404ForNonExistentIcon() {

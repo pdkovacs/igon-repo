@@ -27,7 +27,7 @@ func (us *UserService) getPermissionsForUser(userId authn.UserID, memberIn []aut
 	userPermissions := []authr.PermissionID{}
 
 	for _, group := range memberIn {
-		userPermissions = append(userPermissions, authr.GetPermissionsByGroup()[group]...)
+		userPermissions = append(userPermissions, authr.GetPermissionsForGroup(group)...)
 	}
 
 	return userPermissions

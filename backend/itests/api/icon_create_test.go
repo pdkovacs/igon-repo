@@ -30,7 +30,7 @@ func (s *iconCreateTestSuite) TestFailsWith403WithoutPrivilege() {
 	iconfileContent := getDemoIconfileContent(iconName, iconFile)
 
 	session := s.client.mustLogin(nil)
-	session.mustSetAuthorization([]authr.PermissionID{})
+	session.mustSetAllPermsExcept([]authr.PermissionID{authr.CREATE_ICON})
 	statusCode, _, err := session.createIcon(iconName, iconfileContent)
 	s.NoError(err)
 	s.Equal(403, statusCode)
@@ -93,7 +93,7 @@ func (s *iconCreateTestSuite) TestAddMultipleIconsInARow() {
 
 	iconDescriptors, describeError := session.describeAllIcons()
 	s.NoError(describeError)
-	s.Equal(updatedTestIconDataResponse, iconDescriptors)
+	s.Equal(testIconDataResponse, iconDescriptors)
 }
 
 func (s *iconCreateTestSuite) TestRollbackToLastConsistentStateOnError() {
@@ -119,5 +119,5 @@ func (s *iconCreateTestSuite) TestRollbackToLastConsistentStateOnError() {
 	iconDescriptors, describeError := session.describeAllIcons()
 	s.NoError(describeError)
 	s.Equal(1, len(iconDescriptors))
-	s.Equal([]web.ResponseIcon{updatedTestIconDataResponse[0]}, iconDescriptors)
+	s.Equal([]web.ResponseIcon{testIconDataResponse[0]}, iconDescriptors)
 }

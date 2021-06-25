@@ -59,7 +59,7 @@ func createResponseIcon(iconPathRoot string, iconDesc domain.IconDescriptor) Res
 	}
 }
 
-func iconfilesToIconfileDescriptors(iconfiles []domain.Iconfile) []domain.IconfileDescriptor {
+func IconfilesToIconfileDescriptors(iconfiles []domain.Iconfile) []domain.IconfileDescriptor {
 	iconfileDescriptors := []domain.IconfileDescriptor{}
 	for _, iconfile := range iconfiles {
 		iconfileDescriptors = append(iconfileDescriptors, iconfile.IconfileDescriptor)
@@ -72,7 +72,7 @@ func iconToResponseIcon(icon domain.Icon) ResponseIcon {
 		iconRootPath,
 		domain.IconDescriptor{
 			IconAttributes: icon.IconAttributes,
-			Iconfiles:      iconfilesToIconfileDescriptors(icon.Iconfiles),
+			Iconfiles:      IconfilesToIconfileDescriptors(icon.Iconfiles),
 		},
 	)
 }
@@ -188,6 +188,19 @@ func addIconfileHandler(iconService *services.IconService) func(c *gin.Context) 
 	return func(c *gin.Context) {
 		logger := log.WithField("prefix", "addIconfileHandler")
 
+		session := MustGetUserSession(c)
+		authrErr := authr.HasRequiredPermissions(
+			session.UserInfo.UserId,
+			session.UserInfo.Permissions,
+			[]authr.PermissionID{
+				authr.UPDATE_ICON,
+				authr.ADD_ICONFILE,
+			})
+		if authrErr != nil {
+			c.AbortWithStatus(403)
+			return
+		}
+
 		r := c.Request
 		r.ParseMultipartForm(32 << 20) // limit your max input length to 32MB
 
@@ -224,11 +237,14 @@ func addIconfileHandler(iconService *services.IconService) func(c *gin.Context) 
 			if errors.Is(errCreate, authr.ErrPermission) {
 				c.AbortWithStatus(403)
 				return
+			} else if errors.Is(errCreate, domain.ErrIconfileAlreadyExists) {
+				c.AbortWithStatus(409)
+				return
 			} else {
 				c.AbortWithStatus(500)
 			}
 		}
-		c.JSON(201, createIconPath(iconRootPath, iconName, iconfileDescriptor))
+		c.JSON(200, createIconPath(iconRootPath, iconName, iconfileDescriptor))
 
 		buf.Reset()
 		// do something else

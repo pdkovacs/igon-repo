@@ -67,13 +67,7 @@ func (client *apiTestClient) mustLogin(credentials *requestCredentials) *apiTest
 
 func (client *apiTestClient) mustLoginSetAllPerms() *apiTestSession {
 	session := client.mustLogin(nil)
-	resp, err := session.setAuthorization([]authr.PermissionID{authr.CREATE_ICON})
-	if err != nil {
-		panic(err)
-	}
-	if resp.statusCode != 200 {
-		panic(fmt.Errorf("failed to set authorization: status code is %d", resp.statusCode))
-	}
+	session.mustSetAuthorization(authr.GetPermissionsForGroup(authr.ICON_EDITOR))
 	return session
 }
 
@@ -107,6 +101,24 @@ func (session *apiTestSession) setAuthorization(requestedAuthorization []authr.P
 		body:        requestedAuthorization,
 	})
 	return resp, err
+}
+
+func (session *apiTestSession) mustSetAllPermsExcept(toExclude []authr.PermissionID) {
+	all := authr.GetPermissionsForGroup(authr.ICON_EDITOR)
+	filtered := []authr.PermissionID{}
+	for _, oneOfAll := range all {
+		include := true
+		for _, oneOfExcept := range toExclude {
+			if oneOfExcept == oneOfAll {
+				include = false
+				break
+			}
+		}
+		if include {
+			filtered = append(filtered, oneOfAll)
+		}
+	}
+	session.mustSetAuthorization(filtered)
 }
 
 func (session *apiTestSession) mustSetAuthorization(requestedPermissions []authr.PermissionID) {
@@ -217,6 +229,19 @@ func (session *apiTestSession) createIcon(iconName string, initialIconfile []byt
 	}
 
 	return statusCode, web.ResponseIcon{}, errors.New(fmt.Sprintf("failed to cast %T to web.ResponseIcon", resp.body))
+}
+
+func (session *apiTestSession) updateIcon(oldIconName string, newIcon domain.IconDescriptor) (int, error) {
+	resp, deleteError := session.sendRequest(
+		"PATCH",
+		&testRequest{
+			path: fmt.Sprintf("/icon/%s", oldIconName),
+			jar:  session.cjar,
+			json: true,
+			body: &newIcon,
+		},
+	)
+	return resp.statusCode, deleteError
 }
 
 func (session *apiTestSession) deleteIcon(iconName string) (int, error) {
