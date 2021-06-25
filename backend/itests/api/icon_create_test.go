@@ -4,7 +4,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/pdkovacs/igo-repo/backend/itests/common"
 	test_repositories "github.com/pdkovacs/igo-repo/backend/itests/repositories"
 	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
 	"github.com/pdkovacs/igo-repo/backend/pkg/repositories"
@@ -20,12 +19,6 @@ type iconCreateTestSuite struct {
 
 func TestIconCreateTestSuite(t *testing.T) {
 	suite.Run(t, &iconCreateTestSuite{})
-}
-
-func (s *iconCreateTestSuite) BeforeTest(suiteName string, testName string) {
-	serverConfig := common.CloneConfig(s.defaultConfig)
-	serverConfig.EnableBackdoors = true
-	s.startTestServer(serverConfig)
 }
 
 func (s *iconCreateTestSuite) TestFailsWith403WithoutPrivilege() {
@@ -93,7 +86,7 @@ func (s *iconCreateTestSuite) TestAddMultipleIconsInARow() {
 
 	session := s.client.mustLoginSetAllPerms()
 
-	mustAddTestData(session, testIconInputData)
+	session.mustAddTestData(testIconInputData)
 	s.getCheckIconfile(session, sampleIconName1, sampleIconfileDesc1)
 	s.getCheckIconfile(session, sampleIconName2, sampleIconfileDesc2)
 	s.assertGitCleanStatus()
@@ -107,7 +100,7 @@ func (s *iconCreateTestSuite) TestRollbackToLastConsistentStateOnError() {
 	intactIcon := testIconInputData[0]
 
 	session := s.client.mustLoginSetAllPerms()
-	mustAddTestData(session, []domain.Icon{intactIcon})
+	session.mustAddTestData([]domain.Icon{intactIcon})
 
 	lastStableSHA1, beforeIncidentGitErr := test_repositories.GetCurrentCommit(s.server.Repositories.Git)
 	s.NoError(beforeIncidentGitErr)

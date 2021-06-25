@@ -179,23 +179,6 @@ func init() {
 	testIconInputData = createTestIconInputData(testIconInputDataDescriptor)
 }
 
-func mustAddTestData(session *apiTestSession, testData []domain.Icon) {
-	var err error
-	var statusCode int
-	for _, testIcon := range testData {
-		_, _, err = session.createIcon(testIcon.Name, testIcon.Iconfiles[0].Content)
-		if err != nil {
-			panic(err)
-		}
-		for i := 1; i < len(testIcon.Iconfiles); i++ {
-			statusCode, _, err = session.addIconfile(testIcon.Name, testIcon.Iconfiles[i])
-			if err != nil {
-				panic(fmt.Errorf("failed to add iconfile to %s with status code %d: %w", testIcon.Name, statusCode, err))
-			}
-		}
-	}
-}
-
 func createIconfile(desc domain.IconfileDescriptor, content []byte) domain.Iconfile {
 	return domain.Iconfile{
 		IconfileDescriptor: desc,

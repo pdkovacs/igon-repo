@@ -8,6 +8,7 @@ import (
 
 	"github.com/pdkovacs/igo-repo/backend/pkg/auxiliaries"
 	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
+	"github.com/pdkovacs/igo-repo/backend/pkg/security/authn"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -43,7 +44,7 @@ func (g GitRepository) getPathComponents(iconName string, format string, size st
 	}
 }
 
-func (g GitRepository) getPathComponents1(iconName string, iconfile domain.Iconfile) iconfilePathComponents {
+func (g GitRepository) getPathComponents1(iconName string, iconfile domain.IconfileDescriptor) iconfilePathComponents {
 	return g.getPathComponents(
 		iconName,
 		iconfile.Format,
@@ -51,7 +52,7 @@ func (g GitRepository) getPathComponents1(iconName string, iconfile domain.Iconf
 	)
 }
 
-func (g GitRepository) GetPathToIconfile(iconName string, iconfile domain.Iconfile) string {
+func (g GitRepository) GetPathToIconfile(iconName string, iconfile domain.IconfileDescriptor) string {
 	return g.getPathComponents1(iconName, iconfile).pathToIconfile
 }
 
@@ -150,7 +151,7 @@ func (g GitRepository) createIconfileJob(iconfileOperation func() ([]string, err
 }
 
 func (g GitRepository) createIconfile(iconName string, iconfile domain.Iconfile, modifiedBy string) (string, error) {
-	pathComponents := g.getPathComponents1(iconName, iconfile)
+	pathComponents := g.getPathComponents1(iconName, iconfile.IconfileDescriptor)
 	var err error
 	err = os.MkdirAll(pathComponents.pathToFormatDir, 0700)
 	if err == nil {
@@ -183,6 +184,52 @@ func (g GitRepository) AddIconfile(iconName string, iconfile domain.Iconfile, mo
 
 	if err != nil {
 		return fmt.Errorf("failed to add iconfile %v for %s to git repository: %w", iconfile, iconName, err)
+	}
+	return nil
+}
+
+func (s *GitRepository) deleteIconfileFile(iconName string, iconfileDesc domain.IconfileDescriptor) (string, error) {
+	pathCompos := s.getPathComponents1(iconName, iconfileDesc)
+	removeFileErr := os.Remove(pathCompos.pathToIconfile)
+	if removeFileErr != nil {
+		if removeFileErr == os.ErrNotExist {
+			return "", fmt.Errorf("failed to remove iconfile %v for icon %s: %w", iconfileDesc, iconName, domain.ErrIconNotFound)
+		}
+		return "", fmt.Errorf("failed to remove iconfile %v for icon %s: %w", iconfileDesc, iconName, removeFileErr)
+	}
+	return pathCompos.pathToIconfileInRepo, nil
+}
+
+func (s *GitRepository) DeleteIcon(iconDesc domain.IconDescriptor, modifiedBy authn.UserID) error {
+	iconfileOperation := func() ([]string, error) {
+		var opError error
+		var fileList []string
+
+		for _, ifDesc := range iconDesc.Iconfiles {
+			filePath, deletionError := s.deleteIconfileFile(iconDesc.Name, ifDesc)
+			if deletionError != nil {
+				opError = deletionError
+				break
+			}
+			fileList = append(fileList, filePath)
+		}
+		return fileList, opError
+	}
+
+	jobTextProvider := gitJobTextProvider{
+		fmt.Sprintf("delete all files for icon \"%s\"", iconDesc.Name),
+		func(fileList []string) string {
+			return fmt.Sprintf("all file(s) for icon \"%s\" deleted:\n\n%s", iconDesc.Name, fileListAsText(fileList))
+		},
+	}
+
+	var err error
+	auxiliaries.Enqueue(func() {
+		err = s.createIconfileJob(iconfileOperation, jobTextProvider, modifiedBy.String())
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to remove icon %s from git repository: %w", iconDesc.Name, err)
 	}
 	return nil
 }

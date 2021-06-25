@@ -35,8 +35,10 @@ func (s *apiTestSuite) SetupSuite() {
 	s.defaultConfig.IconDataCreateNew = "itest-api"
 }
 
-func (s *apiTestSuite) BeforeTest(suiteName, testName string) {
-	s.startTestServer(s.defaultConfig)
+func (s *apiTestSuite) BeforeTest(suiteName string, testName string) {
+	serverConfig := common.CloneConfig(s.defaultConfig)
+	serverConfig.EnableBackdoors = true
+	s.startTestServer(serverConfig)
 }
 
 func (s *apiTestSuite) AfterTest(suiteName, testName string) {

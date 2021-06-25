@@ -117,6 +117,8 @@ func (c *apiTestClient) sendRequest(method string, req *testRequest) (testRespon
 		return testResponse{}, fmt.Errorf("Failed to execute request: %w", requestExecutionError)
 	}
 
+	var responseBody interface{}
+
 	if req.respBodyProto != nil {
 		byteBody, responseReadError := io.ReadAll(resp.Body)
 		if responseReadError != nil {
@@ -129,6 +131,8 @@ func (c *apiTestClient) sendRequest(method string, req *testRequest) (testRespon
 				headers:    resp.Header,
 				statusCode: resp.StatusCode,
 			}, fmt.Errorf("Failed to unmarshal JSON response \"%s\": %w", string(byteBody), errJSONUnmarshal)
+		} else {
+			responseBody = req.respBodyProto
 		}
 	}
 
@@ -137,8 +141,6 @@ func (c *apiTestClient) sendRequest(method string, req *testRequest) (testRespon
 		req.jar.SetCookies(request.URL, resp.Cookies())
 	}
 
-	var responseBody = req.respBodyProto
-	req.respBodyProto = nil
 	return testResponse{
 		headers:    resp.Header,
 		statusCode: resp.StatusCode,

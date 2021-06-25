@@ -217,3 +217,22 @@ func addIconfileHandler(iconService *services.IconService) func(c *gin.Context) 
 		return
 	}
 }
+
+func deleteIconHandler(iconService *services.IconService) func(c *gin.Context) {
+	logger := log.WithField("prefix", "deleteIconHandler")
+	return func(c *gin.Context) {
+		session := MustGetUserSession(c)
+		errPerm := authr.HasRequiredPermissions(session.UserInfo.UserId, session.UserInfo.Permissions, []authr.PermissionID{authr.REMOVE_ICON})
+		if errPerm != nil {
+			c.AbortWithStatus(403)
+		}
+		iconName := c.Param("name")
+		deletionErr := iconService.DeleteIcon(iconName, session.UserInfo)
+		if deletionErr != nil {
+			logger.Errorf("failed to delete icon \"%s\": %v", iconName, deletionErr)
+			c.AbortWithStatus(500)
+			return
+		}
+		c.Status(204)
+	}
+}

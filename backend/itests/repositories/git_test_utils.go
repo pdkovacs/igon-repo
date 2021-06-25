@@ -77,7 +77,7 @@ func (s GitTestSuite) assertGitCleanStatus() {
 }
 
 func (s GitTestSuite) assertFileInRepo(iconName string, iconfile domain.Iconfile) {
-	filePath := s.repo.GetPathToIconfile(iconName, iconfile)
+	filePath := s.repo.GetPathToIconfile(iconName, iconfile.IconfileDescriptor)
 	fi, statErr := os.Stat(filePath)
 	s.NoError(statErr)
 	timeFileBorn := fi.ModTime().Unix()
@@ -87,7 +87,7 @@ func (s GitTestSuite) assertFileInRepo(iconName string, iconfile domain.Iconfile
 }
 
 func (s GitTestSuite) assertFileNotInRepo(iconName string, iconfile domain.Iconfile) {
-	var filePath = s.repo.GetPathToIconfile(iconName, iconfile)
+	var filePath = s.repo.GetPathToIconfile(iconName, iconfile.IconfileDescriptor)
 	_, statErr := os.Stat(filePath)
 	s.True(os.IsNotExist(statErr))
 }

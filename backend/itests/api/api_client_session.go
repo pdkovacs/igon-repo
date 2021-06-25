@@ -67,7 +67,13 @@ func (client *apiTestClient) mustLogin(credentials *requestCredentials) *apiTest
 
 func (client *apiTestClient) mustLoginSetAllPerms() *apiTestSession {
 	session := client.mustLogin(nil)
-	session.setAuthorization([]authr.PermissionID{authr.CREATE_ICON})
+	resp, err := session.setAuthorization([]authr.PermissionID{authr.CREATE_ICON})
+	if err != nil {
+		panic(err)
+	}
+	if resp.statusCode != 200 {
+		panic(fmt.Errorf("failed to set authorization: status code is %d", resp.statusCode))
+	}
 	return session
 }
 
@@ -110,6 +116,26 @@ func (session *apiTestSession) mustSetAuthorization(requestedPermissions []authr
 	}
 	if resp.statusCode != 200 {
 		panic(fmt.Sprintf("Unexpected status code: %d", resp.statusCode))
+	}
+}
+
+func (session *apiTestSession) mustAddTestData(testData []domain.Icon) {
+	var err error
+	var statusCode int
+	for _, testIcon := range testData {
+		statusCode, _, err = session.createIcon(testIcon.Name, testIcon.Iconfiles[0].Content)
+		if err != nil {
+			panic(err)
+		}
+		if statusCode != 201 {
+			panic(fmt.Sprintf("Unexpected status code %d, expected %d", statusCode, 201))
+		}
+		for i := 1; i < len(testIcon.Iconfiles); i++ {
+			statusCode, _, err = session.addIconfile(testIcon.Name, testIcon.Iconfiles[i])
+			if err != nil {
+				panic(fmt.Errorf("failed to add iconfile to %s with status code %d: %w", testIcon.Name, statusCode, err))
+			}
+		}
 	}
 }
 
@@ -168,11 +194,24 @@ func (session *apiTestSession) createIcon(iconName string, initialIconfile []byt
 		return resp.statusCode, web.ResponseIcon{}, err
 	}
 
+	statusCode := resp.statusCode
+
 	if respIconfile, ok := resp.body.(*web.ResponseIcon); ok {
-		return resp.statusCode, *respIconfile, nil
+		return statusCode, *respIconfile, err
 	}
 
-	return resp.statusCode, web.ResponseIcon{}, errors.New(fmt.Sprintf("failed to cast %T to web.IconDTO", resp.body))
+	return statusCode, web.ResponseIcon{}, errors.New(fmt.Sprintf("failed to cast %T to web.ResponseIcon", resp.body))
+}
+
+func (session *apiTestSession) deleteIcon(iconName string) (int, error) {
+	resp, deleteError := session.sendRequest(
+		"DELETE",
+		&testRequest{
+			path: fmt.Sprintf("/icon/%s", iconName),
+			jar:  session.cjar,
+		},
+	)
+	return resp.statusCode, deleteError
 }
 
 func (s *apiTestSession) GetIconfile(iconName string, iconfileDescriptor domain.IconfileDescriptor) (domain.Iconfile, error) {

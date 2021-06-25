@@ -158,7 +158,7 @@ func (repo DatabaseRepository) CreateIcon(iconName string, iconfile domain.Iconf
 
 	err = insertIconfile(tx, iconName, iconfile, modifiedBy)
 	if err != nil {
-		return fmt.Errorf("failed to create icon-file for %v: %w", iconName, err)
+		return fmt.Errorf("failed to create iconfile for %v: %w", iconName, err)
 	}
 
 	if createSideEffect != nil {
@@ -187,13 +187,13 @@ func (repo DatabaseRepository) AddIconfileToIcon(iconName string, iconfile domai
 
 	tx, err = repo.ConnectionPool.Begin()
 	if err != nil {
-		return fmt.Errorf("failed to start transaction when creating icon-file for %v: %w", iconName, err)
+		return fmt.Errorf("failed to start transaction when creating iconfile for %v: %w", iconName, err)
 	}
 	defer tx.Rollback()
 
 	err = insertIconfile(tx, iconName, iconfile, modifiedBy)
 	if err != nil {
-		return fmt.Errorf("failed to create icon-file %v: %w", iconName, err)
+		return fmt.Errorf("failed to create iconfile %v: %w", iconName, err)
 	}
 
 	err = updateModifier(tx, iconName, modifiedBy)
@@ -220,7 +220,7 @@ func insertIconfile(tx *sql.Tx, iconName string, iconfile domain.Iconfile, modif
 		if pgErr, ok := err.(*pgx.PgError); !ok || pgErr.Code != "23505" {
 			return domain.ErrIconfileAlreadyExists
 		}
-		return fmt.Errorf("failed to insert icon-file %v: %w", iconName, err)
+		return fmt.Errorf("failed to insert iconfile %v: %w", iconName, err)
 	}
 	return nil
 }

@@ -87,13 +87,13 @@ func (service *IconService) AddIconfile(iconName string, initialIconfileContent 
 		authr.CREATE_ICON,
 	})
 	if err != nil {
-		return domain.IconfileDescriptor{}, fmt.Errorf("failed to create icon %v: %w", iconName, err)
+		return domain.IconfileDescriptor{}, fmt.Errorf("failed to add iconfile %v: %w", iconName, err)
 	}
 	reader := base64.NewDecoder(base64.StdEncoding, strings.NewReader(string(initialIconfileContent)))
 	config, format, err := image.DecodeConfig(reader)
 	if err != nil {
-		logger.Errorf("failed to decode image configuration of file for %s: %v", iconName, err)
-		return domain.IconfileDescriptor{}, fmt.Errorf("failed to decode image configuration of file for %s: %w", iconName, err)
+		logger.Errorf("failed to decode image configuration of iconfile for %s: %v", iconName, err)
+		return domain.IconfileDescriptor{}, fmt.Errorf("failed to decode image configuration of iconfile for %s: %w", iconName, err)
 	}
 	iconfile := domain.Iconfile{
 		IconfileDescriptor: domain.IconfileDescriptor{
@@ -114,6 +114,23 @@ func (service *IconService) AddIconfile(iconName string, initialIconfileContent 
 	}
 
 	return iconfile.IconfileDescriptor, nil
+}
+
+func (service *IconService) DeleteIcon(iconName string, modifiedBy UserInfo) error {
+	err := authr.HasRequiredPermissions(modifiedBy.UserId, modifiedBy.Permissions, []authr.PermissionID{
+		authr.REMOVE_ICON,
+	})
+	if err != nil {
+		return fmt.Errorf("not enough permissions to delete icon \"%v\" to : %w", iconName, err)
+	}
+	iconDesc, describeErr := service.Repositories.DB.DescribeIcon(iconName)
+	if describeErr != nil {
+		return fmt.Errorf("failed to have to-be-deleted icon \"%s\" described: %w", iconName, describeErr)
+	}
+	errDeleteIcon := service.Repositories.DB.DeleteIcon(iconName, modifiedBy.UserId.String(), func() error {
+		return service.Repositories.Git.DeleteIcon(iconDesc, modifiedBy.UserId)
+	})
+	return errDeleteIcon
 }
 
 func init() {
