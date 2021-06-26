@@ -48,13 +48,41 @@ func DeleteTestGitRepo(repoLocation string) error {
 	return rmdirMaybe(repoLocation)
 }
 
+type GitTestRepo struct {
+	repositories.GitRepository
+}
+
+func (repo *GitTestRepo) getGitStatus() (string, error) {
+	out, err := repo.ExecuteGitCommand([]string{"status"})
+	if err != nil {
+		return "", fmt.Errorf("failed to get current git commit: %w", err)
+	}
+	return strings.TrimSpace(out), nil
+}
+
+func (repo *GitTestRepo) GetCurrentCommit() (string, error) {
+	out, err := repo.ExecuteGitCommand([]string{"rev-parse", "HEAD"})
+	if err != nil {
+		return "", fmt.Errorf("failed to get current git commit: %w", err)
+	}
+	return strings.TrimSpace(out), nil
+}
+
+func (repo *GitTestRepo) AssertGitCleanStatus(s *suite.Suite) {
+	status, err := repo.getGitStatus()
+	s.NoError(err)
+	s.Contains(status, cleanStatusMessageTail)
+}
+
 type GitTestSuite struct {
 	suite.Suite
-	repo repositories.GitRepository
+	repo GitTestRepo
 }
 
 func (s *GitTestSuite) SetupSuite() {
-	s.repo = repositories.GitRepository{Location: "itest-repositories"}
+	s.repo = GitTestRepo{
+		repositories.GitRepository{Location: "itest-repositories"},
+	}
 }
 
 func (s *GitTestSuite) BeforeTest(suiteName, testName string) {
@@ -67,13 +95,13 @@ func (s *GitTestSuite) BeforeTest(suiteName, testName string) {
 }
 
 func (s GitTestSuite) getCurrentCommit() (string, error) {
-	return GetCurrentCommit(&s.repo)
+	return s.repo.GetCurrentCommit()
 }
 
 const cleanStatusMessageTail = "nothing to commit, working tree clean"
 
 func (s GitTestSuite) assertGitCleanStatus() {
-	AssertGitCleanStatus(&s.Suite, &s.repo)
+	s.repo.AssertGitCleanStatus(&s.Suite)
 }
 
 func (s GitTestSuite) assertFileInRepo(iconName string, iconfile domain.Iconfile) {
@@ -90,26 +118,4 @@ func (s GitTestSuite) assertFileNotInRepo(iconName string, iconfile domain.Iconf
 	var filePath = s.repo.GetPathToIconfile(iconName, iconfile.IconfileDescriptor)
 	_, statErr := os.Stat(filePath)
 	s.True(os.IsNotExist(statErr))
-}
-
-func getGitStatus(repo *repositories.GitRepository) (string, error) {
-	out, err := repo.ExecuteGitCommand([]string{"status"})
-	if err != nil {
-		return "", fmt.Errorf("failed to get current git commit: %w", err)
-	}
-	return strings.TrimSpace(out), nil
-}
-
-func AssertGitCleanStatus(s *suite.Suite, repo *repositories.GitRepository) {
-	status, err := getGitStatus(repo)
-	s.NoError(err)
-	s.Contains(status, cleanStatusMessageTail)
-}
-
-func GetCurrentCommit(repo *repositories.GitRepository) (string, error) {
-	out, err := repo.ExecuteGitCommand([]string{"rev-parse", "HEAD"})
-	if err != nil {
-		return "", fmt.Errorf("failed to get current git commit: %w", err)
-	}
-	return strings.TrimSpace(out), nil
 }

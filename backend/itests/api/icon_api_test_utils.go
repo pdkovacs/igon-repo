@@ -5,7 +5,6 @@ import (
 	"os"
 	"path"
 
-	"github.com/pdkovacs/igo-repo/backend/itests/repositories"
 	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
 	"github.com/pdkovacs/igo-repo/backend/pkg/web"
 )
@@ -112,19 +111,6 @@ var dp2px = map[string]string{
 	"36dp": "54px",
 }
 
-type ingestedIconfileData struct {
-	format string
-	size   string
-	path   string
-}
-
-type ingestedIconDataDescription struct {
-	name       string
-	modifiedBy string
-	paths      []ingestedIconfileData
-	tags       []string
-}
-
 var testIconDataResponse = []web.ResponseIcon{
 	{
 		Name:       "attach_money",
@@ -220,5 +206,5 @@ func (s *iconTestSuite) getCheckIconfile(session *apiTestSession, iconName strin
 }
 
 func (s *iconTestSuite) assertGitCleanStatus() {
-	repositories.AssertGitCleanStatus(&s.Suite, s.server.Repositories.Git)
+	s.testGitRepo.AssertGitCleanStatus(&s.Suite)
 }

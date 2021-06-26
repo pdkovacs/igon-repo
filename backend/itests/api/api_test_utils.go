@@ -17,10 +17,8 @@ type apiTestSuite struct {
 	suite.Suite
 	defaultConfig auxiliaries.Options
 	server        web.Server
+	testGitRepo   repositories_itests.GitTestRepo
 	client        apiTestClient
-}
-
-func manageTestResourcesAfterEach() {
 }
 
 func (s *apiTestSuite) SetupSuite() {
@@ -65,6 +63,7 @@ func (s *apiTestSuite) startTestServer(options auxiliaries.Options) {
 		wg.Done()
 	})
 	wg.Wait()
+	s.testGitRepo.GitRepository = *s.server.Repositories.Git
 }
 
 // terminateTestServer terminates a test server

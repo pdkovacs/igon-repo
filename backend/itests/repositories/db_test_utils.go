@@ -35,7 +35,7 @@ func DeleteDBData(db *sql.DB) error {
 		}
 	}
 
-	err = tx.Commit()
+	_ = tx.Commit()
 	return nil
 }
 

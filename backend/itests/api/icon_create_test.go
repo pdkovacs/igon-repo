@@ -4,7 +4,6 @@ import (
 	"os"
 	"testing"
 
-	test_repositories "github.com/pdkovacs/igo-repo/backend/itests/repositories"
 	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
 	"github.com/pdkovacs/igo-repo/backend/pkg/repositories"
 	"github.com/pdkovacs/igo-repo/backend/pkg/security/authn"
@@ -102,7 +101,7 @@ func (s *iconCreateTestSuite) TestRollbackToLastConsistentStateOnError() {
 	session := s.client.mustLoginSetAllPerms()
 	session.mustAddTestData([]domain.Icon{intactIcon})
 
-	lastStableSHA1, beforeIncidentGitErr := test_repositories.GetCurrentCommit(s.server.Repositories.Git)
+	lastStableSHA1, beforeIncidentGitErr := s.testGitRepo.GetCurrentCommit()
 	s.NoError(beforeIncidentGitErr)
 
 	os.Setenv(repositories.IntrusiveGitTestEnvvarName, "true")
@@ -110,8 +109,8 @@ func (s *iconCreateTestSuite) TestRollbackToLastConsistentStateOnError() {
 	statusCode, _, _ := session.createIcon(testIconInputData[1].Name, testIconInputData[1].Iconfiles[0].Content)
 	s.Equal(500, statusCode)
 
-	test_repositories.AssertGitCleanStatus(&s.Suite, s.server.Repositories.Git)
-	afterIncidentSHA1, afterIncidentGitErr := test_repositories.GetCurrentCommit(s.server.Repositories.Git)
+	s.assertGitCleanStatus()
+	afterIncidentSHA1, afterIncidentGitErr := s.testGitRepo.GetCurrentCommit()
 	s.NoError(afterIncidentGitErr)
 
 	s.Equal(lastStableSHA1, afterIncidentSHA1)
