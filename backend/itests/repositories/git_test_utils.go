@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pdkovacs/igo-repo/backend/pkg/auxiliaries"
 	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
 	"github.com/pdkovacs/igo-repo/backend/pkg/repositories"
 	"github.com/stretchr/testify/suite"
@@ -74,6 +75,23 @@ func (repo *GitTestRepo) AssertGitCleanStatus(s *suite.Suite) {
 	s.Contains(status, cleanStatusMessageTail)
 }
 
+func (repo *GitTestRepo) GetIconfiles() ([]string, error) {
+	output, err := repo.ExecuteGitCommand([]string{"ls-tree", "-r", "HEAD", "--name-only"})
+	if err != nil {
+		return nil, err
+	}
+
+	fileList := []string{}
+	outputLines := strings.Split(output, auxiliaries.LineBreak)
+	for _, line := range outputLines {
+		trimmedLine := strings.TrimSpace(line)
+		if len(trimmedLine) > 0 {
+			fileList = append(fileList, trimmedLine)
+		}
+	}
+	return fileList, nil
+}
+
 type GitTestSuite struct {
 	suite.Suite
 	repo GitTestRepo
@@ -105,7 +123,7 @@ func (s GitTestSuite) assertGitCleanStatus() {
 }
 
 func (s GitTestSuite) assertFileInRepo(iconName string, iconfile domain.Iconfile) {
-	filePath := s.repo.GetPathToIconfile(iconName, iconfile.IconfileDescriptor)
+	filePath := s.repo.GetAbsolutePathToIconfile(iconName, iconfile.IconfileDescriptor)
 	fi, statErr := os.Stat(filePath)
 	s.NoError(statErr)
 	timeFileBorn := fi.ModTime().Unix()
@@ -115,7 +133,7 @@ func (s GitTestSuite) assertFileInRepo(iconName string, iconfile domain.Iconfile
 }
 
 func (s GitTestSuite) assertFileNotInRepo(iconName string, iconfile domain.Iconfile) {
-	var filePath = s.repo.GetPathToIconfile(iconName, iconfile.IconfileDescriptor)
+	var filePath = s.repo.GetAbsolutePathToIconfile(iconName, iconfile.IconfileDescriptor)
 	_, statErr := os.Stat(filePath)
 	s.True(os.IsNotExist(statErr))
 }

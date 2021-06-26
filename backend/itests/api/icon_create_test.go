@@ -75,6 +75,8 @@ func (s *iconCreateTestSuite) TestCompletesWithPrivilege() {
 	s.NoError(errDesc)
 	s.Equal(1, len(icons))
 	s.Equal(expectedResponse, icons[0])
+
+	s.assertEndState()
 }
 
 func (s *iconCreateTestSuite) TestAddMultipleIconsInARow() {
@@ -88,11 +90,12 @@ func (s *iconCreateTestSuite) TestAddMultipleIconsInARow() {
 	session.mustAddTestData(testIconInputData)
 	s.getCheckIconfile(session, sampleIconName1, sampleIconfileDesc1)
 	s.getCheckIconfile(session, sampleIconName2, sampleIconfileDesc2)
-	s.assertGitCleanStatus()
 
 	iconDescriptors, describeError := session.describeAllIcons()
 	s.NoError(describeError)
 	s.Equal(testIconDataResponse, iconDescriptors)
+
+	s.assertEndState()
 }
 
 func (s *iconCreateTestSuite) TestRollbackToLastConsistentStateOnError() {
@@ -109,7 +112,6 @@ func (s *iconCreateTestSuite) TestRollbackToLastConsistentStateOnError() {
 	statusCode, _, _ := session.createIcon(testIconInputData[1].Name, testIconInputData[1].Iconfiles[0].Content)
 	s.Equal(500, statusCode)
 
-	s.assertGitCleanStatus()
 	afterIncidentSHA1, afterIncidentGitErr := s.testGitRepo.GetCurrentCommit()
 	s.NoError(afterIncidentGitErr)
 
@@ -119,4 +121,6 @@ func (s *iconCreateTestSuite) TestRollbackToLastConsistentStateOnError() {
 	s.NoError(describeError)
 	s.Equal(1, len(iconDescriptors))
 	s.Equal([]web.ResponseIcon{testIconDataResponse[0]}, iconDescriptors)
+
+	s.assertEndState()
 }

@@ -26,6 +26,8 @@ func (s *deleteIconTestSuite) TestFailWith403WithoutPrivilege() {
 	respIcons, listError := session.describeAllIcons()
 	s.NoError((listError))
 	s.Equal(testIconDataResponse, respIcons)
+
+	s.assertEndState()
 }
 
 func (s *deleteIconTestSuite) TestSucceedsWithPrivilege() {
@@ -38,4 +40,6 @@ func (s *deleteIconTestSuite) TestSucceedsWithPrivilege() {
 	respIcons, listError := session.describeAllIcons()
 	s.NoError((listError))
 	s.Equal([]web.ResponseIcon{testIconDataResponse[1]}, respIcons)
+
+	s.assertEndState()
 }

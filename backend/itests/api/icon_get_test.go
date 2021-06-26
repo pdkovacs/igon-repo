@@ -21,6 +21,8 @@ func (s *iconGetTestSuite) TestReturnAllIconDescriptions() {
 	all, err := session.describeAllIcons()
 	s.NoError(err)
 	s.Equal(testIconDataResponse, all)
+
+	s.assertEndState()
 }
 
 func (s *iconGetTestSuite) TestDescribeSingleIcon() {
@@ -30,6 +32,8 @@ func (s *iconGetTestSuite) TestDescribeSingleIcon() {
 	s.NoError(err)
 	s.Equal(200, statusCode)
 	s.Equal(testIconDataResponse[0], one)
+
+	s.assertEndState()
 }
 
 func (s *iconGetTestSuite) TestReturn404ForNonExistentIcon() {
@@ -38,4 +42,6 @@ func (s *iconGetTestSuite) TestReturn404ForNonExistentIcon() {
 	statusCode, _, err := session.describeIcon("somenonexistentname")
 	s.True(errors.Is(err, errJSONUnmarshal))
 	s.Equal(404, statusCode)
+
+	s.assertEndState()
 }

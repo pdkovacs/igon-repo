@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path"
@@ -207,4 +208,62 @@ func (s *iconTestSuite) getCheckIconfile(session *apiTestSession, iconName strin
 
 func (s *iconTestSuite) assertGitCleanStatus() {
 	s.testGitRepo.AssertGitCleanStatus(&s.Suite)
+}
+
+func (s *iconTestSuite) assertAllFilesInDBAreInGitAsWell() []string {
+	checkedGitFiles := []string{}
+
+	db := s.server.Repositories.DB
+	git := s.testGitRepo
+
+	allIconDesc, descAllErr := db.DescribeAllIcons()
+	if descAllErr != nil {
+		panic(descAllErr)
+	}
+
+	for _, iconDesc := range allIconDesc {
+		for _, iconfileDesc := range iconDesc.Iconfiles {
+			fileContentInDB, contentReadError := db.GetIconFile(iconDesc.Name, iconfileDesc.Format, iconfileDesc.Size)
+			if contentReadError != nil {
+				panic(contentReadError)
+			}
+			pathToFile := git.GetAbsolutePathToIconfile(iconDesc.Name, iconfileDesc)
+			fileContentInGit, readGitFileErr := os.ReadFile(pathToFile)
+			s.NoError(readGitFileErr)
+
+			// TODO: fileContentInDB and fileContentInGit must equal
+			s.True(bytes.Equal(fileContentInDB, fileContentInGit))
+
+			checkedGitFiles = append(checkedGitFiles, s.testGitRepo.GetPathToIconfileInRepos(iconDesc.Name, iconfileDesc))
+		}
+	}
+
+	return checkedGitFiles
+}
+
+func (s *iconTestSuite) assertAllFilesInGitAreInDBAsWell(iconfilesWithPeerInDB []string) {
+	iconfiles, err := s.testGitRepo.GetIconfiles()
+	s.NoError(err)
+	for _, gitFile := range iconfiles {
+		found := false
+		for _, dbFile := range iconfilesWithPeerInDB {
+			if gitFile == dbFile {
+				found = true
+				break
+			}
+		}
+		if !found {
+			s.Fail(fmt.Sprintf("%s doesn't have a peer in DB", gitFile))
+		}
+	}
+}
+
+func (s *iconTestSuite) assertReposInSync() {
+	checkedGitFiles := s.assertAllFilesInDBAreInGitAsWell()
+	s.assertAllFilesInGitAreInDBAsWell(checkedGitFiles)
+}
+
+func (s *iconTestSuite) assertEndState() {
+	s.assertGitCleanStatus()
+	s.assertReposInSync()
 }

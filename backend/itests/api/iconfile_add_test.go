@@ -33,6 +33,8 @@ func (s *iconTestSuite) TestAddingIconfileFailsWith403WithoutPermission() {
 	s.Equal(200, statusCode)
 	s.NoError(descError)
 	s.Equal(testIconDataResponse[0], resp)
+
+	s.assertEndState()
 }
 
 func (s *iconTestSuite) TestCanAddIconfilesWithProperPermission() {
@@ -57,6 +59,8 @@ func (s *iconTestSuite) TestCanAddIconfilesWithProperPermission() {
 	s.NoError(descError)
 
 	s.Equal(expectedIconDesc, iconDesc)
+
+	s.assertEndState()
 }
 
 func (s *iconTestSuite) TestAddingIconfilesWithExistingFormatSizeComboToFail() {
@@ -76,4 +80,6 @@ func (s *iconTestSuite) TestAddingIconfilesWithExistingFormatSizeComboToFail() {
 	s.Equal(200, descStatus)
 	s.NoError(descError)
 	s.Equal(testIconDataResponse[0], iconDesc)
+
+	s.assertEndState()
 }

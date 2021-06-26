@@ -52,8 +52,12 @@ func (g GitRepository) getPathComponents1(iconName string, iconfile domain.Iconf
 	)
 }
 
-func (g GitRepository) GetPathToIconfile(iconName string, iconfile domain.IconfileDescriptor) string {
+func (g GitRepository) GetAbsolutePathToIconfile(iconName string, iconfile domain.IconfileDescriptor) string {
 	return g.getPathComponents1(iconName, iconfile).pathToIconfile
+}
+
+func (g GitRepository) GetPathToIconfileInRepos(iconName string, iconfile domain.IconfileDescriptor) string {
+	return g.getPathComponents1(iconName, iconfile).pathToIconfileInRepo
 }
 
 func (g GitRepository) ExecuteGitCommand(args []string) (string, error) {
