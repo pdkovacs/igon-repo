@@ -32,7 +32,7 @@ func createIconfilePath(baseUrl string, iconName string, iconfileDescriptor doma
 	return fmt.Sprintf("%s/%s/format/%s/size/%s", baseUrl, iconName, iconfileDescriptor.Format, iconfileDescriptor.Size)
 }
 
-func createIconPath(baseUrl string, iconName string, iconfileDescriptor domain.IconfileDescriptor) IconPath {
+func CreateIconPath(baseUrl string, iconName string, iconfileDescriptor domain.IconfileDescriptor) IconPath {
 	return IconPath{
 		IconfileDescriptor: domain.IconfileDescriptor{
 			Format: iconfileDescriptor.Format,
@@ -42,19 +42,19 @@ func createIconPath(baseUrl string, iconName string, iconfileDescriptor domain.I
 	}
 }
 
-func createIconfilePaths(baseUrl string, iconDesc domain.IconDescriptor) []IconPath {
+func CreateIconfilePaths(baseUrl string, iconDesc domain.IconDescriptor) []IconPath {
 	iconPaths := []IconPath{}
 	for _, iconfileDescriptor := range iconDesc.Iconfiles {
-		iconPaths = append(iconPaths, createIconPath(baseUrl, iconDesc.Name, iconfileDescriptor))
+		iconPaths = append(iconPaths, CreateIconPath(baseUrl, iconDesc.Name, iconfileDescriptor))
 	}
 	return iconPaths
 }
 
-func createResponseIcon(iconPathRoot string, iconDesc domain.IconDescriptor) ResponseIcon {
+func CreateResponseIcon(iconPathRoot string, iconDesc domain.IconDescriptor) ResponseIcon {
 	return ResponseIcon{
 		Name:       iconDesc.Name,
 		ModifiedBy: iconDesc.ModifiedBy,
-		Paths:      createIconfilePaths(iconPathRoot, iconDesc),
+		Paths:      CreateIconfilePaths(iconPathRoot, iconDesc),
 		Tags:       iconDesc.Tags,
 	}
 }
@@ -68,7 +68,7 @@ func IconfilesToIconfileDescriptors(iconfiles []domain.Iconfile) []domain.Iconfi
 }
 
 func iconToResponseIcon(icon domain.Icon) ResponseIcon {
-	return createResponseIcon(
+	return CreateResponseIcon(
 		iconRootPath,
 		domain.IconDescriptor{
 			IconAttributes: icon.IconAttributes,
@@ -87,7 +87,7 @@ func describeAllIconsHanler(iconService *services.IconService) func(c *gin.Conte
 		}
 		responseIcon := []ResponseIcon{}
 		for _, icon := range icons {
-			responseIcon = append(responseIcon, createResponseIcon(iconRootPath, icon))
+			responseIcon = append(responseIcon, CreateResponseIcon(iconRootPath, icon))
 		}
 		c.JSON(200, responseIcon)
 	}
@@ -107,7 +107,7 @@ func describeIconHandler(iconService *services.IconService) func(c *gin.Context)
 			c.AbortWithStatus(500)
 			return
 		}
-		responseIcon := createResponseIcon(iconRootPath, icon)
+		responseIcon := CreateResponseIcon(iconRootPath, icon)
 		c.JSON(200, responseIcon)
 	}
 }
@@ -244,7 +244,7 @@ func addIconfileHandler(iconService *services.IconService) func(c *gin.Context) 
 				c.AbortWithStatus(500)
 			}
 		}
-		c.JSON(200, createIconPath(iconRootPath, iconName, iconfileDescriptor))
+		c.JSON(200, CreateIconPath(iconRootPath, iconName, iconfileDescriptor))
 
 		buf.Reset()
 		// do something else

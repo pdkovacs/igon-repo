@@ -68,5 +68,5 @@ func (s *iconHandlerTestSuite) TestReturnIconsWithProperPaths() {
 		Tags: []string{},
 	}
 
-	s.Equal(expectedResponse, createResponseIcon(iconPathRoot, iconDescriptor))
+	s.Equal(expectedResponse, CreateResponseIcon(iconPathRoot, iconDescriptor))
 }

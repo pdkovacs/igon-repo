@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/pdkovacs/igo-repo/backend/itests/api/testdata"
 	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
 	"github.com/pdkovacs/igo-repo/backend/pkg/repositories"
 	"github.com/pdkovacs/igo-repo/backend/pkg/security/authn"
@@ -26,7 +27,7 @@ func (s *iconCreateTestSuite) TestFailsWith403WithoutPrivilege() {
 		Format: "png",
 		Size:   "36dp",
 	}
-	iconfileContent := getDemoIconfileContent(iconName, iconFile)
+	iconfileContent := testdata.GetDemoIconfileContent(iconName, iconFile)
 
 	session := s.client.mustLogin(nil)
 	session.mustSetAllPermsExcept([]authr.PermissionID{authr.CREATE_ICON})
@@ -45,12 +46,12 @@ func (s *iconCreateTestSuite) TestCompletesWithPrivilege() {
 		Format: "png",
 		Size:   "36dp",
 	}
-	iconfileContent := getDemoIconfileContent(iconName, iconfileDescriptor)
+	iconfileContent := testdata.GetDemoIconfileContent(iconName, iconfileDescriptor)
 
-	expectedUserID := authn.LocalDomain.CreateUserID(defaultCredentials.Username)
+	expectedUserID := authn.LocalDomain.CreateUserID(testdata.DefaultCredentials.Username)
 	expectedIconfileDescriptor := domain.IconfileDescriptor{
 		Format: iconfileDescriptor.Format,
-		Size:   dp2px[iconfileDescriptor.Size],
+		Size:   testdata.DP2PX[iconfileDescriptor.Size],
 	}
 	expectedResponse := web.ResponseIcon{
 		Name:       iconName,
@@ -80,36 +81,38 @@ func (s *iconCreateTestSuite) TestCompletesWithPrivilege() {
 }
 
 func (s *iconCreateTestSuite) TestAddMultipleIconsInARow() {
-	sampleIconName1 := testIconInputData[0].Name
-	sampleIconfileDesc1 := testIconInputData[0].Iconfiles[0]
-	sampleIconName2 := testIconInputData[1].Name
-	sampleIconfileDesc2 := testIconInputData[1].Iconfiles[1]
+	testInput, testOutput := testdata.Get()
+	sampleIconName1 := testInput[0].Name
+	sampleIconfileDesc1 := testInput[0].Iconfiles[0]
+	sampleIconName2 := testInput[1].Name
+	sampleIconfileDesc2 := testInput[1].Iconfiles[1]
 
 	session := s.client.mustLoginSetAllPerms()
 
-	session.mustAddTestData(testIconInputData)
+	session.mustAddTestData(testInput)
 	s.getCheckIconfile(session, sampleIconName1, sampleIconfileDesc1)
 	s.getCheckIconfile(session, sampleIconName2, sampleIconfileDesc2)
 
 	iconDescriptors, describeError := session.describeAllIcons()
 	s.NoError(describeError)
-	s.Equal(testIconDataResponse, iconDescriptors)
+	s.assertResponseIconSetsEqual(testOutput, iconDescriptors)
 
 	s.assertEndState()
 }
 
 func (s *iconCreateTestSuite) TestRollbackToLastConsistentStateOnError() {
-	intactIcon := testIconInputData[0]
+	dataIn, dataOut := testdata.Get()
+	moreDataIn, _ := testdata.Get()
 
 	session := s.client.mustLoginSetAllPerms()
-	session.mustAddTestData([]domain.Icon{intactIcon})
+	session.mustAddTestData(dataIn)
 
 	lastStableSHA1, beforeIncidentGitErr := s.testGitRepo.GetCurrentCommit()
 	s.NoError(beforeIncidentGitErr)
 
 	os.Setenv(repositories.IntrusiveGitTestEnvvarName, "true")
 
-	statusCode, _, _ := session.createIcon(testIconInputData[1].Name, testIconInputData[1].Iconfiles[0].Content)
+	statusCode, _, _ := session.createIcon(moreDataIn[1].Name, moreDataIn[1].Iconfiles[0].Content)
 	s.Equal(500, statusCode)
 
 	afterIncidentSHA1, afterIncidentGitErr := s.testGitRepo.GetCurrentCommit()
@@ -119,8 +122,7 @@ func (s *iconCreateTestSuite) TestRollbackToLastConsistentStateOnError() {
 
 	iconDescriptors, describeError := session.describeAllIcons()
 	s.NoError(describeError)
-	s.Equal(1, len(iconDescriptors))
-	s.Equal([]web.ResponseIcon{testIconDataResponse[0]}, iconDescriptors)
+	s.assertResponseIconSetsEqual(dataOut, iconDescriptors)
 
 	s.assertEndState()
 }

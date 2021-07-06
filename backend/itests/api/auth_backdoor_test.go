@@ -3,6 +3,7 @@ package api
 import (
 	"testing"
 
+	"github.com/pdkovacs/igo-repo/backend/itests/api/testdata"
 	"github.com/pdkovacs/igo-repo/backend/itests/common"
 	"github.com/pdkovacs/igo-repo/backend/pkg/security/authn"
 	"github.com/pdkovacs/igo-repo/backend/pkg/security/authr"
@@ -66,7 +67,7 @@ func (s *authBackDoorTestSuite) TestBackDoorShouldBeAvailableWhenEnabled() {
 func (s *authBackDoorTestSuite) TestBackDoorShouldAllowToSetPrivileges() {
 	requestedAuthorization := []authr.PermissionID{"galagonya", "ide-oda"}
 	expectedUserInfo := services.UserInfo{
-		UserId:      authn.LocalDomain.CreateUserID(defaultCredentials.Username),
+		UserId:      authn.LocalDomain.CreateUserID(testdata.DefaultCredentials.Username),
 		Permissions: requestedAuthorization,
 	}
 

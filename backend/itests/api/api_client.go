@@ -9,12 +9,13 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 
+	"github.com/pdkovacs/igo-repo/backend/itests/api/testdata"
 	"github.com/pdkovacs/igo-repo/backend/pkg/auxiliaries"
 	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
-	"github.com/pdkovacs/igo-repo/backend/pkg/security/authn"
 	log "github.com/sirupsen/logrus"
 )
 
+var errUnexpecteHTTPStatus = errors.New("unexpected HTTP status")
 var errJSONUnmarshal = errors.New("failed to unmarshal JSON")
 
 var authenticationBackdoorPath = "/backdoor/authentication"
@@ -47,8 +48,8 @@ type testResponse struct {
 func (c *apiTestClient) makeRequestCredentials(pwCreds auxiliaries.PasswordCredentials) requestCredentials {
 	var username, password string
 	if len(pwCreds.Username) == 0 {
-		username = defaultCredentials.Username
-		password = defaultCredentials.Password
+		username = testdata.DefaultCredentials.Username
+		password = testdata.DefaultCredentials.Password
 	} else {
 		username = pwCreds.Username
 		password = pwCreds.Password
@@ -75,7 +76,7 @@ func encodeRequestBody(requestBody interface{}, isJSON bool) (io.Reader, error) 
 	}
 	bodyAsBytes, ok := requestBody.([]byte)
 	if !ok {
-		return nil, fmt.Errorf("I don't know how to convert request body to bytes: %v of %T", requestBody, requestBody)
+		return nil, fmt.Errorf("unable to convert request body to bytes: %v of %T", requestBody, requestBody)
 	}
 	return bytes.NewBuffer(bodyAsBytes), nil
 }
@@ -93,7 +94,7 @@ func (c *apiTestClient) sendRequest(method string, req *testRequest) (testRespon
 		body,
 	)
 	if requestCreationError != nil {
-		return testResponse{}, fmt.Errorf("Failed to create request: %w", requestCreationError)
+		return testResponse{}, fmt.Errorf("failed to create request: %w", requestCreationError)
 	}
 
 	if req.credentials != nil && req.credentials.headerName != "" {
@@ -114,7 +115,7 @@ func (c *apiTestClient) sendRequest(method string, req *testRequest) (testRespon
 	}
 	resp, requestExecutionError := client.Do(request)
 	if requestExecutionError != nil {
-		return testResponse{}, fmt.Errorf("Failed to execute request: %w", requestExecutionError)
+		return testResponse{}, fmt.Errorf("failed to execute request: %w", requestExecutionError)
 	}
 
 	var responseBody interface{}
@@ -122,17 +123,17 @@ func (c *apiTestClient) sendRequest(method string, req *testRequest) (testRespon
 	if req.respBodyProto != nil {
 		byteBody, responseReadError := io.ReadAll(resp.Body)
 		if responseReadError != nil {
-			return testResponse{}, fmt.Errorf("Failed to read response body: %w", responseReadError)
+			return testResponse{}, fmt.Errorf("failed to read response body: %w", responseReadError)
 		}
 		jsonUnmarshalError := json.Unmarshal(byteBody, req.respBodyProto)
 		// TODO: We should somehow better handle unmarshalling failed calls as well...
 		//       ... using some standard error JSON for example?
 		if jsonUnmarshalError != nil {
-			logger.Errorf("Failed to unmarshal JSON response: %v\n", jsonUnmarshalError)
+			logger.Errorf("failed to unmarshal JSON response: %v\n", jsonUnmarshalError)
 			return testResponse{
 				headers:    resp.Header,
 				statusCode: resp.StatusCode,
-			}, fmt.Errorf("Failed to unmarshal JSON response \"%s\": %w", string(byteBody), errJSONUnmarshal)
+			}, fmt.Errorf("failed to unmarshal JSON response \"%s\": %w", string(byteBody), errJSONUnmarshal)
 		} else {
 			responseBody = req.respBodyProto
 		}
@@ -168,9 +169,4 @@ func (c *apiTestClient) post(req *testRequest) (testResponse, error) {
 
 func getFilePath(iconName string, fileDescriptor domain.IconfileDescriptor) string {
 	return fmt.Sprintf("/icon/%s/format/%s/size/%s", iconName, fileDescriptor.Format, fileDescriptor.Size)
-}
-
-func getDefaultUserIDAsString() string {
-	userID := authn.LocalDomain.CreateUserID(defaultCredentials.Username)
-	return userID.String()
 }

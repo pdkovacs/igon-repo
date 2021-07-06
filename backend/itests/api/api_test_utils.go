@@ -4,6 +4,7 @@ import (
 	"os"
 	"sync"
 
+	"github.com/pdkovacs/igo-repo/backend/itests/api/testdata"
 	"github.com/pdkovacs/igo-repo/backend/itests/common"
 	repositories_itests "github.com/pdkovacs/igo-repo/backend/itests/repositories"
 	"github.com/pdkovacs/igo-repo/backend/pkg/auxiliaries"
@@ -24,7 +25,7 @@ type apiTestSuite struct {
 func (s *apiTestSuite) SetupSuite() {
 	s.defaultConfig = common.CloneConfig(auxiliaries.GetDefaultConfiguration())
 	s.defaultConfig.PasswordCredentials = []auxiliaries.PasswordCredentials{
-		defaultCredentials,
+		testdata.DefaultCredentials,
 	}
 	s.defaultConfig.AuthenticationType = auxiliaries.BasicAuthentication
 	s.defaultConfig.ServerPort = 0
@@ -70,6 +71,3 @@ func (s *apiTestSuite) startTestServer(options auxiliaries.Options) {
 func (s *apiTestSuite) terminateTestServer() {
 	s.server.KillListener()
 }
-
-// defaultCredentials holds the test PasswordCredentials
-var defaultCredentials = auxiliaries.PasswordCredentials{Username: "ux", Password: "ux"}

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/pdkovacs/igo-repo/backend/itests/api/testdata"
 	"github.com/pdkovacs/igo-repo/backend/pkg/security/authr"
 	"github.com/stretchr/testify/suite"
 )
@@ -17,69 +18,78 @@ func TestIconUpdateTestSuite(t *testing.T) {
 }
 
 func (s *iconTestSuite) TestAddingIconfileFailsWith403WithoutPermission() {
+	dataIn, dataOut := testdata.Get()
+	moreDataIn, _ := testdata.GetMore()
+
 	session := s.client.mustLoginSetAllPerms()
-	session.mustAddTestData(testIconInputData)
+	session.mustAddTestData(dataIn)
 
 	session.mustSetAllPermsExcept([]authr.PermissionID{authr.UPDATE_ICON, authr.ADD_ICONFILE})
 
-	iconName := testIconInputData[0].Name
+	iconName := moreDataIn[0].Name
 
-	statusCode, _, updateError := session.addIconfile(iconName, moreIconInputData[0].Iconfiles[1])
+	statusCode, _, updateError := session.addIconfile(iconName, moreDataIn[0].Iconfiles[1])
 
 	s.True(errors.Is(updateError, errJSONUnmarshal))
 	s.Equal(403, statusCode)
 
-	statusCode, resp, descError := session.describeIcon(iconName)
-	s.Equal(200, statusCode)
+	resp, descError := session.describeAllIcons()
 	s.NoError(descError)
-	s.Equal(testIconDataResponse[0], resp)
+	s.assertResponseIconSetsEqual(dataOut, resp)
 
 	s.assertEndState()
 }
 
 func (s *iconTestSuite) TestCanAddIconfilesWithProperPermission() {
+	dataIn, dataOut := testdata.Get()
+	moreDataIn, _ := testdata.GetMore()
+
 	session := s.client.mustLoginSetAllPerms()
-	session.mustAddTestData(testIconInputData)
+	session.mustAddTestData(dataIn)
 
 	session.setAuthorization([]authr.PermissionID{authr.UPDATE_ICON, authr.ADD_ICONFILE})
 
-	iconName := testIconInputData[0].Name
+	iconName := dataIn[0].Name
+	newIconfile := moreDataIn[0].Iconfiles[1]
+	iconfilePath := s.createIconfilePaths(iconName, moreDataIn[0].Iconfiles[1].IconfileDescriptor)
 
-	statusCode, resp, updateError := session.addIconfile(iconName, moreIconInputData[0].Iconfiles[1])
+	statusCode, resp, updateError := session.addIconfile(iconName, newIconfile)
 
 	s.NoError(updateError)
 	s.Equal(200, statusCode)
-	s.Equal(moreTestIconDataResponse[0].Paths[1], resp)
+	s.Equal(iconfilePath, resp)
 
-	expectedIconDesc := testIconDataResponse[0]
-	expectedIconDesc.Paths = append(expectedIconDesc.Paths, moreTestIconDataResponse[0].Paths[1])
+	expectedIconDesc := dataOut
+	expectedIconDesc[0].Paths = append(expectedIconDesc[0].Paths, iconfilePath)
 
-	descStatus, iconDesc, descError := session.describeIcon(iconName)
-	s.Equal(200, descStatus)
+	iconDesc, descError := session.describeAllIcons()
 	s.NoError(descError)
 
-	s.Equal(expectedIconDesc, iconDesc)
+	s.assertResponseIconSetsEqual(dataOut, iconDesc)
 
 	s.assertEndState()
 }
 
 func (s *iconTestSuite) TestAddingIconfilesWithExistingFormatSizeComboToFail() {
+	dataIn, dataOut := testdata.Get()
+
 	session := s.client.mustLoginSetAllPerms()
-	session.mustAddTestData(testIconInputData)
+	session.mustAddTestData(dataIn)
 
 	session.setAuthorization([]authr.PermissionID{authr.UPDATE_ICON, authr.ADD_ICONFILE})
 
-	iconName := testIconInputData[0].Name
+	iconName := dataIn[0].Name
+	newIconfile := dataIn[0].Iconfiles[1]
 
-	statusCode, _, updateError := session.addIconfile(iconName, moreIconInputData[0].Iconfiles[0])
+	statusCode, _, updateError := session.addIconfile(iconName, newIconfile)
 
 	s.True(errors.Is(updateError, errJSONUnmarshal))
 	s.Equal(409, statusCode)
 
-	descStatus, iconDesc, descError := session.describeIcon(iconName)
-	s.Equal(200, descStatus)
+	iconDesc, descError := session.describeAllIcons()
 	s.NoError(descError)
-	s.Equal(testIconDataResponse[0], iconDesc)
+
+	s.assertResponseIconSetsEqual(dataOut, iconDesc)
 
 	s.assertEndState()
 }

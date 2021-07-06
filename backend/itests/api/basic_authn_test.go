@@ -3,6 +3,7 @@ package api
 import (
 	"testing"
 
+	"github.com/pdkovacs/igo-repo/backend/itests/api/testdata"
 	"github.com/pdkovacs/igo-repo/backend/pkg/auxiliaries"
 	"github.com/stretchr/testify/suite"
 )
@@ -46,7 +47,7 @@ func (s *basicAuthnTestSuite) TestShouldFailWith401WithWrongCredentials() {
 }
 
 func (s *basicAuthnTestSuite) TestShouldPasssWithCorrectCredentials() {
-	reqCreds, makeReqCredErr := makeRequestCredentials(auxiliaries.BasicAuthentication, defaultCredentials.Username, defaultCredentials.Password)
+	reqCreds, makeReqCredErr := makeRequestCredentials(auxiliaries.BasicAuthentication, testdata.DefaultCredentials.Username, testdata.DefaultCredentials.Password)
 	s.Require().NoError(makeReqCredErr)
 	req := testRequest{
 		path:          "/info",

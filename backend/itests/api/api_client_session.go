@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/pdkovacs/igo-repo/backend/itests/api/testdata"
 	"github.com/pdkovacs/igo-repo/backend/pkg/auxiliaries"
 	"github.com/pdkovacs/igo-repo/backend/pkg/domain"
 	"github.com/pdkovacs/igo-repo/backend/pkg/security/authr"
@@ -23,9 +24,9 @@ type apiTestSession struct {
 
 func (client *apiTestClient) login(credentials *requestCredentials) (*apiTestSession, error) {
 	if credentials == nil {
-		calculatedCredentials, credError := makeRequestCredentials(auxiliaries.BasicAuthentication, defaultCredentials.Username, defaultCredentials.Password)
+		calculatedCredentials, credError := makeRequestCredentials(auxiliaries.BasicAuthentication, testdata.DefaultCredentials.Username, testdata.DefaultCredentials.Password)
 		if credError != nil {
-			return &apiTestSession{}, fmt.Errorf("Failed to create default request credentials: %w", credError)
+			return &apiTestSession{}, fmt.Errorf("failed to create default request credentials: %w", credError)
 		}
 		credentials = &calculatedCredentials
 	}
@@ -76,11 +77,6 @@ func (session *apiTestSession) get(request *testRequest) (testResponse, error) {
 	return session.sendRequest("GET", request)
 }
 
-func (session *apiTestSession) post(request *testRequest) (testResponse, error) {
-	request.jar = session.cjar
-	return session.sendRequest("POST", request)
-}
-
 func (session *apiTestSession) put(request *testRequest) (testResponse, error) {
 	request.jar = session.cjar
 	return session.sendRequest("PUT", request)
@@ -89,7 +85,7 @@ func (session *apiTestSession) put(request *testRequest) (testResponse, error) {
 func (session *apiTestSession) setAuthorization(requestedAuthorization []authr.PermissionID) (testResponse, error) {
 	var err error
 	var resp testResponse
-	credentials := session.makeRequestCredentials(defaultCredentials)
+	credentials := session.makeRequestCredentials(testdata.DefaultCredentials)
 	if err != nil {
 		panic(err)
 	}
@@ -160,6 +156,9 @@ func (session *apiTestSession) describeAllIcons() ([]web.ResponseIcon, error) {
 	if err != nil {
 		return []web.ResponseIcon{}, fmt.Errorf("GET /icon failed: %w", err)
 	}
+	if resp.statusCode != 200 {
+		return []web.ResponseIcon{}, fmt.Errorf("%w: got %d", errUnexpecteHTTPStatus, resp.statusCode)
+	}
 	icons, ok := resp.body.(*[]web.ResponseIcon)
 	if !ok {
 		return []web.ResponseIcon{}, fmt.Errorf("failed to cast %T as []web.ResponseIcon", resp.body)
@@ -228,20 +227,7 @@ func (session *apiTestSession) createIcon(iconName string, initialIconfile []byt
 		return statusCode, *respIconfile, err
 	}
 
-	return statusCode, web.ResponseIcon{}, errors.New(fmt.Sprintf("failed to cast %T to web.ResponseIcon", resp.body))
-}
-
-func (session *apiTestSession) updateIcon(oldIconName string, newIcon domain.IconDescriptor) (int, error) {
-	resp, deleteError := session.sendRequest(
-		"PATCH",
-		&testRequest{
-			path: fmt.Sprintf("/icon/%s", oldIconName),
-			jar:  session.cjar,
-			json: true,
-			body: &newIcon,
-		},
-	)
-	return resp.statusCode, deleteError
+	return statusCode, web.ResponseIcon{}, fmt.Errorf("failed to cast %T to web.ResponseIcon", resp.body)
 }
 
 func (session *apiTestSession) deleteIcon(iconName string) (int, error) {
@@ -319,5 +305,5 @@ func (session *apiTestSession) addIconfile(iconName string, iconfile domain.Icon
 		return resp.statusCode, *respIconfile, nil
 	}
 
-	return resp.statusCode, web.IconPath{}, errors.New(fmt.Sprintf("failed to cast %T to domain.Icon", resp.body))
+	return resp.statusCode, web.IconPath{}, fmt.Errorf("failed to cast %T to domain.Icon", resp.body)
 }
