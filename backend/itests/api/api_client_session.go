@@ -307,3 +307,16 @@ func (session *apiTestSession) addIconfile(iconName string, iconfile domain.Icon
 
 	return resp.statusCode, web.IconPath{}, fmt.Errorf("failed to cast %T to domain.Icon", resp.body)
 }
+
+func (session *apiTestSession) deleteIconfile(iconName string, iconfileDescriptor domain.IconfileDescriptor) (int, error) {
+	resp, err := session.sendRequest("DELETE", &testRequest{
+		path: web.CreateIconPath("/icon", iconName, iconfileDescriptor).Path,
+		jar:  session.cjar,
+	})
+
+	if err != nil {
+		return 0, err
+	}
+
+	return resp.statusCode, err
+}

@@ -159,10 +159,6 @@ func createIconHandler(iconService *services.IconService) func(c *gin.Context) {
 			}
 		}
 		c.JSON(201, iconToResponseIcon(icon))
-
-		// do something else
-		// etc write header
-		return
 	}
 }
 
@@ -247,9 +243,6 @@ func addIconfileHandler(iconService *services.IconService) func(c *gin.Context) 
 		c.JSON(200, CreateIconPath(iconRootPath, iconName, iconfileDescriptor))
 
 		buf.Reset()
-		// do something else
-		// etc write header
-		return
 	}
 }
 
@@ -257,14 +250,46 @@ func deleteIconHandler(iconService *services.IconService) func(c *gin.Context) {
 	logger := log.WithField("prefix", "deleteIconHandler")
 	return func(c *gin.Context) {
 		session := MustGetUserSession(c)
-		errPerm := authr.HasRequiredPermissions(session.UserInfo.UserId, session.UserInfo.Permissions, []authr.PermissionID{authr.REMOVE_ICON})
-		if errPerm != nil {
-			c.AbortWithStatus(403)
-		}
 		iconName := c.Param("name")
-		deletionErr := iconService.DeleteIcon(iconName, session.UserInfo)
-		if deletionErr != nil {
-			logger.Errorf("failed to delete icon \"%s\": %v", iconName, deletionErr)
+		deleteError := iconService.DeleteIcon(iconName, session.UserInfo)
+		if deleteError != nil {
+			if errors.Is(deleteError, authr.ErrPermission) {
+				c.AbortWithStatus(403)
+				return
+			}
+			logger.Errorf("failed to delete icon \"%s\": %v", iconName, deleteError)
+			c.AbortWithStatus(500)
+			return
+		}
+		c.Status(204)
+	}
+}
+
+func deleteIconfileHandler(iconService *services.IconService) func(c *gin.Context) {
+	logger := log.WithField("prefix", "delteIconfileHandler")
+	return func(c *gin.Context) {
+		session := MustGetUserSession(c)
+		iconName := c.Param("name")
+		format := c.Param("format")
+		size := c.Param("size")
+		iconfileDescriptor := domain.IconfileDescriptor{Format: format, Size: size}
+		deleteError := iconService.DeleteIconfile(iconName, iconfileDescriptor, session.UserInfo)
+		if deleteError != nil {
+			if errors.Is(deleteError, authr.ErrPermission) {
+				c.AbortWithStatus(403)
+				return
+			}
+			if errors.Is(deleteError, domain.ErrIconNotFound) {
+				logger.Infof("Icon %s not found", iconName)
+				c.AbortWithStatus(404)
+				return
+			}
+			if errors.Is(deleteError, domain.ErrIconfileNotFound) {
+				logger.Infof("Iconfile %v of %s not found", iconfileDescriptor, iconName)
+				c.AbortWithStatus(404)
+				return
+			}
+			logger.Errorf("failed to delete iconfile %v of \"%s\": %v", iconfileDescriptor, iconName, deleteError)
 			c.AbortWithStatus(500)
 			return
 		}

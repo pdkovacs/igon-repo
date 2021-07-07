@@ -327,8 +327,9 @@ func (repo DatabaseRepository) AddTag(iconName string, tag string, modifiedBy st
 	return nil
 }
 
-func deleteIconfileBare(tx *sql.Tx, iconName string, iconfile domain.IconfileDescriptor) error {
+func deleteIconfileBare(tx *sql.Tx, iconName string, iconfile domain.IconfileDescriptor) (sql.Result, error) {
 	var err error
+	var sqlResult sql.Result
 
 	var getIdAndLockIcon = "SELECT id FROM icon WHERE name = $1 FOR UPDATE"
 	var deleteFile = "DELETE FROM icon_file WHERE icon_id = $1 and file_format = $2 and icon_size = $3"
@@ -339,30 +340,30 @@ func deleteIconfileBare(tx *sql.Tx, iconName string, iconfile domain.IconfileDes
 	err = tx.QueryRow(getIdAndLockIcon, iconName).Scan(&iconId)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return fmt.Errorf("icon %s not found: %w", iconName, domain.ErrIconNotFound)
+			return nil, fmt.Errorf("icon %s not found: %w", iconName, domain.ErrIconNotFound)
 		}
-		return fmt.Errorf("failed to obtain iconfile id for %v: %w", iconfile, err)
+		return nil, fmt.Errorf("failed to obtain iconfile id for %v: %w", iconfile, err)
 	}
 
-	_, err = tx.Exec(deleteFile, iconId, iconfile.Format, iconfile.Size)
+	sqlResult, err = tx.Exec(deleteFile, iconId, iconfile.Format, iconfile.Size)
 	if err != nil {
-		return fmt.Errorf("failed to delete iconfile %v: %w", iconfile, err)
+		return nil, fmt.Errorf("failed to delete iconfile %v: %w", iconfile, err)
 	}
 
 	var remainingIconfileCountForIcon int
 	err = tx.QueryRow(countIconfilesLeftForIcon, iconId).Scan(&remainingIconfileCountForIcon)
 	if err != nil {
-		return fmt.Errorf("failed to obtain iconfile count for %v: %w", iconName, err)
+		return nil, fmt.Errorf("failed to obtain iconfile count for %v: %w", iconName, err)
 	}
 
 	if remainingIconfileCountForIcon == 0 {
 		_, err = tx.Exec(deleteIconSQL, iconId)
 		if err != nil {
-			return fmt.Errorf("failed to delete icon %v: %w", iconName, err)
+			return nil, fmt.Errorf("failed to delete icon %v: %w", iconName, err)
 		}
 	}
 
-	return nil
+	return sqlResult, nil
 }
 
 func (repo DatabaseRepository) DeleteIcon(iconName string, modifiedBy string, createSideEffect CreateSideEffect) error {
@@ -382,7 +383,7 @@ func (repo DatabaseRepository) DeleteIcon(iconName string, modifiedBy string, cr
 	}
 
 	for _, iconFile := range iconDesc.Iconfiles {
-		err = deleteIconfileBare(tx, iconName, iconFile)
+		_, err = deleteIconfileBare(tx, iconName, iconFile)
 		if err != nil {
 			return fmt.Errorf("failed to delete iconfile %v: %w", iconFile, err)
 		}
@@ -402,6 +403,8 @@ func (repo DatabaseRepository) DeleteIcon(iconName string, modifiedBy string, cr
 func (repo DatabaseRepository) DeleteIconfile(iconName string, iconfile domain.IconfileDescriptor, modifiedBy string, createSideEffect CreateSideEffect) error {
 	var err error
 	var tx *sql.Tx
+	var sqlResult sql.Result
+	var rowsAffected int64
 
 	tx, err = repo.ConnectionPool.Begin()
 	if err != nil {
@@ -409,9 +412,16 @@ func (repo DatabaseRepository) DeleteIconfile(iconName string, iconfile domain.I
 	}
 	defer tx.Rollback()
 
-	err = deleteIconfileBare(tx, iconName, iconfile)
+	sqlResult, err = deleteIconfileBare(tx, iconName, iconfile)
 	if err != nil {
 		return fmt.Errorf("failed to delete iconfile %v from %s: %w", iconfile, iconName, err)
+	}
+	rowsAffected, err = sqlResult.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to retrieve rows affected by deleting iconfile %v from %s: %w", iconfile, iconName, err)
+	}
+	if rowsAffected < 1 {
+		return domain.ErrIconfileNotFound
 	}
 
 	err = updateModifier(tx, iconName, modifiedBy)

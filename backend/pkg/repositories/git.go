@@ -238,6 +238,30 @@ func (s *GitRepository) DeleteIcon(iconDesc domain.IconDescriptor, modifiedBy au
 	return nil
 }
 
+func (s *GitRepository) DeleteIconfile(iconName string, iconfileDesc domain.IconfileDescriptor, modifiedBy authn.UserID) error {
+	iconfileOperation := func() ([]string, error) {
+		filePath, deletionError := s.deleteIconfileFile(iconName, iconfileDesc)
+		return []string{filePath}, deletionError
+	}
+
+	jobTextProvider := gitJobTextProvider{
+		fmt.Sprintf("delete iconfile %v for icon \"%s\"", iconfileDesc, iconName),
+		func(fileList []string) string {
+			return fmt.Sprintf("iconfile for icon \"%s\" deleted:\n\n%s", iconName, fileListAsText(fileList))
+		},
+	}
+
+	var err error
+	auxiliaries.Enqueue(func() {
+		err = s.createIconfileJob(iconfileOperation, jobTextProvider, modifiedBy.String())
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to remove iconfile %v of \"%s\" from git repository: %w", iconfileDesc, iconName, err)
+	}
+	return nil
+}
+
 func (s *GitRepository) createInitializeGitRepo() error {
 	var err error
 	var out string

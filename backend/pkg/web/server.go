@@ -111,6 +111,7 @@ func (s *Server) initEndpoints(options auxiliaries.Options) *gin.Engine {
 
 	r.POST("/icon/:name", addIconfileHandler(&iconService))
 	r.GET("/icon/:name/format/:format/size/:size", getIconfileHandler(&iconService))
+	r.DELETE("/icon/:name/format/:format/size/:size", deleteIconfileHandler(&iconService))
 
 	return r
 }

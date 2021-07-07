@@ -142,6 +142,19 @@ func (service *IconService) DeleteIcon(iconName string, modifiedBy UserInfo) err
 	return errDeleteIcon
 }
 
+func (service *IconService) DeleteIconfile(iconName string, iconfileDescriptor domain.IconfileDescriptor, modifiedBy UserInfo) error {
+	err := authr.HasRequiredPermissions(modifiedBy.UserId, modifiedBy.Permissions, []authr.PermissionID{
+		authr.REMOVE_ICONFILE,
+	})
+	if err != nil {
+		return fmt.Errorf("not enough permissions to delete icon \"%v\" to : %w", iconName, err)
+	}
+	errDeleteIcon := service.Repositories.DB.DeleteIconfile(iconName, iconfileDescriptor, modifiedBy.UserId.String(), func() error {
+		return service.Repositories.Git.DeleteIconfile(iconName, iconfileDescriptor, modifiedBy.UserId)
+	})
+	return errDeleteIcon
+}
+
 func init() {
 	registerSVGDecoder()
 }
