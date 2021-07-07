@@ -1,4 +1,10 @@
 .vscode
-/deploy/dist/
+.DS_Store
+/node_modules/
+/build/
+/docker/dist/
 /log
+/igo-repo-backend
+/backend
+/deploy/dist/
 /output
