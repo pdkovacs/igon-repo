@@ -155,6 +155,34 @@ func (service *IconService) DeleteIconfile(iconName string, iconfileDescriptor d
 	return errDeleteIcon
 }
 
+func (service *IconService) GetTags() ([]string, error) {
+	return service.Repositories.DB.GetExistingTags()
+}
+
+func (service *IconService) AddTag(iconName string, tag string, userInfo UserInfo) error {
+	permErr := authr.HasRequiredPermissions(userInfo.UserId, userInfo.Permissions, []authr.PermissionID{authr.ADD_TAG})
+	if permErr != nil {
+		return authr.ErrPermission
+	}
+	dbErr := service.Repositories.DB.AddTag(iconName, tag, userInfo.UserId.String())
+	if dbErr != nil {
+		return fmt.Errorf("failed to add tag %s to \"%s\": %w", tag, iconName, dbErr)
+	}
+	return nil
+}
+
+func (service *IconService) RemoveTag(iconName string, tag string, userInfo UserInfo) error {
+	permErr := authr.HasRequiredPermissions(userInfo.UserId, userInfo.Permissions, []authr.PermissionID{authr.REMOVE_TAG})
+	if permErr != nil {
+		return authr.ErrPermission
+	}
+	dbErr := service.Repositories.DB.RemoveTag(iconName, tag, userInfo.UserId.String())
+	if dbErr != nil {
+		return fmt.Errorf("failed to remove tag %s from \"%s\": %w", tag, iconName, dbErr)
+	}
+	return nil
+}
+
 func init() {
 	registerSVGDecoder()
 }

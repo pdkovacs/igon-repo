@@ -113,6 +113,10 @@ func (s *Server) initEndpoints(options auxiliaries.Options) *gin.Engine {
 	r.GET("/icon/:name/format/:format/size/:size", getIconfileHandler(&iconService))
 	r.DELETE("/icon/:name/format/:format/size/:size", deleteIconfileHandler(&iconService))
 
+	r.GET("/tag", getTagsHandler(&iconService))
+	r.POST("/icon/:name/tag", addTagHandler(&iconService))
+	r.DELETE("/icon/:name/tag/:tag", removeTagHandler(&iconService))
+
 	return r
 }
 

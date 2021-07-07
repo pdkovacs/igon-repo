@@ -2,6 +2,7 @@ package web
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -290,6 +291,85 @@ func deleteIconfileHandler(iconService *services.IconService) func(c *gin.Contex
 				return
 			}
 			logger.Errorf("failed to delete iconfile %v of \"%s\": %v", iconfileDescriptor, iconName, deleteError)
+			c.AbortWithStatus(500)
+			return
+		}
+		c.Status(204)
+	}
+}
+
+func getTagsHandler(iconService *services.IconService) func(c *gin.Context) {
+	logger := log.WithField("prefix", "getTagsHandler")
+	return func(c *gin.Context) {
+		tags, serviceError := iconService.GetTags()
+		if serviceError != nil {
+			logger.Errorf("Failed to retrieve tags: %v", serviceError)
+			c.AbortWithStatus(500)
+			return
+		}
+		c.JSON(201, tags)
+	}
+}
+
+type AddServiceRequestData struct {
+	Tag string `json:"tag"`
+}
+
+func addTagHandler(iconService *services.IconService) func(c *gin.Context) {
+	logger := log.WithField("prefix", "addTagHandler")
+	return func(c *gin.Context) {
+		session := MustGetUserSession(c)
+		iconName := c.Param("name")
+
+		jsonData, readBodyErr := io.ReadAll(c.Request.Body)
+		if readBodyErr != nil {
+			logger.Errorf("failed to read body: %v", readBodyErr)
+			c.AbortWithStatus(400)
+			return
+		}
+		tagRequestData := AddServiceRequestData{}
+		json.Unmarshal(jsonData, &tagRequestData)
+		tag := tagRequestData.Tag
+
+		serviceError := iconService.AddTag(iconName, tag, session.UserInfo)
+		if serviceError != nil {
+			if errors.Is(serviceError, authr.ErrPermission) {
+				logger.Infof("Icon %s not found to add/remove tag %s to/from: %v", iconName, tag, serviceError)
+				c.AbortWithStatus(403)
+				return
+			}
+			if errors.Is(serviceError, domain.ErrIconNotFound) {
+				logger.Infof("Icon %s not found to add/remove tag %s to/from: %v", iconName, tag, serviceError)
+				c.AbortWithStatus(404)
+				return
+			}
+			logger.Errorf("Failed to add/remove tag %s to/from %s: %v", tag, iconName, serviceError)
+			c.AbortWithStatus(500)
+			return
+		}
+		c.Status(201)
+	}
+}
+
+func removeTagHandler(iconService *services.IconService) func(c *gin.Context) {
+	logger := log.WithField("prefix", "removeTagHandler")
+	return func(c *gin.Context) {
+		session := MustGetUserSession(c)
+		iconName := c.Param("name")
+		tag := c.Param("tag")
+		serviceError := iconService.RemoveTag(iconName, tag, session.UserInfo)
+		if serviceError != nil {
+			if errors.Is(serviceError, authr.ErrPermission) {
+				logger.Infof("Icon %s not found to add/remove tag %s to/from: %v", iconName, tag, serviceError)
+				c.AbortWithStatus(403)
+				return
+			}
+			if errors.Is(serviceError, domain.ErrIconNotFound) {
+				logger.Infof("Icon %s not found to add/remove tag %s to/from: %v", iconName, tag, serviceError)
+				c.AbortWithStatus(404)
+				return
+			}
+			logger.Errorf("Failed to add/remove tag %s to/from %s: %v", tag, iconName, serviceError)
 			c.AbortWithStatus(500)
 			return
 		}

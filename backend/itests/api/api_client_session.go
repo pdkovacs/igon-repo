@@ -166,6 +166,14 @@ func (session *apiTestSession) describeAllIcons() ([]web.ResponseIcon, error) {
 	return *icons, err
 }
 
+func (session *apiTestSession) mustDescribeAllIcons() []web.ResponseIcon {
+	respIcons, err := session.describeAllIcons()
+	if err != nil {
+		panic(err)
+	}
+	return respIcons
+}
+
 func (session *apiTestSession) describeIcon(iconName string) (int, web.ResponseIcon, error) {
 	resp, err := session.get(&testRequest{
 		path:          fmt.Sprintf("/icon/%s", iconName),
@@ -314,6 +322,50 @@ func (session *apiTestSession) deleteIconfile(iconName string, iconfileDescripto
 		jar:  session.cjar,
 	})
 
+	if err != nil {
+		return 0, err
+	}
+
+	return resp.statusCode, err
+}
+
+func (session *apiTestSession) getTags() ([]string, error) {
+	tagList := []string{}
+	resp, err := session.sendRequest("GET", &testRequest{
+		path:          "/tag",
+		jar:           session.cjar,
+		respBodyProto: tagList,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if tags, ok := resp.body.([]string); ok {
+		return tags, nil
+	}
+	return nil, fmt.Errorf("failed to cast %T to %T", resp.body, tagList)
+}
+
+func (session *apiTestSession) addTag(iconName string, tag string) (int, error) {
+	requestData := web.AddServiceRequestData{Tag: tag}
+	resp, err := session.sendRequest("POST", &testRequest{
+		path: fmt.Sprintf("/icon/%s/tag", iconName),
+		jar:  session.cjar,
+		json: true,
+		body: requestData,
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	return resp.statusCode, err
+}
+
+func (session *apiTestSession) removeTag(iconName string, tag string) (int, error) {
+	resp, err := session.sendRequest("DELETE", &testRequest{
+		path: fmt.Sprintf("/icon/%s/tag/%s", iconName, tag),
+		jar:  session.cjar,
+	})
 	if err != nil {
 		return 0, err
 	}

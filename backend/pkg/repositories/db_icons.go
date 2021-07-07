@@ -290,6 +290,18 @@ func addTagReferenceToIcon(tx *sql.Tx, tagId int64, iconName string) error {
 	return nil
 }
 
+func removeTagReferenceFromIcon(tx *sql.Tx, tagId int64, iconName string) error {
+	_, err := tx.Exec(`
+		DELETE FROM icon_to_tags
+		WHERE tag_id = $1
+			and icon_id = (SELECT id FROM icon WHERE name = $2)
+	`, tagId, iconName)
+	if err != nil {
+		return fmt.Errorf("failed to remove tag reference %d from icon \"%s\": %w", tagId, iconName, err)
+	}
+	return nil
+}
+
 func GetTagId(tx *sql.Tx, tag string) (int64, error) {
 	var tagId int64
 	err := tx.QueryRow("SELECT id FROM tag WHERE text = $1", tag).Scan(&tagId)
@@ -321,6 +333,31 @@ func (repo DatabaseRepository) AddTag(iconName string, tag string, modifiedBy st
 	err := updateModifier(tx, iconName, modifiedBy)
 	if err != nil {
 		return fmt.Errorf("failed to add tag '%s' to icon '%s': %w", tag, iconName, err)
+	}
+
+	tx.Commit()
+	return nil
+}
+
+func (repo DatabaseRepository) RemoveTag(iconName string, tag string, modifiedBy string) error {
+	tx, trError := repo.ConnectionPool.Begin()
+	if trError != nil {
+		return fmt.Errorf("failed to obtain transaction for removing tag '%s' to '%s': %w", tag, iconName, trError)
+	}
+	defer tx.Rollback()
+
+	tagId, insertTagErr := GetTagId(tx, tag)
+	if insertTagErr != nil {
+		return fmt.Errorf("failed to insert tag '%s' for '%s': %w", tag, iconName, insertTagErr)
+	}
+	removeRefErr := removeTagReferenceFromIcon(tx, tagId, iconName)
+	if removeRefErr != nil {
+		return fmt.Errorf("failed to disconnect tag '%s' from icon '%s': %w", tag, iconName, removeRefErr)
+	}
+
+	err := updateModifier(tx, iconName, modifiedBy)
+	if err != nil {
+		return fmt.Errorf("failed to remove tag '%s' from icon '%s': %w", tag, iconName, err)
 	}
 
 	tx.Commit()
