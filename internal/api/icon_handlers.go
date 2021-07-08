@@ -307,7 +307,7 @@ func getTagsHandler(iconService *services.IconService) func(c *gin.Context) {
 			c.AbortWithStatus(500)
 			return
 		}
-		c.JSON(201, tags)
+		c.JSON(200, tags)
 	}
 }
 

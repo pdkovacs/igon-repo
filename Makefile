@@ -16,4 +16,4 @@ build:
 		-X 'github.com/pdkovacs/igo-repo/internal/build.user=$$(id -u -n)' \
 		-X 'github.com/pdkovacs/igo-repo/internal/build.time=$$(date)' \
 		-X 'github.com/pdkovacs/igo-repo/internal/build.commit=$$(git rev-parse HEAD)' \
-	" -o igo-repo-backend cmd/main.go
+	" -o igo-repo cmd/main.go

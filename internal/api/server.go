@@ -13,6 +13,7 @@ import (
 	"github.com/pdkovacs/igo-repo/internal/auxiliaries"
 	"github.com/pdkovacs/igo-repo/internal/repositories"
 	"github.com/pdkovacs/igo-repo/internal/services"
+	"github.com/pdkovacs/igo-repo/web"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -91,7 +92,7 @@ func (s *Server) initEndpoints(options auxiliaries.Options) *gin.Engine {
 		c.JSON(200, session.UserInfo)
 	})
 
-	r.GET("/info", func(c *gin.Context) {
+	r.GET("/app-info", func(c *gin.Context) {
 		c.JSON(200, auxiliaries.GetBuildInfo())
 	})
 
@@ -116,6 +117,9 @@ func (s *Server) initEndpoints(options auxiliaries.Options) *gin.Engine {
 	r.GET("/tag", getTagsHandler(&iconService))
 	r.POST("/icon/:name/tag", addTagHandler(&iconService))
 	r.DELETE("/icon/:name/tag/:tag", removeTagHandler(&iconService))
+
+	assetHandler := web.AssetHandler("/", "dist")
+	r.NoRoute(gin.WrapH(assetHandler))
 
 	return r
 }

@@ -4,7 +4,7 @@
 /build/
 /docker/dist/
 /log
-/igo-repo-backend
+/igo-repo
 /backend
 /deploy/dist/
 /output

@@ -21,7 +21,7 @@ func (s *buildinfoAPITestSuite) TestMustIncludeVersionInfo() {
 
 	session := s.client.mustLogin(nil)
 	req := testRequest{
-		path:          "/info",
+		path:          "/app-info",
 		respBodyProto: &auxiliaries.BuildInfo{},
 	}
 	resp, err := session.get(&req)
