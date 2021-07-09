@@ -19,6 +19,8 @@ func NewAuthorizationService(config auxiliaries.Options) authRService {
 }
 
 type authRService struct {
+	// TODO: if this data structure is to serve both the local and the OIDC domain,
+	// "usersByGroups" should be more abstract/indirect, like let it be at least a function or something
 	usersByGroups auxiliaries.UsersByRoles
 }
 
