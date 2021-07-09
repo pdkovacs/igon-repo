@@ -19,14 +19,14 @@ const iconRootPath = "/icon"
 
 type IconPath struct {
 	domain.IconfileDescriptor
-	Path string
+	Path string `json:"path"`
 }
 
 type ResponseIcon struct {
-	Name       string
-	ModifiedBy string
-	Paths      []IconPath
-	Tags       []string
+	Name       string     `json:"name"`
+	ModifiedBy string     `json:"modifiedBy"`
+	Paths      []IconPath `json:"paths"`
+	Tags       []string   `json:"tags"`
 }
 
 func createIconfilePath(baseUrl string, iconName string, iconfileDescriptor domain.IconfileDescriptor) string {
@@ -152,10 +152,10 @@ func createIconHandler(iconService *services.IconService) func(c *gin.Context) {
 		if errCreate != nil {
 			logger.Errorf("failed to create icon %v", errCreate)
 			if errors.Is(errCreate, authr.ErrPermission) {
-				c.AbortWithStatusJSON(403, iconToResponseIcon(icon))
+				c.AbortWithStatus(403)
 				return
 			} else {
-				c.AbortWithStatusJSON(500, iconToResponseIcon(icon))
+				c.AbortWithStatus(500)
 				return
 			}
 		}

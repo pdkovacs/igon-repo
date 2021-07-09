@@ -3,8 +3,8 @@ package domain
 import "fmt"
 
 type IconfileDescriptor struct {
-	Format string
-	Size   string
+	Format string `json:"format"`
+	Size   string `json:"size"`
 }
 
 // Iconfile the file representation of an icon

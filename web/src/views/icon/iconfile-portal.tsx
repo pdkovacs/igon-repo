@@ -14,13 +14,13 @@ interface IconfilePortalProps {
 const uploadIconfile = (file: File, props: IconfilePortalProps) => {
     const fileName = file.name;
     const formData = new FormData();
-    formData.append("file", file, fileName);
+    formData.append("iconfile", file, fileName);
 
     let request: Promise<IngestedIconfileDTO>;
     if (props.iconName) {
         request = ingestIconfile(props.iconName, formData);
     } else {
-        formData.append("name", fileName.replace(/(.*)\.[^.]*$/, "$1"));
+        formData.append("iconName", fileName.replace(/(.*)\.[^.]*$/, "$1"));
         request = createIcon(formData);
     }
 

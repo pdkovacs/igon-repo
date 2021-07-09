@@ -1,11 +1,11 @@
 package services
 
 import (
-	"encoding/base64"
+	"bytes"
 	"fmt"
 	"image"
+	_ "image/jpeg"
 	_ "image/png"
-	"strings"
 
 	"github.com/pdkovacs/igo-repo/internal/domain"
 	"github.com/pdkovacs/igo-repo/internal/repositories"
@@ -41,11 +41,10 @@ func (service *IconService) CreateIcon(iconName string, initialIconfileContent [
 	if err != nil {
 		return domain.Icon{}, fmt.Errorf("failed to create icon %v: %w", iconName, err)
 	}
-	logger.Infof("iconName: %s, initialIconfileContent: %v, modifiedBy: %s", iconName, string(initialIconfileContent), modifiedBy)
-	reader := base64.NewDecoder(base64.StdEncoding, strings.NewReader(string(initialIconfileContent)))
-	config, format, err := image.DecodeConfig(reader)
+	logger.Infof("iconName: %s, initialIconfileContent: %v encoded bytes, modifiedBy: %s", iconName, len(initialIconfileContent), modifiedBy)
+	config, format, err := image.DecodeConfig(bytes.NewReader(initialIconfileContent))
 	if err != nil {
-		log.Fatal(err)
+		return domain.Icon{}, fmt.Errorf("failed to decode iconfile: %w", err)
 	}
 	iconfile := domain.Iconfile{
 		IconfileDescriptor: domain.IconfileDescriptor{
@@ -98,7 +97,7 @@ func (service *IconService) AddIconfile(iconName string, initialIconfileContent 
 	if err != nil {
 		return domain.IconfileDescriptor{}, fmt.Errorf("failed to add iconfile %v: %w", iconName, err)
 	}
-	reader := base64.NewDecoder(base64.StdEncoding, strings.NewReader(string(initialIconfileContent)))
+	reader := bytes.NewReader(initialIconfileContent)
 	config, format, err := image.DecodeConfig(reader)
 	if err != nil {
 		logger.Errorf("failed to decode image configuration of iconfile for %s: %v", iconName, err)

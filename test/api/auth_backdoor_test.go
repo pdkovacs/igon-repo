@@ -66,9 +66,11 @@ func (s *authBackDoorTestSuite) TestBackDoorShouldBeAvailableWhenEnabled() {
 
 func (s *authBackDoorTestSuite) TestBackDoorShouldAllowToSetPrivileges() {
 	requestedAuthorization := []authr.PermissionID{"galagonya", "ide-oda"}
+	userID := authn.LocalDomain.CreateUserID(testdata.DefaultCredentials.Username)
 	expectedUserInfo := services.UserInfo{
-		UserId:      authn.LocalDomain.CreateUserID(testdata.DefaultCredentials.Username),
+		UserId:      userID,
 		Permissions: requestedAuthorization,
+		DisplayName: userID.String(),
 	}
 
 	session := s.client.mustLogin(nil)

@@ -2,7 +2,6 @@ package api
 
 import (
 	"bytes"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -209,7 +208,7 @@ func (session *apiTestSession) createIcon(iconName string, initialIconfile []byt
 	if fw, err = w.CreateFormFile("iconfile", iconName); err != nil {
 		panic(err)
 	}
-	if _, err = io.Copy(fw, bytes.NewReader([]byte(base64.StdEncoding.EncodeToString(initialIconfile)))); err != nil {
+	if _, err = io.Copy(fw, bytes.NewReader(initialIconfile)); err != nil {
 		panic(err)
 	}
 	w.Close()
@@ -260,11 +259,7 @@ func (s *apiTestSession) GetIconfile(iconName string, iconfileDescriptor domain.
 	}
 
 	if respIconfile, ok := resp.body.(*domain.Iconfile); ok {
-		original, decodeErr := base64.StdEncoding.DecodeString(string(respIconfile.Content))
-		if decodeErr != nil {
-			return iconfile, fmt.Errorf("failed to decode iconfile %v of %s: %w", iconfileDescriptor, iconName, decodeErr)
-		}
-		iconfile.Content = original
+		iconfile.Content = respIconfile.Content
 		return iconfile, nil
 	}
 
@@ -289,7 +284,7 @@ func (session *apiTestSession) addIconfile(iconName string, iconfile domain.Icon
 	if fw, err = w.CreateFormFile("iconfile", iconName); err != nil {
 		panic(err)
 	}
-	if _, err = io.Copy(fw, bytes.NewReader([]byte(base64.StdEncoding.EncodeToString(iconfile.Content)))); err != nil {
+	if _, err = io.Copy(fw, bytes.NewReader(iconfile.Content)); err != nil {
 		panic(err)
 	}
 	w.Close()

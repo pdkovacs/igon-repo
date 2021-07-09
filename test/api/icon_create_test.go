@@ -1,6 +1,7 @@
 package api
 
 import (
+	"errors"
 	"os"
 	"testing"
 
@@ -32,7 +33,7 @@ func (s *iconCreateTestSuite) TestFailsWith403WithoutPrivilege() {
 	session := s.client.mustLogin(nil)
 	session.mustSetAllPermsExcept([]authr.PermissionID{authr.CREATE_ICON})
 	statusCode, _, err := session.createIcon(iconName, iconfileContent)
-	s.NoError(err)
+	s.True(errors.Is(err, errJSONUnmarshal))
 	s.Equal(403, statusCode)
 
 	icons, errDesc := session.describeAllIcons()
