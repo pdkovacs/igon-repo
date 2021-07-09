@@ -329,23 +329,6 @@ func (session *apiTestSession) deleteIconfile(iconName string, iconfileDescripto
 	return resp.statusCode, err
 }
 
-func (session *apiTestSession) getTags() ([]string, error) {
-	tagList := []string{}
-	resp, err := session.sendRequest("GET", &testRequest{
-		path:          "/tag",
-		jar:           session.cjar,
-		respBodyProto: tagList,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	if tags, ok := resp.body.([]string); ok {
-		return tags, nil
-	}
-	return nil, fmt.Errorf("failed to cast %T to %T", resp.body, tagList)
-}
-
 func (session *apiTestSession) addTag(iconName string, tag string) (int, error) {
 	requestData := api.AddServiceRequestData{Tag: tag}
 	resp, err := session.sendRequest("POST", &testRequest{
