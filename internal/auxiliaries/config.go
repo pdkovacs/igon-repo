@@ -55,6 +55,7 @@ type Options struct {
 	EnableBackdoors             bool           `json:"enableBackdoors" env:"ENABLE_BACKDOORS" long:"enable-backdoors" short:"" description:"Enable backdoors"`
 	LoggerLevel                 string         `json:"loggerLevel" env:"LOGGER_LEVEL" long:"logger-level" short:"" default:"info" description:"Logger level"`
 	PackageRootDir              string         `json:"packageRootDir" env:"PACKAGE_ROOT_DIR" long:"package-root-dir" short:"" default:"" description:"Package root dir"`
+	LogLevel                    string         `json:"logLevel" env:"IGOREPO_LOG_LEVEL" long:"log-level" short:"l" default:"info"`
 }
 
 func createOptionsMaps() (map[string]string, map[string]string, map[string]string) {

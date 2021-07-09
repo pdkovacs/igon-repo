@@ -9,6 +9,17 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+func setLogLevel(levelArg string) {
+	var level log.Level
+	if levelArg == "info" {
+		level = log.InfoLevel
+	} else if levelArg == "debug" {
+		level = log.DebugLevel
+	}
+	fmt.Printf("Log level: %v\n", level)
+	log.SetLevel(level)
+}
+
 func main() {
 	log.SetFormatter(&log.TextFormatter{
 		DisableColors:   true,
@@ -27,6 +38,7 @@ func main() {
 
 	if serverWanted {
 		conf := auxiliaries.ParseCommandLineArgs(os.Args)
+		setLogLevel(conf.LogLevel)
 		server := api.Server{}
 		server.SetupAndStart(conf, func(port int) {
 		})
