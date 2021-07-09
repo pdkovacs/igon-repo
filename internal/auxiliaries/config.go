@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"reflect"
 
+	"github.com/imdario/mergo"
 	"github.com/jessevdk/go-flags"
 	log "github.com/sirupsen/logrus"
 )
@@ -53,44 +53,9 @@ type Options struct {
 	DBName                      string         `json:"dbName" env:"DB_NAME" long:"db-name" short:"" default:"iconrepo" description:"Name of the database"`
 	DBSchemaName                string         `json:"dbSchemaName" env:"DB_SCHEMA_NAME" long:"db-schema-name" short:"" default:"icon_repo" description:"Name of the database schemma"`
 	EnableBackdoors             bool           `json:"enableBackdoors" env:"ENABLE_BACKDOORS" long:"enable-backdoors" short:"" description:"Enable backdoors"`
-	LoggerLevel                 string         `json:"loggerLevel" env:"LOGGER_LEVEL" long:"logger-level" short:"" default:"info" description:"Logger level"`
 	PackageRootDir              string         `json:"packageRootDir" env:"PACKAGE_ROOT_DIR" long:"package-root-dir" short:"" default:"" description:"Package root dir"`
 	LogLevel                    string         `json:"logLevel" env:"IGOREPO_LOG_LEVEL" long:"log-level" short:"l" default:"info"`
 }
-
-func createOptionsMaps() (map[string]string, map[string]string, map[string]string) {
-	keyToName := make(map[string]string)
-	keyToLongOptName := make(map[string]string)
-	keyToEnvName := make(map[string]string)
-
-	t := reflect.TypeOf(Options{})
-	for i := 0; i < t.NumField(); i++ {
-		f := t.FieldByIndex([]int{i})
-		name := f.Name
-
-		key, jsonTagFound := f.Tag.Lookup("json")
-		if !jsonTagFound {
-			log.Panicf("No json flag for Options.%s", name)
-		}
-		keyToName[key] = name
-
-		longOptName, longOptNameFound := f.Tag.Lookup("long")
-		if !longOptNameFound {
-			log.Panicf("No name found for Options.%s", name)
-		}
-		keyToLongOptName[key] = longOptName
-
-		envName, envNameFound := f.Tag.Lookup("env")
-		if !envNameFound {
-			log.Panicf("No env name for Options.%s", name)
-		}
-		keyToEnvName[key] = envName
-	}
-
-	return keyToName, keyToLongOptName, keyToEnvName
-}
-
-var keyToName, keyToLongOptName, keyToEnvName = createOptionsMaps()
 
 var DefaultIconRepoHome = filepath.Join(os.Getenv("HOME"), ".ui-toolbox/icon-repo")
 var DefaultIconDataLocationGit = filepath.Join(DefaultIconRepoHome, "git-repo")
@@ -117,38 +82,38 @@ func ReadConfiguration(filePath string, clArgs []string) (Options, error) {
 }
 
 // ReadConfigurationFromFile reads configuration from a file (JSON for now)
-func ReadConfigurationFromFile(filePath string) (map[string]interface{}, error) {
+func ReadConfigurationFromFile(filePath string) (Options, error) {
+	var optsInFile = Options{}
+
 	_, fileStatError := os.Stat(filePath)
 	if fileStatError != nil {
-		return nil, fmt.Errorf("failed to locate configuration file %v: %w", filePath, fileStatError)
+		return optsInFile, fmt.Errorf("failed to locate configuration file %v: %w", filePath, fileStatError)
 	}
 
 	fileContent, fileReadError := os.ReadFile(filePath)
 	if fileReadError != nil {
-		return nil, fmt.Errorf("failed to read configuration file %v: %w", filePath, fileReadError)
+		return optsInFile, fmt.Errorf("failed to read configuration file %v: %w", filePath, fileReadError)
 	}
-
-	var optsInFile = make(map[string]interface{})
 
 	unmarshalError := json.Unmarshal(fileContent, &optsInFile)
 	if unmarshalError != nil {
-		return nil, fmt.Errorf("failed to parse configuration file %v: %w", filePath, unmarshalError)
+		return optsInFile, fmt.Errorf("failed to parse configuration file %v: %w", filePath, unmarshalError)
 	}
 
 	return optsInFile, nil
 }
 
 func GetDefaultConfiguration() Options {
-	options, _ := parseCommandLineArgs([]string{})
+	options := parseCommandLineArgs([]string{})
 	return options
 }
 
 func ParseCommandLineArgs(clArgs []string) Options {
-	options, _ := parseCommandLineArgs(clArgs)
+	options := parseCommandLineArgs(clArgs)
 	return options
 }
 
-func parseCommandLineArgs(clArgs []string) (Options, *flags.Parser) {
+func parseCommandLineArgs(clArgs []string) Options {
 	logger := log.WithField("prefix", "parseCommandLineArgs")
 
 	var opts = Options{}
@@ -161,29 +126,17 @@ func parseCommandLineArgs(clArgs []string) (Options, *flags.Parser) {
 
 	opts.IconDataLocationGit = DefaultIconDataLocationGit
 
-	return opts, parser
-}
-
-func parseFlagsMergeSettings(clArgs []string, optsInFile map[string]interface{}) Options {
-	logger := log.WithField("prefix", "parseFlagsMergeSettings")
-
-	opts, parser := parseCommandLineArgs(clArgs)
-
-	for key, value := range optsInFile {
-		o := findOption(key, parser)
-		logger.Debugf("Parsed option attributes: long-name: %v, value: %v, IsSet: %v, IsSetDefault: %v",
-			o.LongName, o.Value(), o.IsSet(), o.IsSetDefault())
-		if !o.IsSet() || (o.IsSetDefault() && os.Getenv(keyToEnvName[key]) == "") {
-			setFieldByJSONKey(&opts, key, value)
-		}
-	}
 	return opts
 }
 
-func findOption(key string, parser *flags.Parser) *flags.Option {
-	return parser.FindOptionByLongName(keyToLongOptName[key])
-}
+func parseFlagsMergeSettings(clArgs []string, optsInFile Options) Options {
+	opts := parseCommandLineArgs(clArgs)
 
-func setFieldByJSONKey(opts *Options, key string, value interface{}) {
-	reflect.Indirect(reflect.ValueOf(&opts).Elem()).FieldByName(keyToName[key]).Set(reflect.ValueOf(value))
+	if err := mergo.Merge(&optsInFile, opts, mergo.WithOverride); err != nil {
+		panic(err)
+	}
+
+	log.Infof("Options: %v", optsInFile)
+
+	return optsInFile
 }

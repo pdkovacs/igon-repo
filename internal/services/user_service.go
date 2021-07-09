@@ -6,10 +6,10 @@ import (
 )
 
 type UserInfo struct {
-	UserId      authn.UserID
-	Groups      []authr.GroupID
-	Permissions []authr.PermissionID
-	DisplayName string
+	UserId      authn.UserID         `json:"userID"`
+	Groups      []authr.GroupID      `json:"groups"`
+	Permissions []authr.PermissionID `json:"permissions"`
+	DisplayName string               `json:"displayName"`
 }
 
 func NewUserService(authorizationService AuthorizationService) UserService {

@@ -52,13 +52,7 @@ func basicScheme(config BasicConfig, userService *services.UserService) gin.Hand
 						if pc.Username == username && pc.Password == password {
 							userId := authn.LocalDomain.CreateUserID(username)
 							userInfo := userService.GetUserInfo(userId)
-							session.Set(UserKey, SessionData{
-								services.UserInfo{
-									UserId:      userId,
-									Permissions: userInfo.Permissions,
-									Groups:      userInfo.Groups,
-								},
-							})
+							session.Set(UserKey, SessionData{userInfo})
 							session.Save()
 							authorized = true
 							break

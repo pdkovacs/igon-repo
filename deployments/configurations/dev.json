@@ -1,13 +1,18 @@
 {
-    "server_hostname": "localhost",
-    "server_port": 8090,
-    "server_url_context": "",
-    "authentication_type": "basic",
-    "users_by_roles": {
+    "serverHostname": "localhost",
+    "serverPort": 8090,
+    "serverUrlContext": "",
+    "authenticationType": "basic",
+    "usersByRoles": {
         "ICON_EDITOR": [
             "ux"
         ]
     },
-    "icon_data_create_new": "init",
-    "logger_level": "debug"
+    "iconDataCreateNew": "init",
+	"passwordCredentials": [
+		{
+			"username": "ux",
+			"password": "ux"
+		}
+	]
 }

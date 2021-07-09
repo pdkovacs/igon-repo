@@ -82,8 +82,9 @@ func (s *Server) initEndpoints(options auxiliaries.Options) *gin.Engine {
 	store := memstore.NewStore([]byte("secret"))
 	store.Options(sessions.Options{MaxAge: 60 * 60 * 24})
 	r.Use(sessions.Sessions("mysession", store))
+	logger.Debugf("options.PasswordCredentials size: %d", len(options.PasswordCredentials))
 	if options.PasswordCredentials != nil && len(options.PasswordCredentials) > 0 {
-		r.Use(HandlerProvider(BasicConfig{PasswordCredentialsList: options.PasswordCredentials}, &userService))
+		r.Use(Authentication(BasicConfig{PasswordCredentialsList: options.PasswordCredentials}, &userService))
 	}
 
 	r.POST("/login", func(c *gin.Context) {

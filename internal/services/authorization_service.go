@@ -4,12 +4,13 @@ import (
 	"github.com/pdkovacs/igo-repo/internal/auxiliaries"
 	"github.com/pdkovacs/igo-repo/internal/security/authn"
 	"github.com/pdkovacs/igo-repo/internal/security/authr"
+	log "github.com/sirupsen/logrus"
 )
 
 type UsersByGroups map[authr.GroupID][]authn.UserID
 
 type AuthorizationService interface {
-	GetGroupsForUser(userId authn.UserID) []authr.GroupID
+	GetGroupsForUser(userID authn.UserID) []authr.GroupID
 	GetPermissionsForGroup(group authr.GroupID) []authr.PermissionID
 }
 
@@ -21,10 +22,40 @@ type authRService struct {
 	usersByGroups auxiliaries.UsersByRoles
 }
 
-func (as *authRService) GetGroupsForUser(userId authn.UserID) []authr.GroupID {
-	return nil
+func (as *authRService) GetGroupsForUser(userID authn.UserID) []authr.GroupID {
+	if userID.DomainID != authn.LocalDomain.GetDomainID() {
+		log.Warnf("Domain not supported: %s", &userID.DomainID)
+		return nil
+	}
+	return getLocalGroupsFor(userID, as.usersByGroups)
 }
 
 func (as *authRService) GetPermissionsForGroup(group authr.GroupID) []authr.PermissionID {
 	return authr.GetPermissionsForGroup(group)
+}
+
+func str2GroupID(s string) authr.GroupID {
+	return authr.GroupID(s)
+}
+
+func getLocalGroupsFor(userID authn.UserID, usersByGroups map[string][]string) []authr.GroupID {
+	groupNames := []string{}
+	for groupName, members := range usersByGroups {
+		for _, member := range members {
+			if userID.IDInDomain == member {
+				groupNames = append(groupNames, groupName)
+				break
+			}
+		}
+	}
+	log.Debugf("Groups of %s: %v", userID, groupNames)
+	return groupNames2GroupIDs(groupNames)
+}
+
+func groupNames2GroupIDs(strs []string) []authr.GroupID {
+	groupIDs := []authr.GroupID{}
+	for _, s := range strs {
+		groupIDs = append(groupIDs, str2GroupID((s)))
+	}
+	return groupIDs
 }

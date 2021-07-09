@@ -4,7 +4,7 @@ import { throwError } from "./errors";
 
 export interface UserInfo {
     readonly username: string;
-    readonly privileges: Set<string>;
+    readonly permissions: Set<string>;
     readonly authenticated: boolean;
 }
 
@@ -18,7 +18,7 @@ const privilegDictionary = Object.freeze({
 export const initialUserInfo = () => ({
     authenticated: false,
     username: "John Doe",
-    privileges: List()
+    permissions: List()
 });
 
 export const fetchUserInfo: () => Promise<UserInfo> = () => fetch(getEndpointUrl("/user"), {
@@ -34,7 +34,7 @@ export const fetchUserInfo: () => Promise<UserInfo> = () => fetch(getEndpointUrl
 })
 .then(
     userInfo => {
-        userInfo.privileges = Set(userInfo.privileges);
+        userInfo.permissions = Set(userInfo.permissions);
         userInfo.authenticated = true;
         return userInfo;
     }
@@ -48,7 +48,9 @@ export const logout = () => fetch(getEndpointUrl("/logout"), {
     window.location.assign(getEndpointUrl(""));
 });
 
-export const hasAddIconPrivilege = (user: UserInfo) =>
-    user.privileges && user.privileges.has(privilegDictionary.CREATE_ICON);
+export const hasAddIconPrivilege = (user: UserInfo) => {
+	console.log("-------- user: ", user)
+    return user.permissions && user.permissions.has(privilegDictionary.CREATE_ICON);
+}
 export const hasUpdateIconPrivilege = (user: UserInfo) =>
-    user.privileges && user.privileges.has(privilegDictionary.REMOVE_ICON);
+    user.permissions && user.permissions.has(privilegDictionary.REMOVE_ICON);

@@ -6,6 +6,7 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/pdkovacs/igo-repo/internal/services"
+	log "github.com/sirupsen/logrus"
 )
 
 // OIDCConfig holds the configuration for the OIDCConfig authentication scheme
@@ -32,8 +33,10 @@ func oidcScheme(c *gin.Context) {
 	c.AbortWithStatus(500)
 }
 
-// HandlerProvider handles authentication
-func HandlerProvider(authnConfig interface{}, userService *services.UserService) gin.HandlerFunc {
+// Authentication handles authentication
+func Authentication(authnConfig interface{}, userService *services.UserService) gin.HandlerFunc {
+	logger := log.WithField("prefix", "Authentication")
+	logger.Debugf("authnConfig type: %T", authnConfig)
 	switch authnConfig := authnConfig.(type) {
 	case BasicConfig:
 		return basicScheme(authnConfig, userService)

@@ -28,8 +28,14 @@ func UserInfoHandler(userService services.UserService) func(c *gin.Context) {
 			return
 		}
 
-		userInfo := userService.GetUserInfo(authn.UserID{IDInDomain: userId, DomainID: domainId})
-		logger.Infof("User info found: %v", usession)
+		var userInfo services.UserInfo
+		if userId == "" {
+			userInfo = usession.UserInfo
+		} else {
+			userInfo = userService.GetUserInfo(authn.UserID{IDInDomain: userId, DomainID: domainId})
+		}
+
+		logger.Debugf("User info: %v", userInfo)
 		c.JSON(200, userInfo)
 	}
 }

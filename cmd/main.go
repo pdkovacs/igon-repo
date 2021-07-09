@@ -37,7 +37,10 @@ func main() {
 	}
 
 	if serverWanted {
-		conf := auxiliaries.ParseCommandLineArgs(os.Args)
+		conf, err := auxiliaries.ReadConfiguration(auxiliaries.GetConfigFilePath(), os.Args)
+		if err != nil {
+			panic(err)
+		}
 		setLogLevel(conf.LogLevel)
 		server := api.Server{}
 		server.SetupAndStart(conf, func(port int) {

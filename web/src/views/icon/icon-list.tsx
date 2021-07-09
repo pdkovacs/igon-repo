@@ -25,7 +25,7 @@ const initialSettings: Settings = {
         appDescription: "No data"
      },
      userInfo: {
-         privileges: Set([]),
+         permissions: Set([]),
          username: "John Doe",
          authenticated: false
      }
