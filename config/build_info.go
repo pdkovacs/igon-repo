@@ -1,4 +1,4 @@
-package auxiliaries
+package config
 
 import "fmt"
 

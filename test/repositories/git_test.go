@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/pdkovacs/igo-repo/internal/repositories"
+	"github.com/pdkovacs/igo-repo/repositories"
 	itests_common "github.com/pdkovacs/igo-repo/test/common"
 	"github.com/stretchr/testify/suite"
 )

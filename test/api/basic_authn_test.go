@@ -3,7 +3,7 @@ package api
 import (
 	"testing"
 
-	"github.com/pdkovacs/igo-repo/internal/auxiliaries"
+	"github.com/pdkovacs/igo-repo/config"
 	"github.com/pdkovacs/igo-repo/test/api/testdata"
 	"github.com/stretchr/testify/suite"
 )
@@ -31,7 +31,7 @@ func (s *basicAuthnTestSuite) TestShouldFailWith401WithoutCredentials() {
 }
 
 func (s *basicAuthnTestSuite) TestShouldFailWith401WithWrongCredentials() {
-	reqCreds, makeReqCredErr := makeRequestCredentials(auxiliaries.BasicAuthentication, "ux", "definitely-wrong-password....!~")
+	reqCreds, makeReqCredErr := makeRequestCredentials(config.BasicAuthentication, "ux", "definitely-wrong-password....!~")
 	s.Require().NoError(makeReqCredErr)
 	req := testRequest{
 		path:          "/info",
@@ -47,7 +47,7 @@ func (s *basicAuthnTestSuite) TestShouldFailWith401WithWrongCredentials() {
 }
 
 func (s *basicAuthnTestSuite) TestShouldPasssWithCorrectCredentials() {
-	reqCreds, makeReqCredErr := makeRequestCredentials(auxiliaries.BasicAuthentication, testdata.DefaultCredentials.Username, testdata.DefaultCredentials.Password)
+	reqCreds, makeReqCredErr := makeRequestCredentials(config.BasicAuthentication, testdata.DefaultCredentials.Username, testdata.DefaultCredentials.Password)
 	s.Require().NoError(makeReqCredErr)
 	req := testRequest{
 		path:          "/app-info",

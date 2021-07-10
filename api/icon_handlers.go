@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/pdkovacs/igo-repo/internal/domain"
-	"github.com/pdkovacs/igo-repo/internal/security/authr"
-	"github.com/pdkovacs/igo-repo/internal/services"
+	"github.com/pdkovacs/igo-repo/domain"
+	"github.com/pdkovacs/igo-repo/security/authr"
+	"github.com/pdkovacs/igo-repo/services"
 	log "github.com/sirupsen/logrus"
 )
 

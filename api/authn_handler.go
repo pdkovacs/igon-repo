@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"github.com/pdkovacs/igo-repo/internal/services"
+	"github.com/pdkovacs/igo-repo/services"
 	log "github.com/sirupsen/logrus"
 )
 

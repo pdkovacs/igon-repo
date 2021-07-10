@@ -10,16 +10,16 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/memstore"
 	"github.com/gin-gonic/gin"
-	"github.com/pdkovacs/igo-repo/internal/auxiliaries"
-	"github.com/pdkovacs/igo-repo/internal/repositories"
-	"github.com/pdkovacs/igo-repo/internal/services"
+	"github.com/pdkovacs/igo-repo/config"
+	"github.com/pdkovacs/igo-repo/repositories"
+	"github.com/pdkovacs/igo-repo/services"
 	"github.com/pdkovacs/igo-repo/web"
 	log "github.com/sirupsen/logrus"
 )
 
 type Server struct {
 	listener      net.Listener
-	Configuration auxiliaries.Options
+	Configuration config.Options
 	Repositories  *repositories.Repositories
 }
 
@@ -53,7 +53,7 @@ func (s *Server) Start(portRequested int, r http.Handler, ready func(port int)) 
 }
 
 // SetupAndStart sets up and starts server.
-func (s *Server) SetupAndStart(options auxiliaries.Options, ready func(port int)) {
+func (s *Server) SetupAndStart(options config.Options, ready func(port int)) {
 	var err error
 	s.Repositories = &repositories.Repositories{}
 
@@ -72,7 +72,7 @@ func (s *Server) SetupAndStart(options auxiliaries.Options, ready func(port int)
 	s.Start(options.ServerPort, r, ready)
 }
 
-func (s *Server) initEndpoints(options auxiliaries.Options) *gin.Engine {
+func (s *Server) initEndpoints(options config.Options) *gin.Engine {
 	logger := log.WithField("prefix", "server:initEndpoints")
 	authorizationService := services.NewAuthorizationService(options)
 	userService := services.NewUserService(&authorizationService)
@@ -94,7 +94,7 @@ func (s *Server) initEndpoints(options auxiliaries.Options) *gin.Engine {
 	})
 
 	r.GET("/app-info", func(c *gin.Context) {
-		c.JSON(200, auxiliaries.GetBuildInfo())
+		c.JSON(200, config.GetBuildInfo())
 	})
 
 	r.GET("/user", UserInfoHandler(userService))

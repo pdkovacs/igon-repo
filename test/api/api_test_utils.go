@@ -4,9 +4,9 @@ import (
 	"os"
 	"sync"
 
-	"github.com/pdkovacs/igo-repo/internal/api"
-	"github.com/pdkovacs/igo-repo/internal/auxiliaries"
-	"github.com/pdkovacs/igo-repo/internal/repositories"
+	"github.com/pdkovacs/igo-repo/api"
+	"github.com/pdkovacs/igo-repo/config"
+	"github.com/pdkovacs/igo-repo/repositories"
 	"github.com/pdkovacs/igo-repo/test/api/testdata"
 	"github.com/pdkovacs/igo-repo/test/common"
 	repositories_itests "github.com/pdkovacs/igo-repo/test/repositories"
@@ -16,18 +16,18 @@ import (
 
 type apiTestSuite struct {
 	suite.Suite
-	defaultConfig auxiliaries.Options
+	defaultConfig config.Options
 	server        api.Server
 	testGitRepo   repositories_itests.GitTestRepo
 	client        apiTestClient
 }
 
 func (s *apiTestSuite) SetupSuite() {
-	s.defaultConfig = common.CloneConfig(auxiliaries.GetDefaultConfiguration())
-	s.defaultConfig.PasswordCredentials = []auxiliaries.PasswordCredentials{
+	s.defaultConfig = common.CloneConfig(config.GetDefaultConfiguration())
+	s.defaultConfig.PasswordCredentials = []config.PasswordCredentials{
 		testdata.DefaultCredentials,
 	}
-	s.defaultConfig.AuthenticationType = auxiliaries.BasicAuthentication
+	s.defaultConfig.AuthenticationType = config.BasicAuthentication
 	s.defaultConfig.ServerPort = 0
 
 	s.defaultConfig.DBSchemaName = "itest_api"
@@ -53,7 +53,7 @@ func (s *apiTestSuite) AfterTest(suiteName, testName string) {
 }
 
 // startTestServer starts a test server
-func (s *apiTestSuite) startTestServer(options auxiliaries.Options) {
+func (s *apiTestSuite) startTestServer(options config.Options) {
 	options.ServerPort = 0
 	var wg sync.WaitGroup
 	wg.Add(1)

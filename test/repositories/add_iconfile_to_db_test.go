@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/pdkovacs/igo-repo/internal/domain"
+	"github.com/pdkovacs/igo-repo/domain"
 	itests_common "github.com/pdkovacs/igo-repo/test/common"
 	"github.com/stretchr/testify/suite"
 )

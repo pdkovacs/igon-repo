@@ -5,11 +5,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/pdkovacs/igo-repo/internal/api"
-	"github.com/pdkovacs/igo-repo/internal/domain"
-	"github.com/pdkovacs/igo-repo/internal/repositories"
-	"github.com/pdkovacs/igo-repo/internal/security/authn"
-	"github.com/pdkovacs/igo-repo/internal/security/authr"
+	"github.com/pdkovacs/igo-repo/api"
+	"github.com/pdkovacs/igo-repo/domain"
+	"github.com/pdkovacs/igo-repo/repositories"
+	"github.com/pdkovacs/igo-repo/security/authn"
+	"github.com/pdkovacs/igo-repo/security/authr"
 	"github.com/pdkovacs/igo-repo/test/api/testdata"
 	"github.com/stretchr/testify/suite"
 )

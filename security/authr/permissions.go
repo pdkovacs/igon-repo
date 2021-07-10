@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/pdkovacs/igo-repo/internal/security/authn"
+	"github.com/pdkovacs/igo-repo/security/authn"
 )
 
 type PermissionID string

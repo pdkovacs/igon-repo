@@ -7,9 +7,9 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 
-	"github.com/pdkovacs/igo-repo/internal/domain"
-	"github.com/pdkovacs/igo-repo/internal/repositories"
-	"github.com/pdkovacs/igo-repo/internal/security/authr"
+	"github.com/pdkovacs/igo-repo/domain"
+	"github.com/pdkovacs/igo-repo/repositories"
+	"github.com/pdkovacs/igo-repo/security/authr"
 	log "github.com/sirupsen/logrus"
 )
 

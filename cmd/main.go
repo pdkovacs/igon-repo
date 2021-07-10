@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/pdkovacs/igo-repo/internal/api"
-	"github.com/pdkovacs/igo-repo/internal/auxiliaries"
+	"github.com/pdkovacs/igo-repo/api"
+	"github.com/pdkovacs/igo-repo/config"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -31,13 +31,13 @@ func main() {
 
 	for _, value := range os.Args {
 		if value == "-v" || value == "--version" {
-			fmt.Print(auxiliaries.GetBuildInfoString())
+			fmt.Print(config.GetBuildInfoString())
 			serverWanted = false
 		}
 	}
 
 	if serverWanted {
-		conf, err := auxiliaries.ReadConfiguration(auxiliaries.GetConfigFilePath(), os.Args)
+		conf, err := config.ReadConfiguration(config.GetConfigFilePath(), os.Args)
 		if err != nil {
 			panic(err)
 		}

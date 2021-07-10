@@ -3,7 +3,7 @@ package api
 import (
 	"testing"
 
-	"github.com/pdkovacs/igo-repo/internal/auxiliaries"
+	"github.com/pdkovacs/igo-repo/config"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -17,12 +17,12 @@ func TestBuildinfoAPITestSuite(t *testing.T) {
 }
 
 func (s *buildinfoAPITestSuite) TestMustIncludeVersionInfo() {
-	expected := auxiliaries.GetBuildInfo()
+	expected := config.GetBuildInfo()
 
 	session := s.client.mustLogin(nil)
 	req := testRequest{
 		path:          "/app-info",
-		respBodyProto: &auxiliaries.BuildInfo{},
+		respBodyProto: &config.BuildInfo{},
 	}
 	resp, err := session.get(&req)
 	s.NoError(err)

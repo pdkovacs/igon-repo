@@ -4,12 +4,12 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/pdkovacs/igo-repo/internal/auxiliaries"
+	"github.com/pdkovacs/igo-repo/config"
 )
 
 func makeRequestCredentials(authnScheme string, usernameOrToken string, password string) (requestCredentials, error) {
 	switch authnScheme {
-	case auxiliaries.BasicAuthentication:
+	case config.BasicAuthentication:
 		{
 			username := usernameOrToken
 			auth := username + ":" + password
@@ -18,7 +18,7 @@ func makeRequestCredentials(authnScheme string, usernameOrToken string, password
 				headerValue: "Basic " + base64.StdEncoding.EncodeToString([]byte(auth)),
 			}, nil
 		}
-	case auxiliaries.OIDCAuthentication:
+	case config.OIDCAuthentication:
 		return requestCredentials{}, fmt.Errorf("Unsupported authorization scheme: OIDC")
 	default:
 		return requestCredentials{}, fmt.Errorf("Unexpected authorization scheme: %v", authnScheme)

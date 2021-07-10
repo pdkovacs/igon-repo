@@ -4,8 +4,8 @@ import (
 	"crypto/rand"
 	"encoding/json"
 
-	"github.com/pdkovacs/igo-repo/internal/auxiliaries"
-	"github.com/pdkovacs/igo-repo/internal/domain"
+	"github.com/pdkovacs/igo-repo/config"
+	"github.com/pdkovacs/igo-repo/domain"
 )
 
 func createTestIconfile(format, size string) domain.Iconfile {
@@ -54,12 +54,12 @@ func randomBytes(len int) []byte {
 	return b
 }
 
-func CloneConfig(config auxiliaries.Options) auxiliaries.Options {
-	var clone auxiliaries.Options
+func CloneConfig(conf config.Options) config.Options {
+	var clone config.Options
 	var err error
 
 	var configAsJSON []byte
-	configAsJSON, err = json.Marshal(config)
+	configAsJSON, err = json.Marshal(conf)
 	if err != nil {
 		panic(err)
 	}

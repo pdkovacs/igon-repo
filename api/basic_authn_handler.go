@@ -6,14 +6,14 @@ import (
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"github.com/pdkovacs/igo-repo/internal/auxiliaries"
-	"github.com/pdkovacs/igo-repo/internal/security/authn"
-	"github.com/pdkovacs/igo-repo/internal/services"
+	"github.com/pdkovacs/igo-repo/config"
+	"github.com/pdkovacs/igo-repo/security/authn"
+	"github.com/pdkovacs/igo-repo/services"
 )
 
 // BasicConfig holds the configuration for the Basic authentication scheme
 type BasicConfig struct {
-	PasswordCredentialsList []auxiliaries.PasswordCredentials
+	PasswordCredentialsList []config.PasswordCredentials
 }
 
 func decodeBasicAuthnHeaderValue(headerValue string) (userid string, password string, decodeOK bool) {

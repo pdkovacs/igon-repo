@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/pdkovacs/igo-repo/internal/domain"
+	"github.com/pdkovacs/igo-repo/domain"
 	"github.com/stretchr/testify/suite"
 )
 

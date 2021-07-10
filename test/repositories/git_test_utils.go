@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pdkovacs/igo-repo/internal/auxiliaries"
-	"github.com/pdkovacs/igo-repo/internal/domain"
-	"github.com/pdkovacs/igo-repo/internal/repositories"
+	"github.com/pdkovacs/igo-repo/config"
+	"github.com/pdkovacs/igo-repo/domain"
+	"github.com/pdkovacs/igo-repo/repositories"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -82,7 +82,7 @@ func (repo *GitTestRepo) GetIconfiles() ([]string, error) {
 	}
 
 	fileList := []string{}
-	outputLines := strings.Split(output, auxiliaries.LineBreak)
+	outputLines := strings.Split(output, config.LineBreak)
 	for _, line := range outputLines {
 		trimmedLine := strings.TrimSpace(line)
 		if len(trimmedLine) > 0 {

@@ -5,15 +5,15 @@ import (
 	"os"
 	"path"
 
-	"github.com/pdkovacs/igo-repo/internal/api"
-	"github.com/pdkovacs/igo-repo/internal/auxiliaries"
-	"github.com/pdkovacs/igo-repo/internal/domain"
-	"github.com/pdkovacs/igo-repo/internal/security/authn"
+	"github.com/pdkovacs/igo-repo/api"
+	"github.com/pdkovacs/igo-repo/config"
+	"github.com/pdkovacs/igo-repo/domain"
+	"github.com/pdkovacs/igo-repo/security/authn"
 )
 
 var backendSourceHome = os.Getenv("BACKEND_SOURCE_HOME")
 
-var DefaultCredentials = auxiliaries.PasswordCredentials{Username: "ux", Password: "ux"}
+var DefaultCredentials = config.PasswordCredentials{Username: "ux", Password: "ux"}
 var defaultUserID = authn.LocalDomain.CreateUserID(DefaultCredentials.Username)
 
 func init() {

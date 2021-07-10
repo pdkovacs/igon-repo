@@ -1,9 +1,9 @@
 package services
 
 import (
-	"github.com/pdkovacs/igo-repo/internal/auxiliaries"
-	"github.com/pdkovacs/igo-repo/internal/security/authn"
-	"github.com/pdkovacs/igo-repo/internal/security/authr"
+	"github.com/pdkovacs/igo-repo/config"
+	"github.com/pdkovacs/igo-repo/security/authn"
+	"github.com/pdkovacs/igo-repo/security/authr"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -14,14 +14,14 @@ type AuthorizationService interface {
 	GetPermissionsForGroup(group authr.GroupID) []authr.PermissionID
 }
 
-func NewAuthorizationService(config auxiliaries.Options) authRService {
+func NewAuthorizationService(config config.Options) authRService {
 	return authRService{config.UsersByRoles}
 }
 
 type authRService struct {
 	// TODO: if this data structure is to serve both the local and the OIDC domain,
 	// "usersByGroups" should be more abstract/indirect, like let it be at least a function or something
-	usersByGroups auxiliaries.UsersByRoles
+	usersByGroups config.UsersByRoles
 }
 
 func (as *authRService) GetGroupsForUser(userID authn.UserID) []authr.GroupID {

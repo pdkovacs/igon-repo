@@ -4,16 +4,16 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/pdkovacs/igo-repo/internal/auxiliaries"
-	"github.com/pdkovacs/igo-repo/internal/domain"
-	"github.com/pdkovacs/igo-repo/internal/repositories"
+	"github.com/pdkovacs/igo-repo/config"
+	"github.com/pdkovacs/igo-repo/domain"
+	"github.com/pdkovacs/igo-repo/repositories"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"
 )
 
 type DBTestSuite struct {
 	suite.Suite
-	config auxiliaries.Options
+	config config.Options
 	dbRepo *repositories.DatabaseRepository
 }
 
@@ -42,7 +42,7 @@ func DeleteDBData(db *sql.DB) error {
 func (s *DBTestSuite) NewTestDBRepo() {
 	var logger = log.WithField("prefix", "make-sure-has-uptodate-db-schema-with-no-data")
 	var err error
-	config := auxiliaries.GetDefaultConfiguration()
+	config := config.GetDefaultConfiguration()
 	s.dbRepo, err = repositories.InitDBRepo(config)
 	if err != nil {
 		panic(err)

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
-	"github.com/pdkovacs/igo-repo/internal/auxiliaries"
+	"github.com/pdkovacs/igo-repo/config"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -33,7 +33,7 @@ func checkDefined(value string, name string) {
 	}
 }
 
-func CreateConnectionProperties(options auxiliaries.Options) ConnectionProperties {
+func CreateConnectionProperties(options config.Options) ConnectionProperties {
 	checkDefined(options.DBHost, "DBHost")
 	checkDefined(options.DBName, "DBName")
 	if options.DBPort == 0 {
@@ -161,7 +161,7 @@ func maybeTransient(err error) bool {
 	return false
 }
 
-func InitDBRepo(configuration auxiliaries.Options) (*DatabaseRepository, error) {
+func InitDBRepo(configuration config.Options) (*DatabaseRepository, error) {
 	logger := log.WithField("prefix", "repositories.InitDBRepo")
 	connProps := CreateConnectionProperties(configuration)
 	dbRepo, errNewDB := NewDBRepo(connProps)

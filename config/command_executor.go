@@ -1,4 +1,4 @@
-package auxiliaries
+package config
 
 import (
 	"fmt"
@@ -30,7 +30,7 @@ func (e ExecCmdParams) String() string {
 }
 
 func ExecuteCommand(params ExecCmdParams) (string, error) {
-	logger := log.WithField("prefix", "auxiliaries.ExecuteCommand")
+	logger := log.WithField("prefix", "config.ExecuteCommand")
 	logger.Infof("Starting: %v...", params)
 
 	cmd := exec.Command(params.Name, params.Args...)

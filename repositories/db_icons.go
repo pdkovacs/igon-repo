@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/jackc/pgx"
-	"github.com/pdkovacs/igo-repo/internal/domain"
+	"github.com/pdkovacs/igo-repo/domain"
 	log "github.com/sirupsen/logrus"
 )
 

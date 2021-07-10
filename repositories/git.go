@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pdkovacs/igo-repo/internal/auxiliaries"
-	"github.com/pdkovacs/igo-repo/internal/domain"
-	"github.com/pdkovacs/igo-repo/internal/security/authn"
+	"github.com/pdkovacs/igo-repo/config"
+	"github.com/pdkovacs/igo-repo/domain"
+	"github.com/pdkovacs/igo-repo/security/authn"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -61,10 +61,10 @@ func (g GitRepository) GetPathToIconfileInRepos(iconName string, iconfile domain
 }
 
 func (g GitRepository) ExecuteGitCommand(args []string) (string, error) {
-	return auxiliaries.ExecuteCommand(auxiliaries.ExecCmdParams{
+	return config.ExecuteCommand(config.ExecCmdParams{
 		Name: "git",
 		Args: args,
-		Opts: &auxiliaries.CmdOpts{Cwd: g.Location},
+		Opts: &config.CmdOpts{Cwd: g.Location},
 	})
 }
 
@@ -182,7 +182,7 @@ func (g GitRepository) AddIconfile(iconName string, iconfile domain.Iconfile, mo
 	}
 
 	var err error
-	auxiliaries.Enqueue(func() {
+	config.Enqueue(func() {
 		err = g.createIconfileJob(iconfileOperation, jobTextProvider, modifiedBy)
 	})
 
@@ -228,7 +228,7 @@ func (s *GitRepository) DeleteIcon(iconDesc domain.IconDescriptor, modifiedBy au
 	}
 
 	var err error
-	auxiliaries.Enqueue(func() {
+	config.Enqueue(func() {
 		err = s.createIconfileJob(iconfileOperation, jobTextProvider, modifiedBy.String())
 	})
 
@@ -252,7 +252,7 @@ func (s *GitRepository) DeleteIconfile(iconName string, iconfileDesc domain.Icon
 	}
 
 	var err error
-	auxiliaries.Enqueue(func() {
+	config.Enqueue(func() {
 		err = s.createIconfileJob(iconfileOperation, jobTextProvider, modifiedBy.String())
 	})
 
@@ -266,16 +266,16 @@ func (s *GitRepository) createInitializeGitRepo() error {
 	var err error
 	var out string
 
-	var cmds []auxiliaries.ExecCmdParams = []auxiliaries.ExecCmdParams{
+	var cmds []config.ExecCmdParams = []config.ExecCmdParams{
 		{Name: "rm", Args: []string{"-rf", s.Location}, Opts: nil},
 		{Name: "mkdir", Args: []string{"-p", s.Location}, Opts: nil},
-		{Name: "git", Args: []string{"init"}, Opts: &auxiliaries.CmdOpts{Cwd: s.Location}},
-		{Name: "git", Args: []string{"config", "user.name", "Icon Repo Server"}, Opts: &auxiliaries.CmdOpts{Cwd: s.Location}},
-		{Name: "git", Args: []string{"config", "user.email", "IconRepoServer@UIToolBox"}, Opts: &auxiliaries.CmdOpts{Cwd: s.Location}},
+		{Name: "git", Args: []string{"init"}, Opts: &config.CmdOpts{Cwd: s.Location}},
+		{Name: "git", Args: []string{"config", "user.name", "Icon Repo Server"}, Opts: &config.CmdOpts{Cwd: s.Location}},
+		{Name: "git", Args: []string{"config", "user.email", "IconRepoServer@UIToolBox"}, Opts: &config.CmdOpts{Cwd: s.Location}},
 	}
 
 	for _, cmd := range cmds {
-		out, err = auxiliaries.ExecuteCommand(cmd)
+		out, err = config.ExecuteCommand(cmd)
 		println(out)
 		if err != nil {
 			return fmt.Errorf("failed to create git repo at %s: %w", s.Location, err)
@@ -287,8 +287,8 @@ func (s *GitRepository) createInitializeGitRepo() error {
 
 func (s *GitRepository) test() bool {
 	if GitRepoLocationExists(s.Location) {
-		testCommand := auxiliaries.ExecCmdParams{Name: "git", Args: []string{"init"}, Opts: &auxiliaries.CmdOpts{Cwd: s.Location}}
-		outOrErr, err := auxiliaries.ExecuteCommand(testCommand)
+		testCommand := config.ExecCmdParams{Name: "git", Args: []string{"init"}, Opts: &config.CmdOpts{Cwd: s.Location}}
+		outOrErr, err := config.ExecuteCommand(testCommand)
 		if err != nil {
 			if strings.Contains(outOrErr, "not a git repository") {
 				return false

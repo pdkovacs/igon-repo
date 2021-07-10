@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 
-	"github.com/pdkovacs/igo-repo/internal/auxiliaries"
-	"github.com/pdkovacs/igo-repo/internal/domain"
+	"github.com/pdkovacs/igo-repo/config"
+	"github.com/pdkovacs/igo-repo/domain"
 	"github.com/pdkovacs/igo-repo/test/api/testdata"
 	log "github.com/sirupsen/logrus"
 )
@@ -45,7 +45,7 @@ type testResponse struct {
 	body       interface{}
 }
 
-func (c *apiTestClient) makeRequestCredentials(pwCreds auxiliaries.PasswordCredentials) requestCredentials {
+func (c *apiTestClient) makeRequestCredentials(pwCreds config.PasswordCredentials) requestCredentials {
 	var username, password string
 	if len(pwCreds.Username) == 0 {
 		username = testdata.DefaultCredentials.Username
@@ -55,7 +55,7 @@ func (c *apiTestClient) makeRequestCredentials(pwCreds auxiliaries.PasswordCrede
 		password = pwCreds.Password
 	}
 
-	reqCr, err := makeRequestCredentials(auxiliaries.BasicAuthentication, username, password)
+	reqCr, err := makeRequestCredentials(config.BasicAuthentication, username, password)
 	if err != nil {
 		panic(err)
 	}

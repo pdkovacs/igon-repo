@@ -1,3 +1,3 @@
-package auxiliaries
+package config
 
 const LineBreak = "\r\n"
