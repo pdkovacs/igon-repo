@@ -46,7 +46,6 @@ func (s *iconTestSuite) assertAllFilesInDBAreInGitAsWell() []string {
 			fileContentInGit, readGitFileErr := os.ReadFile(pathToFile)
 			s.NoError(readGitFileErr)
 
-			// TODO: fileContentInDB and fileContentInGit must equal
 			s.True(bytes.Equal(fileContentInDB, fileContentInGit))
 
 			checkedGitFiles = append(checkedGitFiles, s.testGitRepo.GetPathToIconfileInRepos(iconDesc.Name, iconfileDesc))
