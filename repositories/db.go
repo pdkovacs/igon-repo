@@ -8,7 +8,6 @@ import (
 	"syscall"
 	"time"
 
-	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/pdkovacs/igo-repo/config"
 	log "github.com/sirupsen/logrus"
 )

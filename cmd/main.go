@@ -2,8 +2,11 @@ package main
 
 import (
 	"fmt"
+	_ "image/jpeg"
+	_ "image/png"
 	"os"
 
+	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/pdkovacs/igo-repo/api"
 	"github.com/pdkovacs/igo-repo/config"
 	log "github.com/sirupsen/logrus"

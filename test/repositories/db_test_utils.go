@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/pdkovacs/igo-repo/config"
 	"github.com/pdkovacs/igo-repo/domain"
 	"github.com/pdkovacs/igo-repo/repositories"

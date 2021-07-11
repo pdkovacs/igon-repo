@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"image"
-	_ "image/jpeg"
-	_ "image/png"
 
 	"github.com/pdkovacs/igo-repo/domain"
 	"github.com/pdkovacs/igo-repo/repositories"

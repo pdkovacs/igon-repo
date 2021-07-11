@@ -1,9 +1,12 @@
 package api
 
 import (
+	_ "image/jpeg"
+	_ "image/png"
 	"os"
 	"sync"
 
+	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/pdkovacs/igo-repo/api"
 	"github.com/pdkovacs/igo-repo/config"
 	"github.com/pdkovacs/igo-repo/repositories"
