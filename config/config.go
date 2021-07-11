@@ -30,7 +30,7 @@ type Options struct {
 	ServerHostname              string         `json:"serverHostname" env:"SERVER_HOSTNAME" long:"server-hostname" short:"h" default:"localhost" description:"Server hostname"`
 	ServerPort                  int            `json:"serverPort" env:"SERVER_PORT" long:"server-port" short:"p" default:"8080" description:"Server port"`
 	ServerURLContext            string         `json:"serverUrlContext" env:"SERVER_URL_CONTEXT" long:"server-url-context" short:"c" default:"" description:"Server url context"`
-	AppDescription              string         `json:"appDescription" env:"APP_DESCRIPTION" long:"app-description" short:"" default:"d" description:"Application description"`
+	AppDescription              string         `json:"appDescription" env:"APP_DESCRIPTION" long:"app-description" short:"" default:"" description:"Application description"`
 	PathToStaticFiles           string         `json:"pathToStaticFiles" env:"PATH_TO_STATIC_FILES" long:"path-to-static-files" short:"f" default:"" description:"Path to static files"`
 	IconDataLocationGit         string         `json:"iconDataLocationGit" env:"ICON_DATA_LOCATION_GIT" long:"icon-data-location-git" short:"g" default:"" description:"Icon data location git"`
 	IconDataCreateNew           string         `json:"iconDataCreateNew" env:"ICON_DATA_CREATE_NEW" long:"icon-data-create-new" short:"n" default:"never" description:"Icon data create new"`

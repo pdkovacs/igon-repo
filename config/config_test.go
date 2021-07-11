@@ -109,11 +109,12 @@ func (s *readConfigurationTestSuite) TestFailOnMissingConfigFile() {
 	s.True(errors.Is(err, fs.ErrNotExist))
 }
 
-// TODO: "mergo" doesn't overwrite non-empty values
+// TODO_MAYBE: "mergo" doesn't overwrite non-empty values
 // The simplest fix seems to be handling defaults outside github.com/jessevdk/go-flags as a third step:
 // 1. go-flags is configured to use empty defaults
 // 2. config.json is overwritten with the go-flags output
 // 3. empty-defaults are overwritten with non-empty defaults (where to store the non-empties???)
+// Currently, only simple configuration setting values have default, which are easy to override from the CL or via env var
 func (s *readConfigurationTestSuite) /* Test */ ConfigFileSettingsOverridesDefaults() {
 	dbHostInFile := "tohuvabohu"
 
