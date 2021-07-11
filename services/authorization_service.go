@@ -25,10 +25,6 @@ type authRService struct {
 }
 
 func (as *authRService) GetGroupsForUser(userID authn.UserID) []authr.GroupID {
-	if userID.DomainID != authn.LocalDomain.GetDomainID() {
-		log.Warnf("Domain not supported: %v", &userID.DomainID)
-		return nil
-	}
 	return getLocalGroupsFor(userID, as.usersByGroups)
 }
 

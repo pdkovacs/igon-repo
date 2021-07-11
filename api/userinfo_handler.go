@@ -10,7 +10,6 @@ import (
 
 func UserInfoHandler(userService services.UserService) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		domainId := c.Query("domainId")
 		userId := c.Query("userId")
 		logger := log.WithField("prefix", "UserInfoHandler")
 		session := sessions.Default(c)
@@ -21,18 +20,11 @@ func UserInfoHandler(userService services.UserService) func(c *gin.Context) {
 			logger.Errorf("failed to cast user session of type %T", user)
 		}
 
-		if domainId == "" {
-			domainId = usession.UserInfo.UserId.DomainID
-		} else if domainId != usession.UserInfo.UserId.DomainID {
-			c.JSON(400, "Cross domain user info queries not yet supported")
-			return
-		}
-
 		var userInfo services.UserInfo
 		if userId == "" {
 			userInfo = usession.UserInfo
 		} else {
-			userInfo = userService.GetUserInfo(authn.UserID{IDInDomain: userId, DomainID: domainId})
+			userInfo = userService.GetUserInfo(authn.UserID{IDInDomain: userId})
 		}
 
 		logger.Debugf("User info: %v", userInfo)

@@ -14,7 +14,6 @@ func (ld localDomain) GetDomainID() string {
 
 func (ld localDomain) CreateUserID(idInDomain string) UserID {
 	return UserID{
-		DomainID:   ld.GetDomainID(),
 		IDInDomain: idInDomain,
 	}
 }
