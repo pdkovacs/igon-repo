@@ -3,8 +3,8 @@ package api
 import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"github.com/pdkovacs/igo-repo/security/authn"
-	"github.com/pdkovacs/igo-repo/services"
+	"github.com/pdkovacs/igo-repo/app/security/authn"
+	"github.com/pdkovacs/igo-repo/app/services"
 	log "github.com/sirupsen/logrus"
 )
 

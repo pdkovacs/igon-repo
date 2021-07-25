@@ -1,8 +1,8 @@
 package services
 
 import (
-	"github.com/pdkovacs/igo-repo/security/authn"
-	"github.com/pdkovacs/igo-repo/security/authr"
+	"github.com/pdkovacs/igo-repo/app/security/authn"
+	"github.com/pdkovacs/igo-repo/app/security/authr"
 )
 
 type UserInfo struct {

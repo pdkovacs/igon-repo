@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
+	"github.com/pdkovacs/igo-repo/app/domain"
 	"github.com/pdkovacs/igo-repo/config"
-	"github.com/pdkovacs/igo-repo/domain"
 	"github.com/pdkovacs/igo-repo/repositories"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"

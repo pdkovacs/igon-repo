@@ -4,8 +4,8 @@ import (
 	"crypto/rand"
 	"encoding/json"
 
+	"github.com/pdkovacs/igo-repo/app/domain"
 	"github.com/pdkovacs/igo-repo/config"
-	"github.com/pdkovacs/igo-repo/domain"
 )
 
 func createTestIconfile(format, size string) domain.Iconfile {

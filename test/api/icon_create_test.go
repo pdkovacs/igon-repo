@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	"github.com/pdkovacs/igo-repo/api"
-	"github.com/pdkovacs/igo-repo/domain"
+	"github.com/pdkovacs/igo-repo/app/domain"
+	"github.com/pdkovacs/igo-repo/app/security/authn"
+	"github.com/pdkovacs/igo-repo/app/security/authr"
 	"github.com/pdkovacs/igo-repo/repositories"
-	"github.com/pdkovacs/igo-repo/security/authn"
-	"github.com/pdkovacs/igo-repo/security/authr"
 	"github.com/pdkovacs/igo-repo/test/api/testdata"
 	"github.com/stretchr/testify/suite"
 )

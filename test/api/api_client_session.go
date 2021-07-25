@@ -10,9 +10,9 @@ import (
 	"strings"
 
 	"github.com/pdkovacs/igo-repo/api"
+	"github.com/pdkovacs/igo-repo/app/domain"
+	"github.com/pdkovacs/igo-repo/app/security/authr"
 	"github.com/pdkovacs/igo-repo/config"
-	"github.com/pdkovacs/igo-repo/domain"
-	"github.com/pdkovacs/igo-repo/security/authr"
 	"github.com/pdkovacs/igo-repo/test/api/testdata"
 )
 

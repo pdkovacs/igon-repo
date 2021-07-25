@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/pdkovacs/igo-repo/api"
-	"github.com/pdkovacs/igo-repo/domain"
+	"github.com/pdkovacs/igo-repo/app/domain"
 )
 
 type iconTestSuite struct {

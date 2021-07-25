@@ -10,9 +10,9 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/memstore"
 	"github.com/gin-gonic/gin"
+	"github.com/pdkovacs/igo-repo/app/services"
 	"github.com/pdkovacs/igo-repo/config"
 	"github.com/pdkovacs/igo-repo/repositories"
-	"github.com/pdkovacs/igo-repo/services"
 	"github.com/pdkovacs/igo-repo/web"
 	log "github.com/sirupsen/logrus"
 )

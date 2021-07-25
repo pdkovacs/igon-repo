@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"image"
 
-	"github.com/pdkovacs/igo-repo/domain"
+	"github.com/pdkovacs/igo-repo/app/domain"
+	"github.com/pdkovacs/igo-repo/app/security/authr"
 	"github.com/pdkovacs/igo-repo/repositories"
-	"github.com/pdkovacs/igo-repo/security/authr"
 	log "github.com/sirupsen/logrus"
 )
 

@@ -6,9 +6,9 @@ import (
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/pdkovacs/igo-repo/app/security/authn"
+	"github.com/pdkovacs/igo-repo/app/services"
 	"github.com/pdkovacs/igo-repo/config"
-	"github.com/pdkovacs/igo-repo/security/authn"
-	"github.com/pdkovacs/igo-repo/services"
 )
 
 // BasicConfig holds the configuration for the Basic authentication scheme

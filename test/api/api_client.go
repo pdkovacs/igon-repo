@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 
+	"github.com/pdkovacs/igo-repo/app/domain"
 	"github.com/pdkovacs/igo-repo/config"
-	"github.com/pdkovacs/igo-repo/domain"
 	"github.com/pdkovacs/igo-repo/test/api/testdata"
 	log "github.com/sirupsen/logrus"
 )
