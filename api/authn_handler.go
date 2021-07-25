@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/pdkovacs/igo-repo/app/security/authr"
 	"github.com/pdkovacs/igo-repo/app/services"
 	log "github.com/sirupsen/logrus"
 )
@@ -15,7 +16,7 @@ type OIDCConfig struct{}
 const UserKey = "igo-user"
 
 type SessionData struct {
-	UserInfo services.UserInfo
+	UserInfo authr.UserInfo
 }
 
 func MustGetUserSession(c *gin.Context) SessionData {

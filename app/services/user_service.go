@@ -5,13 +5,6 @@ import (
 	"github.com/pdkovacs/igo-repo/app/security/authr"
 )
 
-type UserInfo struct {
-	UserId      authn.UserID         `json:"userID"`
-	Groups      []authr.GroupID      `json:"groups"`
-	Permissions []authr.PermissionID `json:"permissions"`
-	DisplayName string               `json:"displayName"`
-}
-
 func NewUserService(authorizationService AuthorizationService) UserService {
 
 	return UserService{
@@ -37,9 +30,9 @@ func (us *UserService) getDisplayName(userId authn.UserID) string {
 	return userId.String()
 }
 
-func (us *UserService) GetUserInfo(userId authn.UserID) UserInfo {
+func (us *UserService) GetUserInfo(userId authn.UserID) authr.UserInfo {
 	memberIn := us.authorizationService.GetGroupsForUser(userId)
-	return UserInfo{
+	return authr.UserInfo{
 		UserId:      userId,
 		Groups:      memberIn,
 		Permissions: us.getPermissionsForUser(userId, memberIn),

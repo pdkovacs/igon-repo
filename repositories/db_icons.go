@@ -225,7 +225,7 @@ func insertIconfile(tx *sql.Tx, iconName string, iconfile domain.Iconfile, modif
 	return nil
 }
 
-func (repo DatabaseRepository) GetIconFile(iconName, format, iconSize string) ([]byte, error) {
+func (repo DatabaseRepository) GetIconFile(iconName string, iconfileDesc domain.IconfileDescriptor) ([]byte, error) {
 	const getIconfileSQL = "SELECT content FROM icon, icon_file " +
 		"WHERE icon_id = icon.id AND " +
 		"file_format = $2 AND " +
@@ -234,14 +234,10 @@ func (repo DatabaseRepository) GetIconFile(iconName, format, iconSize string) ([
 
 	var err error
 	var content = []byte{}
-	err = repo.ConnectionPool.QueryRow(getIconfileSQL, iconName, format, iconSize).Scan(&content)
+	err = repo.ConnectionPool.QueryRow(getIconfileSQL, iconName, iconfileDesc.Format, iconfileDesc.Size).Scan(&content)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return content, fmt.Errorf("iconfile %v for icon %s not found %w",
-				domain.IconfileDescriptor{
-					Format: format,
-					Size:   iconSize,
-				}, iconName, domain.ErrIconfileNotFound)
+			return content, fmt.Errorf("iconfile %v for icon %s not found %w", iconfileDesc, iconName, domain.ErrIconfileNotFound)
 		}
 		return []byte{}, fmt.Errorf("failed to get iconfile %v: %w", iconName, err)
 	}

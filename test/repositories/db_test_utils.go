@@ -93,7 +93,7 @@ func (s *DBTestSuite) equalIconAttributes(icon1 domain.Icon, icon2 domain.IconDe
 }
 
 func (s *DBTestSuite) getIconfile(iconName string, iconfile domain.Iconfile) ([]byte, error) {
-	return s.dbRepo.GetIconFile(iconName, iconfile.Format, iconfile.Size)
+	return s.dbRepo.GetIconFile(iconName, iconfile.IconfileDescriptor)
 }
 
 func (s *DBTestSuite) getIconfileChecked(iconName string, iconfile domain.Iconfile) {

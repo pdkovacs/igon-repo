@@ -11,6 +11,7 @@ test-verbose: build
 run:
 	go run cmd/main.go
 build:
+	cd web; npm i; npm run dist
 	go build -ldflags "\
 		-X 'github.com/pdkovacs/igo-repo/build.version=0.0.1' \
 		-X 'github.com/pdkovacs/igo-repo/build.user=$$(id -u -n)' \

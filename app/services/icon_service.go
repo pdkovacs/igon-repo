@@ -31,7 +31,7 @@ func (server *IconService) DescribeIcon(iconName string) (domain.IconDescriptor,
 	return icon, err
 }
 
-func (service *IconService) CreateIcon(iconName string, initialIconfileContent []byte, modifiedBy UserInfo) (domain.Icon, error) {
+func (service *IconService) CreateIcon(iconName string, initialIconfileContent []byte, modifiedBy authr.UserInfo) (domain.Icon, error) {
 	logger := log.WithField("prefix", "CreateIcon")
 	err := authr.HasRequiredPermissions(modifiedBy.UserId, modifiedBy.Permissions, []authr.PermissionID{
 		authr.CREATE_ICON,
@@ -76,7 +76,7 @@ func (service *IconService) CreateIcon(iconName string, initialIconfileContent [
 }
 
 func (service *IconService) GetIconfile(iconName string, iconfile domain.IconfileDescriptor) (domain.Iconfile, error) {
-	content, err := service.Repositories.DB.GetIconFile(iconName, iconfile.Format, iconfile.Size)
+	content, err := service.Repositories.DB.GetIconFile(iconName, iconfile)
 	if err != nil {
 		return domain.Iconfile{}, fmt.Errorf("failed to retrieve iconfile %v: %w", iconfile, err)
 	}
@@ -86,7 +86,7 @@ func (service *IconService) GetIconfile(iconName string, iconfile domain.Iconfil
 	}, nil
 }
 
-func (service *IconService) AddIconfile(iconName string, initialIconfileContent []byte, modifiedBy UserInfo) (domain.IconfileDescriptor, error) {
+func (service *IconService) AddIconfile(iconName string, initialIconfileContent []byte, modifiedBy authr.UserInfo) (domain.IconfileDescriptor, error) {
 	logger := log.WithField("prefix", "AddIconfile")
 	err := authr.HasRequiredPermissions(modifiedBy.UserId, modifiedBy.Permissions, []authr.PermissionID{
 		authr.UPDATE_ICON,
@@ -122,7 +122,7 @@ func (service *IconService) AddIconfile(iconName string, initialIconfileContent 
 	return iconfile.IconfileDescriptor, nil
 }
 
-func (service *IconService) DeleteIcon(iconName string, modifiedBy UserInfo) error {
+func (service *IconService) DeleteIcon(iconName string, modifiedBy authr.UserInfo) error {
 	err := authr.HasRequiredPermissions(modifiedBy.UserId, modifiedBy.Permissions, []authr.PermissionID{
 		authr.REMOVE_ICON,
 	})
@@ -139,7 +139,7 @@ func (service *IconService) DeleteIcon(iconName string, modifiedBy UserInfo) err
 	return errDeleteIcon
 }
 
-func (service *IconService) DeleteIconfile(iconName string, iconfileDescriptor domain.IconfileDescriptor, modifiedBy UserInfo) error {
+func (service *IconService) DeleteIconfile(iconName string, iconfileDescriptor domain.IconfileDescriptor, modifiedBy authr.UserInfo) error {
 	err := authr.HasRequiredPermissions(modifiedBy.UserId, modifiedBy.Permissions, []authr.PermissionID{
 		authr.REMOVE_ICONFILE,
 	})
@@ -156,7 +156,7 @@ func (service *IconService) GetTags() ([]string, error) {
 	return service.Repositories.DB.GetExistingTags()
 }
 
-func (service *IconService) AddTag(iconName string, tag string, userInfo UserInfo) error {
+func (service *IconService) AddTag(iconName string, tag string, userInfo authr.UserInfo) error {
 	permErr := authr.HasRequiredPermissions(userInfo.UserId, userInfo.Permissions, []authr.PermissionID{authr.ADD_TAG})
 	if permErr != nil {
 		return authr.ErrPermission
@@ -168,7 +168,7 @@ func (service *IconService) AddTag(iconName string, tag string, userInfo UserInf
 	return nil
 }
 
-func (service *IconService) RemoveTag(iconName string, tag string, userInfo UserInfo) error {
+func (service *IconService) RemoveTag(iconName string, tag string, userInfo authr.UserInfo) error {
 	permErr := authr.HasRequiredPermissions(userInfo.UserId, userInfo.Permissions, []authr.PermissionID{authr.REMOVE_TAG})
 	if permErr != nil {
 		return authr.ErrPermission

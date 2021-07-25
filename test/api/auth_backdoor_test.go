@@ -5,7 +5,6 @@ import (
 
 	"github.com/pdkovacs/igo-repo/app/security/authn"
 	"github.com/pdkovacs/igo-repo/app/security/authr"
-	"github.com/pdkovacs/igo-repo/app/services"
 	"github.com/pdkovacs/igo-repo/test/api/testdata"
 	"github.com/pdkovacs/igo-repo/test/common"
 	"github.com/stretchr/testify/suite"
@@ -67,7 +66,7 @@ func (s *authBackDoorTestSuite) TestBackDoorShouldBeAvailableWhenEnabled() {
 func (s *authBackDoorTestSuite) TestBackDoorShouldAllowToSetPrivileges() {
 	requestedAuthorization := []authr.PermissionID{"galagonya", "ide-oda"}
 	userID := authn.LocalDomain.CreateUserID(testdata.DefaultCredentials.Username)
-	expectedUserInfo := services.UserInfo{
+	expectedUserInfo := authr.UserInfo{
 		UserId:      userID,
 		Permissions: requestedAuthorization,
 		DisplayName: userID.String(),
@@ -81,7 +80,7 @@ func (s *authBackDoorTestSuite) TestBackDoorShouldAllowToSetPrivileges() {
 
 	resp, errUserInfo := session.get(&testRequest{
 		path:          authenticationBackdoorPath,
-		respBodyProto: &services.UserInfo{},
+		respBodyProto: &authr.UserInfo{},
 	})
 	s.NoError(errUserInfo)
 	s.Equal(200, resp.statusCode)

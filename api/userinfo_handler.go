@@ -4,6 +4,7 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/pdkovacs/igo-repo/app/security/authn"
+	"github.com/pdkovacs/igo-repo/app/security/authr"
 	"github.com/pdkovacs/igo-repo/app/services"
 	log "github.com/sirupsen/logrus"
 )
@@ -20,7 +21,7 @@ func UserInfoHandler(userService services.UserService) func(c *gin.Context) {
 			logger.Errorf("failed to cast user session of type %T", user)
 		}
 
-		var userInfo services.UserInfo
+		var userInfo authr.UserInfo
 		if userId == "" {
 			userInfo = usession.UserInfo
 		} else {
