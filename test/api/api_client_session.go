@@ -9,10 +9,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/pdkovacs/igo-repo/api"
 	"github.com/pdkovacs/igo-repo/app/domain"
 	"github.com/pdkovacs/igo-repo/app/security/authr"
 	"github.com/pdkovacs/igo-repo/config"
+	httpadapter "github.com/pdkovacs/igo-repo/http"
 	"github.com/pdkovacs/igo-repo/test/api/testdata"
 )
 
@@ -146,26 +146,26 @@ func (session *apiTestSession) mustAddTestData(testData []domain.Icon) {
 	}
 }
 
-func (session *apiTestSession) describeAllIcons() ([]api.ResponseIcon, error) {
+func (session *apiTestSession) describeAllIcons() ([]httpadapter.ResponseIcon, error) {
 	resp, err := session.get(&testRequest{
 		path:          "/icon",
 		jar:           session.cjar,
-		respBodyProto: &[]api.ResponseIcon{},
+		respBodyProto: &[]httpadapter.ResponseIcon{},
 	})
 	if err != nil {
-		return []api.ResponseIcon{}, fmt.Errorf("GET /icon failed: %w", err)
+		return []httpadapter.ResponseIcon{}, fmt.Errorf("GET /icon failed: %w", err)
 	}
 	if resp.statusCode != 200 {
-		return []api.ResponseIcon{}, fmt.Errorf("%w: got %d", errUnexpecteHTTPStatus, resp.statusCode)
+		return []httpadapter.ResponseIcon{}, fmt.Errorf("%w: got %d", errUnexpecteHTTPStatus, resp.statusCode)
 	}
-	icons, ok := resp.body.(*[]api.ResponseIcon)
+	icons, ok := resp.body.(*[]httpadapter.ResponseIcon)
 	if !ok {
-		return []api.ResponseIcon{}, fmt.Errorf("failed to cast %T as []api.ResponseIcon", resp.body)
+		return []httpadapter.ResponseIcon{}, fmt.Errorf("failed to cast %T as []httpadapter.ResponseIcon", resp.body)
 	}
 	return *icons, err
 }
 
-func (session *apiTestSession) mustDescribeAllIcons() []api.ResponseIcon {
+func (session *apiTestSession) mustDescribeAllIcons() []httpadapter.ResponseIcon {
 	respIcons, err := session.describeAllIcons()
 	if err != nil {
 		panic(err)
@@ -173,24 +173,24 @@ func (session *apiTestSession) mustDescribeAllIcons() []api.ResponseIcon {
 	return respIcons
 }
 
-func (session *apiTestSession) describeIcon(iconName string) (int, api.ResponseIcon, error) {
+func (session *apiTestSession) describeIcon(iconName string) (int, httpadapter.ResponseIcon, error) {
 	resp, err := session.get(&testRequest{
 		path:          fmt.Sprintf("/icon/%s", iconName),
 		jar:           session.cjar,
-		respBodyProto: &api.ResponseIcon{},
+		respBodyProto: &httpadapter.ResponseIcon{},
 	})
 	if err != nil {
-		return resp.statusCode, api.ResponseIcon{}, fmt.Errorf("GET /icon/%s failed: %w", iconName, err)
+		return resp.statusCode, httpadapter.ResponseIcon{}, fmt.Errorf("GET /icon/%s failed: %w", iconName, err)
 	}
-	icon, ok := resp.body.(*api.ResponseIcon)
+	icon, ok := resp.body.(*httpadapter.ResponseIcon)
 	if !ok {
-		return resp.statusCode, api.ResponseIcon{}, fmt.Errorf("failed to cast %T as api.ResponseIcon", resp.body)
+		return resp.statusCode, httpadapter.ResponseIcon{}, fmt.Errorf("failed to cast %T as httpadapter.ResponseIcon", resp.body)
 	}
 	return resp.statusCode, *icon, err
 }
 
 // https://stackoverflow.com/questions/20205796/post-data-using-the-content-type-multipart-form-data
-func (session *apiTestSession) createIcon(iconName string, initialIconfile []byte) (int, api.ResponseIcon, error) {
+func (session *apiTestSession) createIcon(iconName string, initialIconfile []byte) (int, httpadapter.ResponseIcon, error) {
 	var err error
 	var resp testResponse
 
@@ -222,19 +222,19 @@ func (session *apiTestSession) createIcon(iconName string, initialIconfile []byt
 		jar:           session.cjar,
 		headers:       headers,
 		body:          b.Bytes(),
-		respBodyProto: &api.ResponseIcon{},
+		respBodyProto: &httpadapter.ResponseIcon{},
 	})
 	if err != nil {
-		return resp.statusCode, api.ResponseIcon{}, err
+		return resp.statusCode, httpadapter.ResponseIcon{}, err
 	}
 
 	statusCode := resp.statusCode
 
-	if respIconfile, ok := resp.body.(*api.ResponseIcon); ok {
+	if respIconfile, ok := resp.body.(*httpadapter.ResponseIcon); ok {
 		return statusCode, *respIconfile, err
 	}
 
-	return statusCode, api.ResponseIcon{}, fmt.Errorf("failed to cast %T to api.ResponseIcon", resp.body)
+	return statusCode, httpadapter.ResponseIcon{}, fmt.Errorf("failed to cast %T to httpadapter.ResponseIcon", resp.body)
 }
 
 func (session *apiTestSession) deleteIcon(iconName string) (int, error) {
@@ -266,7 +266,7 @@ func (s *apiTestSession) GetIconfile(iconName string, iconfileDescriptor domain.
 	return iconfile, fmt.Errorf("failed to cast the reply %T to []byte while retrieving iconfile %v of %s", resp.body, iconfileDescriptor, iconName)
 }
 
-func (session *apiTestSession) addIconfile(iconName string, iconfile domain.Iconfile) (int, api.IconPath, error) {
+func (session *apiTestSession) addIconfile(iconName string, iconfile domain.Iconfile) (int, httpadapter.IconPath, error) {
 	var err error
 	var resp testResponse
 
@@ -298,22 +298,22 @@ func (session *apiTestSession) addIconfile(iconName string, iconfile domain.Icon
 		jar:           session.cjar,
 		headers:       headers,
 		body:          b.Bytes(),
-		respBodyProto: &api.IconPath{},
+		respBodyProto: &httpadapter.IconPath{},
 	})
 	if err != nil {
-		return resp.statusCode, api.IconPath{}, err
+		return resp.statusCode, httpadapter.IconPath{}, err
 	}
 
-	if respIconfile, ok := resp.body.(*api.IconPath); ok {
+	if respIconfile, ok := resp.body.(*httpadapter.IconPath); ok {
 		return resp.statusCode, *respIconfile, nil
 	}
 
-	return resp.statusCode, api.IconPath{}, fmt.Errorf("failed to cast %T to domain.Icon", resp.body)
+	return resp.statusCode, httpadapter.IconPath{}, fmt.Errorf("failed to cast %T to domain.Icon", resp.body)
 }
 
 func (session *apiTestSession) deleteIconfile(iconName string, iconfileDescriptor domain.IconfileDescriptor) (int, error) {
 	resp, err := session.sendRequest("DELETE", &testRequest{
-		path: api.CreateIconPath("/icon", iconName, iconfileDescriptor).Path,
+		path: httpadapter.CreateIconPath("/icon", iconName, iconfileDescriptor).Path,
 		jar:  session.cjar,
 	})
 
@@ -325,7 +325,7 @@ func (session *apiTestSession) deleteIconfile(iconName string, iconfileDescripto
 }
 
 func (session *apiTestSession) addTag(iconName string, tag string) (int, error) {
-	requestData := api.AddServiceRequestData{Tag: tag}
+	requestData := httpadapter.AddServiceRequestData{Tag: tag}
 	resp, err := session.sendRequest("POST", &testRequest{
 		path: fmt.Sprintf("/icon/%s/tag", iconName),
 		jar:  session.cjar,

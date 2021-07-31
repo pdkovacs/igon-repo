@@ -7,8 +7,8 @@ import (
 	"os"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
-	"github.com/pdkovacs/igo-repo/api"
 	"github.com/pdkovacs/igo-repo/config"
+	httpadapter "github.com/pdkovacs/igo-repo/http"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -45,7 +45,7 @@ func main() {
 			panic(err)
 		}
 		setLogLevel(conf.LogLevel)
-		server := api.Server{}
+		server := httpadapter.Server{}
 		server.SetupAndStart(conf, func(port int) {
 		})
 	}

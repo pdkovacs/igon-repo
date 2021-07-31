@@ -5,10 +5,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/pdkovacs/igo-repo/api"
 	"github.com/pdkovacs/igo-repo/app/domain"
 	"github.com/pdkovacs/igo-repo/app/security/authn"
 	"github.com/pdkovacs/igo-repo/app/security/authr"
+	httpadapter "github.com/pdkovacs/igo-repo/http"
 	"github.com/pdkovacs/igo-repo/repositories"
 	"github.com/pdkovacs/igo-repo/test/api/testdata"
 	"github.com/stretchr/testify/suite"
@@ -54,11 +54,11 @@ func (s *iconCreateTestSuite) TestCompletesWithPrivilege() {
 		Format: iconfileDescriptor.Format,
 		Size:   testdata.DP2PX[iconfileDescriptor.Size],
 	}
-	expectedResponse := api.ResponseIcon{
+	expectedResponse := httpadapter.ResponseIcon{
 		Name:       iconName,
 		ModifiedBy: expectedUserID.String(),
 		Tags:       []string{},
-		Paths: []api.IconPath{
+		Paths: []httpadapter.IconPath{
 			{
 				IconfileDescriptor: expectedIconfileDescriptor,
 				Path:               getFilePath(iconName, expectedIconfileDescriptor),

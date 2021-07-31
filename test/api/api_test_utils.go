@@ -7,8 +7,8 @@ import (
 	"sync"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
-	"github.com/pdkovacs/igo-repo/api"
 	"github.com/pdkovacs/igo-repo/config"
+	httpadapter "github.com/pdkovacs/igo-repo/http"
 	"github.com/pdkovacs/igo-repo/repositories"
 	"github.com/pdkovacs/igo-repo/test/api/testdata"
 	"github.com/pdkovacs/igo-repo/test/common"
@@ -20,7 +20,7 @@ import (
 type apiTestSuite struct {
 	suite.Suite
 	defaultConfig config.Options
-	server        api.Server
+	server        httpadapter.Server
 	testGitRepo   repositories_itests.GitTestRepo
 	client        apiTestClient
 }
@@ -60,7 +60,7 @@ func (s *apiTestSuite) startTestServer(options config.Options) {
 	options.ServerPort = 0
 	var wg sync.WaitGroup
 	wg.Add(1)
-	s.server = api.Server{}
+	s.server = httpadapter.Server{}
 	go s.server.SetupAndStart(options, func(port int) {
 		s.client.serverPort = port
 		log.Infof("Server is listening on port %d", port)

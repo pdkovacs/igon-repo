@@ -3,8 +3,8 @@ package api
 import (
 	"testing"
 
-	"github.com/pdkovacs/igo-repo/api"
 	"github.com/pdkovacs/igo-repo/app/security/authr"
+	httpadapter "github.com/pdkovacs/igo-repo/http"
 	"github.com/pdkovacs/igo-repo/test/api/testdata"
 	"github.com/stretchr/testify/suite"
 )
@@ -42,7 +42,7 @@ func (s *deleteIconTestSuite) TestSucceedsWithPrivilege() {
 	s.Equal(204, statusCode)
 	respIcons, listError := session.describeAllIcons()
 	s.NoError((listError))
-	s.assertResponseIconSetsEqual([]api.ResponseIcon{dataOut[1]}, respIcons)
+	s.assertResponseIconSetsEqual([]httpadapter.ResponseIcon{dataOut[1]}, respIcons)
 
 	s.assertEndState()
 }

@@ -7,8 +7,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/pdkovacs/igo-repo/api"
 	"github.com/pdkovacs/igo-repo/app/domain"
+	httpadapter "github.com/pdkovacs/igo-repo/http"
 )
 
 type iconTestSuite struct {
@@ -55,8 +55,8 @@ func (s *iconTestSuite) assertAllFilesInDBAreInGitAsWell() []string {
 	return checkedGitFiles
 }
 
-func (s *iconTestSuite) createIconfilePaths(iconName string, iconfileDescriptor domain.IconfileDescriptor) api.IconPath {
-	return api.CreateIconPath("/icon", iconName, iconfileDescriptor)
+func (s *iconTestSuite) createIconfilePaths(iconName string, iconfileDescriptor domain.IconfileDescriptor) httpadapter.IconPath {
+	return httpadapter.CreateIconPath("/icon", iconName, iconfileDescriptor)
 }
 
 func (s *iconTestSuite) assertAllFilesInGitAreInDBAsWell(iconfilesWithPeerInDB []string) {
@@ -86,19 +86,19 @@ func (s *iconTestSuite) assertEndState() {
 	s.assertReposInSync()
 }
 
-func (s *iconTestSuite) assertResponseIconSetsEqual(expected []api.ResponseIcon, actual []api.ResponseIcon) {
+func (s *iconTestSuite) assertResponseIconSetsEqual(expected []httpadapter.ResponseIcon, actual []httpadapter.ResponseIcon) {
 	sortResponseIconSlice(expected)
 	sortResponseIconSlice(actual)
 	s.Equal(expected, actual)
 }
 
-func (s *iconTestSuite) assertResponseIconsEqual(expected api.ResponseIcon, actual api.ResponseIcon) {
+func (s *iconTestSuite) assertResponseIconsEqual(expected httpadapter.ResponseIcon, actual httpadapter.ResponseIcon) {
 	sortResponseIconPaths(expected)
 	sortResponseIconPaths(actual)
 	s.Equal(expected, actual)
 }
 
-func sortResponseIconSlice(slice []api.ResponseIcon) {
+func sortResponseIconSlice(slice []httpadapter.ResponseIcon) {
 	sort.Slice(slice, func(i, j int) bool {
 		return strings.Compare(slice[i].Name, slice[j].Name) < 0
 	})
@@ -107,7 +107,7 @@ func sortResponseIconSlice(slice []api.ResponseIcon) {
 	}
 }
 
-func sortResponseIconPaths(respIcon api.ResponseIcon) {
+func sortResponseIconPaths(respIcon httpadapter.ResponseIcon) {
 	sort.Slice(respIcon.Paths, func(i, j int) bool {
 		return strings.Compare(respIcon.Paths[i].Path, respIcon.Paths[j].Path) < 0
 	})

@@ -5,10 +5,10 @@ import (
 	"os"
 	"path"
 
-	"github.com/pdkovacs/igo-repo/api"
 	"github.com/pdkovacs/igo-repo/app/domain"
 	"github.com/pdkovacs/igo-repo/app/security/authn"
 	"github.com/pdkovacs/igo-repo/config"
+	httpadapter "github.com/pdkovacs/igo-repo/http"
 )
 
 var backendSourceHome = os.Getenv("BACKEND_SOURCE_HOME")
@@ -121,9 +121,9 @@ var DP2PX = map[string]string{
 	"48px": "48px",
 }
 
-var testResponseIconData []api.ResponseIcon
+var testResponseIconData []httpadapter.ResponseIcon
 
-var moreTestResponseIconData []api.ResponseIcon
+var moreTestResponseIconData []httpadapter.ResponseIcon
 
 func createTestIconInputData(descriptors []domain.IconDescriptor) []domain.Icon {
 	var icons = []domain.Icon{}
@@ -175,14 +175,14 @@ func init() {
 	testIconInputDataMaster = createTestIconInputData(testIconInputDataDescriptor)
 	moreTestIconInputDataMaster = createTestIconInputData(moreTestIconInputDataDescriptor)
 
-	testResponseIconData = []api.ResponseIcon{}
+	testResponseIconData = []httpadapter.ResponseIcon{}
 	for _, testIconDescriptor := range testIconInputDataDescriptor {
-		testResponseIconData = append(testResponseIconData, api.CreateResponseIcon("/icon", mapIconfileSizes(testIconDescriptor)))
+		testResponseIconData = append(testResponseIconData, httpadapter.CreateResponseIcon("/icon", mapIconfileSizes(testIconDescriptor)))
 	}
 
-	moreTestResponseIconData = []api.ResponseIcon{}
+	moreTestResponseIconData = []httpadapter.ResponseIcon{}
 	for _, testIconDescriptor := range moreTestIconInputDataDescriptor {
-		moreTestResponseIconData = append(moreTestResponseIconData, api.CreateResponseIcon("/icon", mapIconfileSizes(testIconDescriptor)))
+		moreTestResponseIconData = append(moreTestResponseIconData, httpadapter.CreateResponseIcon("/icon", mapIconfileSizes(testIconDescriptor)))
 	}
 }
 
@@ -193,7 +193,7 @@ func createIconfile(desc domain.IconfileDescriptor, content []byte) domain.Iconf
 	}
 }
 
-func getTestData(icons []domain.Icon, responseIcons []api.ResponseIcon) ([]domain.Icon, []api.ResponseIcon) {
+func getTestData(icons []domain.Icon, responseIcons []httpadapter.ResponseIcon) ([]domain.Icon, []httpadapter.ResponseIcon) {
 	iconListClone := []domain.Icon{}
 	for _, icon := range icons {
 		iconfilesClone := make([]domain.Iconfile, len(icon.Iconfiles))
@@ -211,13 +211,13 @@ func getTestData(icons []domain.Icon, responseIcons []api.ResponseIcon) ([]domai
 		iconListClone = append(iconListClone, iconClone)
 	}
 
-	responseIconListClone := []api.ResponseIcon{}
+	responseIconListClone := []httpadapter.ResponseIcon{}
 	for _, resp := range responseIcons {
-		paths := make([]api.IconPath, len(resp.Paths))
+		paths := make([]httpadapter.IconPath, len(resp.Paths))
 		tags := make([]string, len(resp.Tags))
 		copy(paths, resp.Paths)
 		copy(tags, resp.Tags)
-		respClone := api.ResponseIcon{
+		respClone := httpadapter.ResponseIcon{
 			Name:       resp.Name,
 			Paths:      paths,
 			Tags:       tags,
@@ -229,10 +229,10 @@ func getTestData(icons []domain.Icon, responseIcons []api.ResponseIcon) ([]domai
 	return iconListClone, responseIconListClone
 }
 
-func Get() ([]domain.Icon, []api.ResponseIcon) {
+func Get() ([]domain.Icon, []httpadapter.ResponseIcon) {
 	return getTestData(testIconInputDataMaster, testResponseIconData)
 }
 
-func GetMore() ([]domain.Icon, []api.ResponseIcon) {
+func GetMore() ([]domain.Icon, []httpadapter.ResponseIcon) {
 	return getTestData(moreTestIconInputDataMaster, moreTestResponseIconData)
 }
