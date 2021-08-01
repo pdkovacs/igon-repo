@@ -11,7 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/pdkovacs/igo-repo/app/domain"
 	"github.com/pdkovacs/igo-repo/app/security/authr"
-	"github.com/pdkovacs/igo-repo/app/services"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -78,10 +77,10 @@ func iconToResponseIcon(icon domain.Icon) ResponseIcon {
 	)
 }
 
-func describeAllIconsHanler(iconService *services.IconService) func(c *gin.Context) {
+func describeAllIconsHanler(api API) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		logger := log.WithField("prefix", "createIconHandler")
-		icons, err := iconService.DescribeAllIcons()
+		icons, err := api.DescribeAllIcons()
 		if err != nil {
 			logger.Errorf("%v", err)
 			c.AbortWithStatus(500)
@@ -94,11 +93,11 @@ func describeAllIconsHanler(iconService *services.IconService) func(c *gin.Conte
 	}
 }
 
-func describeIconHandler(iconService *services.IconService) func(c *gin.Context) {
+func describeIconHandler(api API) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		logger := log.WithField("prefix", "createIconHandler")
 		iconName := c.Param("name")
-		icon, err := iconService.DescribeIcon(iconName)
+		icon, err := api.DescribeIcon(iconName)
 		if err != nil {
 			logger.Errorf("%v", err)
 			if errors.Is(err, domain.ErrIconNotFound) {
@@ -113,7 +112,7 @@ func describeIconHandler(iconService *services.IconService) func(c *gin.Context)
 	}
 }
 
-func createIconHandler(iconService *services.IconService) func(c *gin.Context) {
+func createIconHandler(api API) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		logger := log.WithField("prefix", "createIconHandler")
 
@@ -148,7 +147,7 @@ func createIconHandler(iconService *services.IconService) func(c *gin.Context) {
 		logger.Infof("received %d bytes for icon %s", buf.Len(), iconName)
 
 		// do something with the contents...
-		icon, errCreate := iconService.CreateIcon(iconName, buf.Bytes(), MustGetUserSession(c).UserInfo)
+		icon, errCreate := api.CreateIcon(iconName, buf.Bytes(), MustGetUserSession(c).UserInfo)
 		if errCreate != nil {
 			logger.Errorf("failed to create icon %v", errCreate)
 			if errors.Is(errCreate, authr.ErrPermission) {
@@ -163,13 +162,13 @@ func createIconHandler(iconService *services.IconService) func(c *gin.Context) {
 	}
 }
 
-func getIconfileHandler(iconService *services.IconService) func(c *gin.Context) {
+func getIconfileHandler(api API) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		logger := log.WithField("prefix", "getIconfileHandler")
 		iconName := c.Param("name")
 		format := c.Param("format")
 		size := c.Param("size")
-		iconFile, err := iconService.GetIconfile(iconName, domain.IconfileDescriptor{
+		iconFile, err := api.GetIconfile(iconName, domain.IconfileDescriptor{
 			Format: format,
 			Size:   size,
 		})
@@ -181,7 +180,7 @@ func getIconfileHandler(iconService *services.IconService) func(c *gin.Context) 
 	}
 }
 
-func addIconfileHandler(iconService *services.IconService) func(c *gin.Context) {
+func addIconfileHandler(api API) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		logger := log.WithField("prefix", "addIconfileHandler")
 
@@ -228,7 +227,7 @@ func addIconfileHandler(iconService *services.IconService) func(c *gin.Context) 
 		logger.Infof("received %d bytes as iconfile content for icon %s", buf.Len(), iconName)
 
 		// do something with the contents...
-		iconfileDescriptor, errCreate := iconService.AddIconfile(iconName, buf.Bytes(), MustGetUserSession(c).UserInfo)
+		iconfileDescriptor, errCreate := api.AddIconfile(iconName, buf.Bytes(), MustGetUserSession(c).UserInfo)
 		if errCreate != nil {
 			logger.Errorf("failed to add iconfile %v", errCreate)
 			if errors.Is(errCreate, authr.ErrPermission) {
@@ -247,12 +246,12 @@ func addIconfileHandler(iconService *services.IconService) func(c *gin.Context) 
 	}
 }
 
-func deleteIconHandler(iconService *services.IconService) func(c *gin.Context) {
+func deleteIconHandler(api API) func(c *gin.Context) {
 	logger := log.WithField("prefix", "deleteIconHandler")
 	return func(c *gin.Context) {
 		session := MustGetUserSession(c)
 		iconName := c.Param("name")
-		deleteError := iconService.DeleteIcon(iconName, session.UserInfo)
+		deleteError := api.DeleteIcon(iconName, session.UserInfo)
 		if deleteError != nil {
 			if errors.Is(deleteError, authr.ErrPermission) {
 				c.AbortWithStatus(403)
@@ -266,7 +265,7 @@ func deleteIconHandler(iconService *services.IconService) func(c *gin.Context) {
 	}
 }
 
-func deleteIconfileHandler(iconService *services.IconService) func(c *gin.Context) {
+func deleteIconfileHandler(api API) func(c *gin.Context) {
 	logger := log.WithField("prefix", "delteIconfileHandler")
 	return func(c *gin.Context) {
 		session := MustGetUserSession(c)
@@ -274,7 +273,7 @@ func deleteIconfileHandler(iconService *services.IconService) func(c *gin.Contex
 		format := c.Param("format")
 		size := c.Param("size")
 		iconfileDescriptor := domain.IconfileDescriptor{Format: format, Size: size}
-		deleteError := iconService.DeleteIconfile(iconName, iconfileDescriptor, session.UserInfo)
+		deleteError := api.DeleteIconfile(iconName, iconfileDescriptor, session.UserInfo)
 		if deleteError != nil {
 			if errors.Is(deleteError, authr.ErrPermission) {
 				c.AbortWithStatus(403)
@@ -298,10 +297,10 @@ func deleteIconfileHandler(iconService *services.IconService) func(c *gin.Contex
 	}
 }
 
-func getTagsHandler(iconService *services.IconService) func(c *gin.Context) {
+func getTagsHandler(api API) func(c *gin.Context) {
 	logger := log.WithField("prefix", "getTagsHandler")
 	return func(c *gin.Context) {
-		tags, serviceError := iconService.GetTags()
+		tags, serviceError := api.GetTags()
 		if serviceError != nil {
 			logger.Errorf("Failed to retrieve tags: %v", serviceError)
 			c.AbortWithStatus(500)
@@ -315,7 +314,7 @@ type AddServiceRequestData struct {
 	Tag string `json:"tag"`
 }
 
-func addTagHandler(iconService *services.IconService) func(c *gin.Context) {
+func addTagHandler(api API) func(c *gin.Context) {
 	logger := log.WithField("prefix", "addTagHandler")
 	return func(c *gin.Context) {
 		session := MustGetUserSession(c)
@@ -331,7 +330,7 @@ func addTagHandler(iconService *services.IconService) func(c *gin.Context) {
 		json.Unmarshal(jsonData, &tagRequestData)
 		tag := tagRequestData.Tag
 
-		serviceError := iconService.AddTag(iconName, tag, session.UserInfo)
+		serviceError := api.AddTag(iconName, tag, session.UserInfo)
 		if serviceError != nil {
 			if errors.Is(serviceError, authr.ErrPermission) {
 				logger.Infof("Icon %s not found to add/remove tag %s to/from: %v", iconName, tag, serviceError)
@@ -351,13 +350,13 @@ func addTagHandler(iconService *services.IconService) func(c *gin.Context) {
 	}
 }
 
-func removeTagHandler(iconService *services.IconService) func(c *gin.Context) {
+func removeTagHandler(api API) func(c *gin.Context) {
 	logger := log.WithField("prefix", "removeTagHandler")
 	return func(c *gin.Context) {
 		session := MustGetUserSession(c)
 		iconName := c.Param("name")
 		tag := c.Param("tag")
-		serviceError := iconService.RemoveTag(iconName, tag, session.UserInfo)
+		serviceError := api.RemoveTag(iconName, tag, session.UserInfo)
 		if serviceError != nil {
 			if errors.Is(serviceError, authr.ErrPermission) {
 				logger.Infof("Icon %s not found to add/remove tag %s to/from: %v", iconName, tag, serviceError)

@@ -28,7 +28,7 @@ func (s *iconTestSuite) assertGitCleanStatus() {
 func (s *iconTestSuite) assertAllFilesInDBAreInGitAsWell() []string {
 	checkedGitFiles := []string{}
 
-	db := s.server.Repositories.DB
+	db := s.testDBRepo
 	git := s.testGitRepo
 
 	allIconDesc, descAllErr := db.DescribeAllIcons()

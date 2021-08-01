@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
+	"github.com/pdkovacs/igo-repo/app"
 	"github.com/pdkovacs/igo-repo/config"
 	httpadapter "github.com/pdkovacs/igo-repo/http"
 	"github.com/pdkovacs/igo-repo/repositories"
@@ -21,6 +22,7 @@ type apiTestSuite struct {
 	suite.Suite
 	defaultConfig config.Options
 	server        httpadapter.Server
+	testDBRepo    repositories.DatabaseRepository
 	testGitRepo   repositories_itests.GitTestRepo
 	client        apiTestClient
 }
@@ -51,23 +53,42 @@ func (s *apiTestSuite) AfterTest(suiteName, testName string) {
 	}
 	os.Unsetenv(repositories.IntrusiveGitTestEnvvarName)
 
-	repositories_itests.DeleteDBData(s.server.Repositories.DB.ConnectionPool)
-	s.server.Repositories.DB.Close()
+	repositories_itests.DeleteDBData(s.testDBRepo.ConnectionPool)
+	s.testDBRepo.Close()
 }
 
 // startTestServer starts a test server
-func (s *apiTestSuite) startTestServer(options config.Options) {
-	options.ServerPort = 0
+func (s *apiTestSuite) startTestServer(conf config.Options) {
+
+	log.SetLevel(log.DebugLevel)
+
+	db, dbErr := repositories.InitDBRepo(conf)
+	if dbErr != nil {
+		panic(dbErr)
+	}
+	s.testDBRepo = *db
+
+	git := &repositories.GitRepository{Location: conf.IconDataLocationGit}
+	gitErr := git.InitMaybe()
+	if gitErr != nil {
+		panic(gitErr)
+	}
+	s.testGitRepo = repositories_itests.GitTestRepo{GitRepository: *git}
+
+	combinedRepo := repositories.RepoCombo{DB: db, Git: git}
+
+	app := app.App{Repository: &combinedRepo}
+
+	conf.ServerPort = 0
 	var wg sync.WaitGroup
 	wg.Add(1)
-	s.server = httpadapter.Server{}
-	go s.server.SetupAndStart(options, func(port int) {
+	s.server = httpadapter.Server{API: &app.GetAPI().IconService}
+	go s.server.SetupAndStart(conf, func(port int) {
 		s.client.serverPort = port
 		log.Infof("Server is listening on port %d", port)
 		wg.Done()
 	})
 	wg.Wait()
-	s.testGitRepo.GitRepository = *s.server.Repositories.Git
 }
 
 // terminateTestServer terminates a test server

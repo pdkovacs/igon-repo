@@ -10,20 +10,34 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/memstore"
 	"github.com/gin-gonic/gin"
+	"github.com/pdkovacs/igo-repo/app/domain"
+	"github.com/pdkovacs/igo-repo/app/security/authr"
 	"github.com/pdkovacs/igo-repo/app/services"
 	"github.com/pdkovacs/igo-repo/config"
-	"github.com/pdkovacs/igo-repo/repositories"
 	"github.com/pdkovacs/igo-repo/web"
 	log "github.com/sirupsen/logrus"
 )
 
+type API interface {
+	DescribeAllIcons() ([]domain.IconDescriptor, error)
+	DescribeIcon(iconName string) (domain.IconDescriptor, error)
+	CreateIcon(iconName string, initialIconfileContent []byte, modifiedBy authr.UserInfo) (domain.Icon, error)
+	GetIconfile(iconName string, iconfile domain.IconfileDescriptor) (domain.Iconfile, error)
+	AddIconfile(iconName string, initialIconfileContent []byte, modifiedBy authr.UserInfo) (domain.IconfileDescriptor, error)
+	DeleteIcon(iconName string, modifiedBy authr.UserInfo) error
+	DeleteIconfile(iconName string, iconfileDescriptor domain.IconfileDescriptor, modifiedBy authr.UserInfo) error
+	GetTags() ([]string, error)
+	AddTag(iconName string, tag string, userInfo authr.UserInfo) error
+	RemoveTag(iconName string, tag string, userInfo authr.UserInfo) error
+}
+
 type Server struct {
 	listener      net.Listener
 	Configuration config.Options
-	Repositories  *repositories.Repositories
+	API           API
 }
 
-// Start starts the server
+// Start starts the service
 func (s *Server) Start(portRequested int, r http.Handler, ready func(port int)) {
 	logger := log.WithField("prefix", "StartServer")
 	logger.Info("Starting server on ephemeral....")
@@ -54,20 +68,6 @@ func (s *Server) Start(portRequested int, r http.Handler, ready func(port int)) 
 
 // SetupAndStart sets up and starts server.
 func (s *Server) SetupAndStart(options config.Options, ready func(port int)) {
-	var err error
-	s.Repositories = &repositories.Repositories{}
-
-	s.Repositories.DB, err = repositories.InitDBRepo(options)
-	if err != nil {
-		panic(err)
-	}
-
-	s.Repositories.Git = &repositories.GitRepository{Location: options.IconDataLocationGit}
-	err = s.Repositories.Git.InitMaybe()
-	if err != nil {
-		panic(err)
-	}
-	s.Configuration = options
 	r := s.initEndpoints(options)
 	s.Start(options.ServerPort, r, ready)
 }
@@ -104,20 +104,18 @@ func (s *Server) initEndpoints(options config.Options) *gin.Engine {
 		r.GET("/backdoor/authentication", HandleGetIntoBackdoorRequest)
 	}
 
-	iconService := services.IconService{Repositories: s.Repositories}
+	r.GET("/icon", describeAllIconsHanler(s.API))
+	r.GET("/icon/:name", describeIconHandler(s.API))
+	r.POST("/icon", createIconHandler(s.API))
+	r.DELETE("/icon/:name", deleteIconHandler(s.API))
 
-	r.GET("/icon", describeAllIconsHanler(&iconService))
-	r.GET("/icon/:name", describeIconHandler(&iconService))
-	r.POST("/icon", createIconHandler(&iconService))
-	r.DELETE("/icon/:name", deleteIconHandler(&iconService))
+	r.POST("/icon/:name", addIconfileHandler(s.API))
+	r.GET("/icon/:name/format/:format/size/:size", getIconfileHandler(s.API))
+	r.DELETE("/icon/:name/format/:format/size/:size", deleteIconfileHandler(s.API))
 
-	r.POST("/icon/:name", addIconfileHandler(&iconService))
-	r.GET("/icon/:name/format/:format/size/:size", getIconfileHandler(&iconService))
-	r.DELETE("/icon/:name/format/:format/size/:size", deleteIconfileHandler(&iconService))
-
-	r.GET("/tag", getTagsHandler(&iconService))
-	r.POST("/icon/:name/tag", addTagHandler(&iconService))
-	r.DELETE("/icon/:name/tag/:tag", removeTagHandler(&iconService))
+	r.GET("/tag", getTagsHandler(s.API))
+	r.POST("/icon/:name/tag", addTagHandler(s.API))
+	r.DELETE("/icon/:name/tag/:tag", removeTagHandler(s.API))
 
 	assetHandler := web.AssetHandler("/", "dist")
 	r.NoRoute(gin.WrapH(assetHandler))

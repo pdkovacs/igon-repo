@@ -7,8 +7,10 @@ import (
 	"os"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
+	"github.com/pdkovacs/igo-repo/app"
 	"github.com/pdkovacs/igo-repo/config"
 	httpadapter "github.com/pdkovacs/igo-repo/http"
+	"github.com/pdkovacs/igo-repo/repositories"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -40,13 +42,33 @@ func main() {
 	}
 
 	if serverWanted {
-		conf, err := config.ReadConfiguration(config.GetConfigFilePath(), os.Args)
-		if err != nil {
-			panic(err)
+		var confErr error
+
+		conf, confErr := config.ReadConfiguration(config.GetConfigFilePath(), os.Args)
+		if confErr != nil {
+			panic(confErr)
 		}
+
 		setLogLevel(conf.LogLevel)
-		server := httpadapter.Server{}
+
+		db, dbErr := repositories.InitDBRepo(conf)
+		if dbErr != nil {
+			panic(dbErr)
+		}
+
+		git := &repositories.GitRepository{Location: conf.IconDataLocationGit}
+		gitErr := git.InitMaybe()
+		if gitErr != nil {
+			panic(gitErr)
+		}
+
+		combinedRepo := repositories.RepoCombo{DB: db, Git: git}
+
+		app := app.App{Repository: &combinedRepo}
+
+		server := httpadapter.Server{API: &app.GetAPI().IconService}
 		server.SetupAndStart(conf, func(port int) {
 		})
+
 	}
 }

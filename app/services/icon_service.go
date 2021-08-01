@@ -7,24 +7,38 @@ import (
 
 	"github.com/pdkovacs/igo-repo/app/domain"
 	"github.com/pdkovacs/igo-repo/app/security/authr"
-	"github.com/pdkovacs/igo-repo/repositories"
 	log "github.com/sirupsen/logrus"
 )
 
-type IconService struct {
-	Repositories *repositories.Repositories
+type Repository interface {
+	DescribeAllIcons() ([]domain.IconDescriptor, error)
+	DescribeIcon(iconName string) (domain.IconDescriptor, error)
+	CreateIcon(iconName string, iconfile domain.Iconfile, modifiedBy authr.UserInfo) error
+	DeleteIcon(iconName string, modifiedBy authr.UserInfo) error
+
+	GetIconFile(iconName string, iconfile domain.IconfileDescriptor) ([]byte, error)
+	AddIconfile(iconName string, iconfile domain.Iconfile, modifiedBy authr.UserInfo) error
+	DeleteIconfile(iconName string, iconfile domain.IconfileDescriptor, modifiedBy authr.UserInfo) error
+
+	GetTags() ([]string, error)
+	AddTag(iconName string, tag string, modifiedBy authr.UserInfo) error
+	RemoveTag(iconName string, tag string, modifiedBy authr.UserInfo) error
 }
 
-func (server *IconService) DescribeAllIcons() ([]domain.IconDescriptor, error) {
-	icons, err := server.Repositories.DB.DescribeAllIcons()
+type IconService struct {
+	Repository Repository
+}
+
+func (service *IconService) DescribeAllIcons() ([]domain.IconDescriptor, error) {
+	icons, err := service.Repository.DescribeAllIcons()
 	if err != nil {
 		return []domain.IconDescriptor{}, fmt.Errorf("failed to describe all icons: %w", err)
 	}
 	return icons, err
 }
 
-func (server *IconService) DescribeIcon(iconName string) (domain.IconDescriptor, error) {
-	icon, err := server.Repositories.DB.DescribeIcon(iconName)
+func (service *IconService) DescribeIcon(iconName string) (domain.IconDescriptor, error) {
+	icon, err := service.Repository.DescribeIcon(iconName)
 	if err != nil {
 		return domain.IconDescriptor{}, fmt.Errorf("failed to describe icon \"%s\": %w", iconName, err)
 	}
@@ -56,9 +70,7 @@ func (service *IconService) CreateIcon(iconName string, initialIconfileContent [
 		iconName, iconfile, len(initialIconfileContent), modifiedBy,
 	)
 
-	errCreate := service.Repositories.DB.CreateIcon(iconName, iconfile, modifiedBy.UserId.String(), func() error {
-		return service.Repositories.Git.AddIconfile(iconName, iconfile, modifiedBy.UserId.String())
-	})
+	errCreate := service.Repository.CreateIcon(iconName, iconfile, modifiedBy)
 	if errCreate != nil {
 		return domain.Icon{}, errCreate
 	}
@@ -76,7 +88,7 @@ func (service *IconService) CreateIcon(iconName string, initialIconfileContent [
 }
 
 func (service *IconService) GetIconfile(iconName string, iconfile domain.IconfileDescriptor) (domain.Iconfile, error) {
-	content, err := service.Repositories.DB.GetIconFile(iconName, iconfile)
+	content, err := service.Repository.GetIconFile(iconName, iconfile)
 	if err != nil {
 		return domain.Iconfile{}, fmt.Errorf("failed to retrieve iconfile %v: %w", iconfile, err)
 	}
@@ -112,9 +124,7 @@ func (service *IconService) AddIconfile(iconName string, initialIconfileContent 
 		"iconName: %s, iconfile: %v, content of iconfile to add size: %d, modifiedBy: %s",
 		iconName, iconfile, len(initialIconfileContent), modifiedBy,
 	)
-	errAddIconfile := service.Repositories.DB.AddIconfileToIcon(iconName, iconfile, modifiedBy.UserId.String(), func() error {
-		return service.Repositories.Git.AddIconfile(iconName, iconfile, modifiedBy.UserId.String())
-	})
+	errAddIconfile := service.Repository.AddIconfile(iconName, iconfile, modifiedBy)
 	if errAddIconfile != nil {
 		return domain.IconfileDescriptor{}, errAddIconfile
 	}
@@ -129,14 +139,7 @@ func (service *IconService) DeleteIcon(iconName string, modifiedBy authr.UserInf
 	if err != nil {
 		return fmt.Errorf("not enough permissions to delete icon \"%v\" to : %w", iconName, err)
 	}
-	iconDesc, describeErr := service.Repositories.DB.DescribeIcon(iconName)
-	if describeErr != nil {
-		return fmt.Errorf("failed to have to-be-deleted icon \"%s\" described: %w", iconName, describeErr)
-	}
-	errDeleteIcon := service.Repositories.DB.DeleteIcon(iconName, modifiedBy.UserId.String(), func() error {
-		return service.Repositories.Git.DeleteIcon(iconDesc, modifiedBy.UserId)
-	})
-	return errDeleteIcon
+	return service.Repository.DeleteIcon(iconName, modifiedBy)
 }
 
 func (service *IconService) DeleteIconfile(iconName string, iconfileDescriptor domain.IconfileDescriptor, modifiedBy authr.UserInfo) error {
@@ -146,14 +149,11 @@ func (service *IconService) DeleteIconfile(iconName string, iconfileDescriptor d
 	if err != nil {
 		return fmt.Errorf("not enough permissions to delete icon \"%v\" to : %w", iconName, err)
 	}
-	errDeleteIcon := service.Repositories.DB.DeleteIconfile(iconName, iconfileDescriptor, modifiedBy.UserId.String(), func() error {
-		return service.Repositories.Git.DeleteIconfile(iconName, iconfileDescriptor, modifiedBy.UserId)
-	})
-	return errDeleteIcon
+	return service.Repository.DeleteIconfile(iconName, iconfileDescriptor, modifiedBy)
 }
 
 func (service *IconService) GetTags() ([]string, error) {
-	return service.Repositories.DB.GetExistingTags()
+	return service.Repository.GetTags()
 }
 
 func (service *IconService) AddTag(iconName string, tag string, userInfo authr.UserInfo) error {
@@ -161,7 +161,7 @@ func (service *IconService) AddTag(iconName string, tag string, userInfo authr.U
 	if permErr != nil {
 		return authr.ErrPermission
 	}
-	dbErr := service.Repositories.DB.AddTag(iconName, tag, userInfo.UserId.String())
+	dbErr := service.Repository.AddTag(iconName, tag, userInfo)
 	if dbErr != nil {
 		return fmt.Errorf("failed to add tag %s to \"%s\": %w", tag, iconName, dbErr)
 	}
@@ -173,7 +173,7 @@ func (service *IconService) RemoveTag(iconName string, tag string, userInfo auth
 	if permErr != nil {
 		return authr.ErrPermission
 	}
-	dbErr := service.Repositories.DB.RemoveTag(iconName, tag, userInfo.UserId.String())
+	dbErr := service.Repository.RemoveTag(iconName, tag, userInfo)
 	if dbErr != nil {
 		return fmt.Errorf("failed to remove tag %s from \"%s\": %w", tag, iconName, dbErr)
 	}
