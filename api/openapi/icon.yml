@@ -1,0 +1,70 @@
+openapi: "3.0.2"
+info:
+  title: API Title
+  version: "1.0"
+servers:
+  - url: https://api.server.test/v1
+paths:
+  /icons:
+    get:
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json: 
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IconDescriptor"
+components:
+  schemas:
+    IconAttributes:
+      type: object
+      required: [name, modifiedBy, tags]
+      properties:
+        name:
+          type: string
+        modifiedBy:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+    IconfileDescriptor:
+      type: object
+      required: [format, size]
+      properties:
+        format:
+          type: string
+        size:
+          type: string
+    Iconfile:
+      type: object
+      required: [iconfileDescriptor, content]
+      properties:
+        iconfileDescriptor:
+          $ref: "#components/schemas/IconfileDescriptor"
+        content:
+          type: string
+          format: binary
+    IconDescriptor:
+      type: object
+      required: [iconAttributes, iconfiles]
+      properties:
+        iconAttributes:
+          $ref:  "#/components/schemas/IconAttributes"
+        iconfiles:
+          type: array
+          items:
+            $ref: "#/components/schemas/IconDescriptor"
+    Icon:
+      type: object
+      required: [iconAttributes, iconfiles]
+      properties:
+        iconAttributes:
+          $ref:  "#/components/schemas/IconAttributes"
+        iconfiles:
+          type: array
+          items:
+            $ref:  "#/components/schemas/Iconfile"
+          
