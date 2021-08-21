@@ -43,7 +43,7 @@ components:
       required: [iconfileDescriptor, content]
       properties:
         iconfileDescriptor:
-          $ref: "#components/schemas/IconfileDescriptor"
+          $ref: "#/components/schemas/IconfileDescriptor"
         content:
           type: string
           format: binary
