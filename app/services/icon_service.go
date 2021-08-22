@@ -181,5 +181,5 @@ func (service *IconService) RemoveTag(iconName string, tag string, userInfo auth
 }
 
 func init() {
-	registerSVGDecoder()
+	RegisterSVGDecoder()
 }

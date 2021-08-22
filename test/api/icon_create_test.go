@@ -10,7 +10,7 @@ import (
 	"github.com/pdkovacs/igo-repo/app/security/authr"
 	httpadapter "github.com/pdkovacs/igo-repo/http"
 	"github.com/pdkovacs/igo-repo/repositories"
-	"github.com/pdkovacs/igo-repo/test/api/testdata"
+	"github.com/pdkovacs/igo-repo/test/testdata"
 	"github.com/stretchr/testify/suite"
 )
 

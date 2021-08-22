@@ -66,7 +66,10 @@ func main() {
 
 		app := app.App{Repository: &combinedRepo}
 
-		server := httpadapter.Server{API: &app.GetAPI().IconService}
+		server := httpadapter.Server{API: httpadapter.API{
+			IconService: &app.GetAPI().IconService,
+		}}
+
 		server.SetupAndStart(conf, func(port int) {
 		})
 

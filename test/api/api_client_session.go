@@ -13,7 +13,7 @@ import (
 	"github.com/pdkovacs/igo-repo/app/security/authr"
 	"github.com/pdkovacs/igo-repo/config"
 	httpadapter "github.com/pdkovacs/igo-repo/http"
-	"github.com/pdkovacs/igo-repo/test/api/testdata"
+	"github.com/pdkovacs/igo-repo/test/testdata"
 )
 
 type apiTestSession struct {

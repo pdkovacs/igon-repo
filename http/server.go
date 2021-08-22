@@ -18,7 +18,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type API interface {
+type IconService interface {
 	DescribeAllIcons() ([]domain.IconDescriptor, error)
 	DescribeIcon(iconName string) (domain.IconDescriptor, error)
 	CreateIcon(iconName string, initialIconfileContent []byte, modifiedBy authr.UserInfo) (domain.Icon, error)
@@ -29,6 +29,10 @@ type API interface {
 	GetTags() ([]string, error)
 	AddTag(iconName string, tag string, userInfo authr.UserInfo) error
 	RemoveTag(iconName string, tag string, userInfo authr.UserInfo) error
+}
+
+type API struct {
+	IconService IconService
 }
 
 type Server struct {

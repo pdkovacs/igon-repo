@@ -80,7 +80,7 @@ func iconToResponseIcon(icon domain.Icon) ResponseIcon {
 func describeAllIconsHanler(api API) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		logger := log.WithField("prefix", "createIconHandler")
-		icons, err := api.DescribeAllIcons()
+		icons, err := api.IconService.DescribeAllIcons()
 		if err != nil {
 			logger.Errorf("%v", err)
 			c.AbortWithStatus(500)
@@ -97,7 +97,7 @@ func describeIconHandler(api API) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		logger := log.WithField("prefix", "createIconHandler")
 		iconName := c.Param("name")
-		icon, err := api.DescribeIcon(iconName)
+		icon, err := api.IconService.DescribeIcon(iconName)
 		if err != nil {
 			logger.Errorf("%v", err)
 			if errors.Is(err, domain.ErrIconNotFound) {
@@ -147,7 +147,7 @@ func createIconHandler(api API) func(c *gin.Context) {
 		logger.Infof("received %d bytes for icon %s", buf.Len(), iconName)
 
 		// do something with the contents...
-		icon, errCreate := api.CreateIcon(iconName, buf.Bytes(), MustGetUserSession(c).UserInfo)
+		icon, errCreate := api.IconService.CreateIcon(iconName, buf.Bytes(), MustGetUserSession(c).UserInfo)
 		if errCreate != nil {
 			logger.Errorf("failed to create icon %v", errCreate)
 			if errors.Is(errCreate, authr.ErrPermission) {
@@ -168,7 +168,7 @@ func getIconfileHandler(api API) func(c *gin.Context) {
 		iconName := c.Param("name")
 		format := c.Param("format")
 		size := c.Param("size")
-		iconFile, err := api.GetIconfile(iconName, domain.IconfileDescriptor{
+		iconFile, err := api.IconService.GetIconfile(iconName, domain.IconfileDescriptor{
 			Format: format,
 			Size:   size,
 		})
@@ -227,7 +227,7 @@ func addIconfileHandler(api API) func(c *gin.Context) {
 		logger.Infof("received %d bytes as iconfile content for icon %s", buf.Len(), iconName)
 
 		// do something with the contents...
-		iconfileDescriptor, errCreate := api.AddIconfile(iconName, buf.Bytes(), MustGetUserSession(c).UserInfo)
+		iconfileDescriptor, errCreate := api.IconService.AddIconfile(iconName, buf.Bytes(), MustGetUserSession(c).UserInfo)
 		if errCreate != nil {
 			logger.Errorf("failed to add iconfile %v", errCreate)
 			if errors.Is(errCreate, authr.ErrPermission) {
@@ -251,7 +251,7 @@ func deleteIconHandler(api API) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		session := MustGetUserSession(c)
 		iconName := c.Param("name")
-		deleteError := api.DeleteIcon(iconName, session.UserInfo)
+		deleteError := api.IconService.DeleteIcon(iconName, session.UserInfo)
 		if deleteError != nil {
 			if errors.Is(deleteError, authr.ErrPermission) {
 				c.AbortWithStatus(403)
@@ -273,7 +273,7 @@ func deleteIconfileHandler(api API) func(c *gin.Context) {
 		format := c.Param("format")
 		size := c.Param("size")
 		iconfileDescriptor := domain.IconfileDescriptor{Format: format, Size: size}
-		deleteError := api.DeleteIconfile(iconName, iconfileDescriptor, session.UserInfo)
+		deleteError := api.IconService.DeleteIconfile(iconName, iconfileDescriptor, session.UserInfo)
 		if deleteError != nil {
 			if errors.Is(deleteError, authr.ErrPermission) {
 				c.AbortWithStatus(403)
@@ -300,7 +300,7 @@ func deleteIconfileHandler(api API) func(c *gin.Context) {
 func getTagsHandler(api API) func(c *gin.Context) {
 	logger := log.WithField("prefix", "getTagsHandler")
 	return func(c *gin.Context) {
-		tags, serviceError := api.GetTags()
+		tags, serviceError := api.IconService.GetTags()
 		if serviceError != nil {
 			logger.Errorf("Failed to retrieve tags: %v", serviceError)
 			c.AbortWithStatus(500)
@@ -330,7 +330,7 @@ func addTagHandler(api API) func(c *gin.Context) {
 		json.Unmarshal(jsonData, &tagRequestData)
 		tag := tagRequestData.Tag
 
-		serviceError := api.AddTag(iconName, tag, session.UserInfo)
+		serviceError := api.IconService.AddTag(iconName, tag, session.UserInfo)
 		if serviceError != nil {
 			if errors.Is(serviceError, authr.ErrPermission) {
 				logger.Infof("Icon %s not found to add/remove tag %s to/from: %v", iconName, tag, serviceError)
@@ -356,7 +356,7 @@ func removeTagHandler(api API) func(c *gin.Context) {
 		session := MustGetUserSession(c)
 		iconName := c.Param("name")
 		tag := c.Param("tag")
-		serviceError := api.RemoveTag(iconName, tag, session.UserInfo)
+		serviceError := api.IconService.RemoveTag(iconName, tag, session.UserInfo)
 		if serviceError != nil {
 			if errors.Is(serviceError, authr.ErrPermission) {
 				logger.Infof("Icon %s not found to add/remove tag %s to/from: %v", iconName, tag, serviceError)

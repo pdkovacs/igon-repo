@@ -6,7 +6,6 @@ import (
 )
 
 func NewUserService(authorizationService AuthorizationService) UserService {
-
 	return UserService{
 		authorizationService: authorizationService,
 	}

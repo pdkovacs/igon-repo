@@ -11,9 +11,9 @@ import (
 	"github.com/pdkovacs/igo-repo/config"
 	httpadapter "github.com/pdkovacs/igo-repo/http"
 	"github.com/pdkovacs/igo-repo/repositories"
-	"github.com/pdkovacs/igo-repo/test/api/testdata"
 	"github.com/pdkovacs/igo-repo/test/common"
 	repositories_itests "github.com/pdkovacs/igo-repo/test/repositories"
+	"github.com/pdkovacs/igo-repo/test/testdata"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"
 )
@@ -82,7 +82,9 @@ func (s *apiTestSuite) startTestServer(conf config.Options) {
 	conf.ServerPort = 0
 	var wg sync.WaitGroup
 	wg.Add(1)
-	s.server = httpadapter.Server{API: &app.GetAPI().IconService}
+	s.server = httpadapter.Server{API: httpadapter.API{
+		IconService: &app.GetAPI().IconService,
+	}}
 	go s.server.SetupAndStart(conf, func(port int) {
 		s.client.serverPort = port
 		log.Infof("Server is listening on port %d", port)

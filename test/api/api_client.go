@@ -11,7 +11,7 @@ import (
 
 	"github.com/pdkovacs/igo-repo/app/domain"
 	"github.com/pdkovacs/igo-repo/config"
-	"github.com/pdkovacs/igo-repo/test/api/testdata"
+	"github.com/pdkovacs/igo-repo/test/testdata"
 	log "github.com/sirupsen/logrus"
 )
 

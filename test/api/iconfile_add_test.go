@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/pdkovacs/igo-repo/app/security/authr"
-	"github.com/pdkovacs/igo-repo/test/api/testdata"
+	"github.com/pdkovacs/igo-repo/test/testdata"
 	"github.com/stretchr/testify/suite"
 )
 

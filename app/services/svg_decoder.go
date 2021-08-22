@@ -59,6 +59,6 @@ func decodeSVGConfig(reader io.Reader) (image.Config, error) {
 	}, nil
 }
 
-func registerSVGDecoder() {
+func RegisterSVGDecoder() {
 	image.RegisterFormat(name, magicString, decodeSVG, decodeSVGConfig)
 }
