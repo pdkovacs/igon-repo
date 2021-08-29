@@ -248,22 +248,20 @@ func (session *apiTestSession) deleteIcon(iconName string) (int, error) {
 	return resp.statusCode, deleteError
 }
 
-func (s *apiTestSession) GetIconfile(iconName string, iconfileDescriptor domain.IconfileDescriptor) (domain.Iconfile, error) {
-	iconfile := domain.Iconfile{}
+func (s *apiTestSession) GetIconfile(iconName string, iconfileDescriptor domain.IconfileDescriptor) ([]byte, error) {
 	resp, reqErr := s.get(&testRequest{
 		path:          getFilePath(iconName, iconfileDescriptor),
-		respBodyProto: &iconfile,
+		respBodyProto: []byte{},
 	})
 	if reqErr != nil {
-		return iconfile, fmt.Errorf("failed to retrieve iconfile %v of %s: %w", iconfileDescriptor, iconName, reqErr)
+		return nil, fmt.Errorf("failed to retrieve iconfile %v of %s: %w", iconfileDescriptor, iconName, reqErr)
 	}
 
-	if respIconfile, ok := resp.body.(*domain.Iconfile); ok {
-		iconfile.Content = respIconfile.Content
-		return iconfile, nil
+	if respIconfile, ok := resp.body.([]byte); ok {
+		return respIconfile, nil
 	}
 
-	return iconfile, fmt.Errorf("failed to cast the reply %T to []byte while retrieving iconfile %v of %s", resp.body, iconfileDescriptor, iconName)
+	return nil, fmt.Errorf("failed to cast the reply %T to []byte while retrieving iconfile %v of %s", resp.body, iconfileDescriptor, iconName)
 }
 
 func (session *apiTestSession) addIconfile(iconName string, iconfile domain.Iconfile) (int, httpadapter.IconPath, error) {

@@ -176,7 +176,7 @@ func getIconfileHandler(api API) func(c *gin.Context) {
 			logger.Errorf("failed to retrieve %s:%scontents for icon %s: %v", iconName, size, format, err)
 			c.AbortWithStatus(500)
 		}
-		c.JSON(200, iconFile)
+		c.Data(200, "application/octet-stream", iconFile)
 	}
 }
 

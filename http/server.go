@@ -22,7 +22,7 @@ type IconService interface {
 	DescribeAllIcons() ([]domain.IconDescriptor, error)
 	DescribeIcon(iconName string) (domain.IconDescriptor, error)
 	CreateIcon(iconName string, initialIconfileContent []byte, modifiedBy authr.UserInfo) (domain.Icon, error)
-	GetIconfile(iconName string, iconfile domain.IconfileDescriptor) (domain.Iconfile, error)
+	GetIconfile(iconName string, iconfile domain.IconfileDescriptor) ([]byte, error)
 	AddIconfile(iconName string, initialIconfileContent []byte, modifiedBy authr.UserInfo) (domain.IconfileDescriptor, error)
 	DeleteIcon(iconName string, modifiedBy authr.UserInfo) error
 	DeleteIconfile(iconName string, iconfileDescriptor domain.IconfileDescriptor, modifiedBy authr.UserInfo) error

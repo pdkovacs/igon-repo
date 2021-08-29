@@ -18,7 +18,7 @@ type iconTestSuite struct {
 func (s *iconTestSuite) getCheckIconfile(session *apiTestSession, iconName string, iconfile domain.Iconfile) {
 	actualIconfile, err := session.GetIconfile(iconName, iconfile.IconfileDescriptor)
 	s.NoError(err)
-	s.Equal(iconfile, actualIconfile)
+	s.Equal(iconfile.Content, actualIconfile)
 }
 
 func (s *iconTestSuite) assertGitCleanStatus() {

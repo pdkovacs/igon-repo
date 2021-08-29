@@ -80,7 +80,7 @@ func (s *iconCreateTestSuite) TestCompletesWithPrivilege() {
 
 	iconfile, getIconfileError := session.GetIconfile(iconName, expectedIconfileDescriptor)
 	s.NoError(getIconfileError)
-	s.Equal(iconfileContent, iconfile.Content)
+	s.Equal(iconfileContent, iconfile)
 
 	s.assertEndState()
 }

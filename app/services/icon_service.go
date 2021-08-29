@@ -87,15 +87,12 @@ func (service *IconService) CreateIcon(iconName string, initialIconfileContent [
 	}, nil
 }
 
-func (service *IconService) GetIconfile(iconName string, iconfile domain.IconfileDescriptor) (domain.Iconfile, error) {
+func (service *IconService) GetIconfile(iconName string, iconfile domain.IconfileDescriptor) ([]byte, error) {
 	content, err := service.Repository.GetIconFile(iconName, iconfile)
 	if err != nil {
-		return domain.Iconfile{}, fmt.Errorf("failed to retrieve iconfile %v: %w", iconfile, err)
+		return nil, fmt.Errorf("failed to retrieve iconfile %v: %w", iconfile, err)
 	}
-	return domain.Iconfile{
-		IconfileDescriptor: iconfile,
-		Content:            content,
-	}, nil
+	return content, nil
 }
 
 func (service *IconService) AddIconfile(iconName string, initialIconfileContent []byte, modifiedBy authr.UserInfo) (domain.IconfileDescriptor, error) {
