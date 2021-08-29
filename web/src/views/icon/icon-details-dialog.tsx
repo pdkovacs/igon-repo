@@ -89,24 +89,31 @@ export class IconDetailsDialog extends React.Component<IconDetailsDialogProps, I
                             handleFileUpload={uploadedFile => this.handleIconfileUpload(uploadedFile)} />
                     </div>
                     <div className="properties-row">
-                        {renderMapAsTable(Map.of(
-                            "Last modified by",
-                            <TagCollection
-                                        tags={List.of(this.state.modifiedBy)}
-                                        tagsAvailableForAddition={Set.of()}/>,
-                            "Available formats",
-                            <TagCollection
-                                        tags={this.iconfileFormats()}
-                                        selectedIndex={this.state.selectedIconfileIndex}
-                                        selectionChangeRequest={i => this.setState({selectedIconfileIndex: i})}
-                                        tagRemovalRequest={
-                                            this.state.inEdit
-                                                ? tagText => this.iconfileDeletionRequest(tagText)
-                                                : undefined}
-                                        tagsAvailableForAddition={Set.of()}/>,
-                            "Tags",
-                            this.createTagList()
-                        ))}
+                        {renderMapAsTable(Map<string, JSX.Element>([
+                            [
+                                "Last modified by",
+                                <TagCollection
+                                            tags={List.of(this.state.modifiedBy)}
+                                            tagsAvailableForAddition={Set.of()}/>,
+                            ],
+                            [
+                                "Available formats",
+                                <TagCollection
+                                    tags={this.iconfileFormats()}
+                                    selectedIndex={this.state.selectedIconfileIndex}
+                                    selectionChangeRequest={i => this.setState({selectedIconfileIndex: i})}
+                                    tagRemovalRequest={
+                                        this.state.inEdit
+                                            ? tagText => this.iconfileDeletionRequest(tagText)
+                                            : undefined
+                                    }
+                                    tagsAvailableForAddition={Set.of()}/>
+                            ],
+                            [
+                                "Tags",
+                                this.createTagList()
+                            ]
+                        ] as [string, JSX.Element][]))}
                     </div>
                 </div>
             </div>
