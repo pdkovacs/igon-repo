@@ -36,7 +36,7 @@ func (s *iconHandlerTestSuite) TestReturnIconsWithProperPaths() {
 		Iconfiles: iconfileDescs,
 	}
 
-	expectedResponse := ResponseIcon{
+	expectedResponse := IconDTO{
 		Name:       name,
 		ModifiedBy: modifiedBy,
 		Paths: []IconPath{

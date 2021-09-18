@@ -146,26 +146,26 @@ func (session *apiTestSession) mustAddTestData(testData []domain.Icon) {
 	}
 }
 
-func (session *apiTestSession) describeAllIcons() ([]httpadapter.ResponseIcon, error) {
+func (session *apiTestSession) describeAllIcons() ([]httpadapter.IconDTO, error) {
 	resp, err := session.get(&testRequest{
 		path:          "/icon",
 		jar:           session.cjar,
-		respBodyProto: &[]httpadapter.ResponseIcon{},
+		respBodyProto: &[]httpadapter.IconDTO{},
 	})
 	if err != nil {
-		return []httpadapter.ResponseIcon{}, fmt.Errorf("GET /icon failed: %w", err)
+		return []httpadapter.IconDTO{}, fmt.Errorf("GET /icon failed: %w", err)
 	}
 	if resp.statusCode != 200 {
-		return []httpadapter.ResponseIcon{}, fmt.Errorf("%w: got %d", errUnexpecteHTTPStatus, resp.statusCode)
+		return []httpadapter.IconDTO{}, fmt.Errorf("%w: got %d", errUnexpecteHTTPStatus, resp.statusCode)
 	}
-	icons, ok := resp.body.(*[]httpadapter.ResponseIcon)
+	icons, ok := resp.body.(*[]httpadapter.IconDTO)
 	if !ok {
-		return []httpadapter.ResponseIcon{}, fmt.Errorf("failed to cast %T as []httpadapter.ResponseIcon", resp.body)
+		return []httpadapter.IconDTO{}, fmt.Errorf("failed to cast %T as []httpadapter.ResponseIcon", resp.body)
 	}
 	return *icons, err
 }
 
-func (session *apiTestSession) mustDescribeAllIcons() []httpadapter.ResponseIcon {
+func (session *apiTestSession) mustDescribeAllIcons() []httpadapter.IconDTO {
 	respIcons, err := session.describeAllIcons()
 	if err != nil {
 		panic(err)
@@ -173,24 +173,24 @@ func (session *apiTestSession) mustDescribeAllIcons() []httpadapter.ResponseIcon
 	return respIcons
 }
 
-func (session *apiTestSession) describeIcon(iconName string) (int, httpadapter.ResponseIcon, error) {
+func (session *apiTestSession) describeIcon(iconName string) (int, httpadapter.IconDTO, error) {
 	resp, err := session.get(&testRequest{
 		path:          fmt.Sprintf("/icon/%s", iconName),
 		jar:           session.cjar,
-		respBodyProto: &httpadapter.ResponseIcon{},
+		respBodyProto: &httpadapter.IconDTO{},
 	})
 	if err != nil {
-		return resp.statusCode, httpadapter.ResponseIcon{}, fmt.Errorf("GET /icon/%s failed: %w", iconName, err)
+		return resp.statusCode, httpadapter.IconDTO{}, fmt.Errorf("GET /icon/%s failed: %w", iconName, err)
 	}
-	icon, ok := resp.body.(*httpadapter.ResponseIcon)
+	icon, ok := resp.body.(*httpadapter.IconDTO)
 	if !ok {
-		return resp.statusCode, httpadapter.ResponseIcon{}, fmt.Errorf("failed to cast %T as httpadapter.ResponseIcon", resp.body)
+		return resp.statusCode, httpadapter.IconDTO{}, fmt.Errorf("failed to cast %T as httpadapter.ResponseIcon", resp.body)
 	}
 	return resp.statusCode, *icon, err
 }
 
 // https://stackoverflow.com/questions/20205796/post-data-using-the-content-type-multipart-form-data
-func (session *apiTestSession) createIcon(iconName string, initialIconfile []byte) (int, httpadapter.ResponseIcon, error) {
+func (session *apiTestSession) createIcon(iconName string, initialIconfile []byte) (int, httpadapter.IconDTO, error) {
 	var err error
 	var resp testResponse
 
@@ -222,19 +222,19 @@ func (session *apiTestSession) createIcon(iconName string, initialIconfile []byt
 		jar:           session.cjar,
 		headers:       headers,
 		body:          b.Bytes(),
-		respBodyProto: &httpadapter.ResponseIcon{},
+		respBodyProto: &httpadapter.IconDTO{},
 	})
 	if err != nil {
-		return resp.statusCode, httpadapter.ResponseIcon{}, err
+		return resp.statusCode, httpadapter.IconDTO{}, err
 	}
 
 	statusCode := resp.statusCode
 
-	if respIconfile, ok := resp.body.(*httpadapter.ResponseIcon); ok {
+	if respIconfile, ok := resp.body.(*httpadapter.IconDTO); ok {
 		return statusCode, *respIconfile, err
 	}
 
-	return statusCode, httpadapter.ResponseIcon{}, fmt.Errorf("failed to cast %T to httpadapter.ResponseIcon", resp.body)
+	return statusCode, httpadapter.IconDTO{}, fmt.Errorf("failed to cast %T to httpadapter.ResponseIcon", resp.body)
 }
 
 func (session *apiTestSession) deleteIcon(iconName string) (int, error) {

@@ -9,6 +9,13 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type UserInfoDTO struct {
+	Username    string               `json:"username"`
+	Groups      []authr.GroupID      `json:"groups"`
+	Permissions []authr.PermissionID `json:"permissions"`
+	DisplayName string               `json:"displayName"`
+}
+
 func UserInfoHandler(userService services.UserService) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		userId := c.Query("userId")
@@ -27,8 +34,15 @@ func UserInfoHandler(userService services.UserService) func(c *gin.Context) {
 		} else {
 			userInfo = userService.GetUserInfo(authn.UserID{IDInDomain: userId})
 		}
-
 		logger.Debugf("User info: %v", userInfo)
-		c.JSON(200, userInfo)
+
+		responseUserInfo := UserInfoDTO{
+			Username:    userInfo.UserId.IDInDomain,
+			Groups:      userInfo.Groups,
+			Permissions: userInfo.Permissions,
+			DisplayName: userInfo.DisplayName,
+		}
+
+		c.JSON(200, responseUserInfo)
 	}
 }

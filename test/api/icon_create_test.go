@@ -54,7 +54,7 @@ func (s *iconCreateTestSuite) TestCompletesWithPrivilege() {
 		Format: iconfileDescriptor.Format,
 		Size:   testdata.DP2PX[iconfileDescriptor.Size],
 	}
-	expectedResponse := httpadapter.ResponseIcon{
+	expectedResponse := httpadapter.IconDTO{
 		Name:       iconName,
 		ModifiedBy: expectedUserID.String(),
 		Tags:       []string{},

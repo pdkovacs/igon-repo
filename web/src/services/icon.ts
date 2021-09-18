@@ -64,7 +64,7 @@ export const describeIcon = (iconName: string) => fetch(getEndpointUrl(`/icon/${
     }
 });
 
-export const createIcon: (formData: FormData) => Promise<IngestedIconfileDTO>
+export const createIcon: (formData: FormData) => Promise<IconDTO>
 = formData => fetch(getEndpointUrl("/icon"), {
     method: "POST",
     credentials: "include",

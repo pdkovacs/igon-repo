@@ -121,9 +121,9 @@ var DP2PX = map[string]string{
 	"48px": "48px",
 }
 
-var testResponseIconData []httpadapter.ResponseIcon
+var testResponseIconData []httpadapter.IconDTO
 
-var moreTestResponseIconData []httpadapter.ResponseIcon
+var moreTestResponseIconData []httpadapter.IconDTO
 
 func createTestIconInputData(descriptors []domain.IconDescriptor) []domain.Icon {
 	var icons = []domain.Icon{}
@@ -175,12 +175,12 @@ func init() {
 	testIconInputDataMaster = createTestIconInputData(testIconInputDataDescriptor)
 	moreTestIconInputDataMaster = createTestIconInputData(moreTestIconInputDataDescriptor)
 
-	testResponseIconData = []httpadapter.ResponseIcon{}
+	testResponseIconData = []httpadapter.IconDTO{}
 	for _, testIconDescriptor := range testIconInputDataDescriptor {
 		testResponseIconData = append(testResponseIconData, httpadapter.CreateResponseIcon("/icon", mapIconfileSizes(testIconDescriptor)))
 	}
 
-	moreTestResponseIconData = []httpadapter.ResponseIcon{}
+	moreTestResponseIconData = []httpadapter.IconDTO{}
 	for _, testIconDescriptor := range moreTestIconInputDataDescriptor {
 		moreTestResponseIconData = append(moreTestResponseIconData, httpadapter.CreateResponseIcon("/icon", mapIconfileSizes(testIconDescriptor)))
 	}
@@ -193,7 +193,7 @@ func createIconfile(desc domain.IconfileDescriptor, content []byte) domain.Iconf
 	}
 }
 
-func getTestData(icons []domain.Icon, responseIcons []httpadapter.ResponseIcon) ([]domain.Icon, []httpadapter.ResponseIcon) {
+func getTestData(icons []domain.Icon, responseIcons []httpadapter.IconDTO) ([]domain.Icon, []httpadapter.IconDTO) {
 	iconListClone := []domain.Icon{}
 	for _, icon := range icons {
 		iconfilesClone := make([]domain.Iconfile, len(icon.Iconfiles))
@@ -211,13 +211,13 @@ func getTestData(icons []domain.Icon, responseIcons []httpadapter.ResponseIcon) 
 		iconListClone = append(iconListClone, iconClone)
 	}
 
-	responseIconListClone := []httpadapter.ResponseIcon{}
+	responseIconListClone := []httpadapter.IconDTO{}
 	for _, resp := range responseIcons {
 		paths := make([]httpadapter.IconPath, len(resp.Paths))
 		tags := make([]string, len(resp.Tags))
 		copy(paths, resp.Paths)
 		copy(tags, resp.Tags)
-		respClone := httpadapter.ResponseIcon{
+		respClone := httpadapter.IconDTO{
 			Name:       resp.Name,
 			Paths:      paths,
 			Tags:       tags,
@@ -229,10 +229,10 @@ func getTestData(icons []domain.Icon, responseIcons []httpadapter.ResponseIcon) 
 	return iconListClone, responseIconListClone
 }
 
-func Get() ([]domain.Icon, []httpadapter.ResponseIcon) {
+func Get() ([]domain.Icon, []httpadapter.IconDTO) {
 	return getTestData(testIconInputDataMaster, testResponseIconData)
 }
 
-func GetMore() ([]domain.Icon, []httpadapter.ResponseIcon) {
+func GetMore() ([]domain.Icon, []httpadapter.IconDTO) {
 	return getTestData(moreTestIconInputDataMaster, moreTestResponseIconData)
 }

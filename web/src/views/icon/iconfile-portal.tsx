@@ -11,26 +11,31 @@ interface IconfilePortalProps {
     handleFileUpload: (uploadedFile: IngestedIconfileDTO) => void;
 }
 
-const uploadIconfile = (file: File, props: IconfilePortalProps) => {
-    const fileName = file.name;
-    const formData = new FormData();
-    formData.append("iconfile", file, fileName);
-
-    let request: Promise<IngestedIconfileDTO>;
-    if (props.iconName) {
-        request = ingestIconfile(props.iconName, formData);
-    } else {
-        formData.append("iconName", fileName.replace(/(.*)\.[^.]*$/, "$1"));
-        request = createIcon(formData);
-    }
-
-    request.then(
-        iconfileMetadata => {
-            props.handleFileUpload(iconfileMetadata);
-        },
-        error => showErrorMessage(error)
-    )
-    .catch(error => showErrorMessage(error));
+const uploadIconfile = async (file: File, props: IconfilePortalProps) => {
+    try {
+        const fileName = file.name;
+        const formData = new FormData();
+        formData.append("iconfile", file, fileName);
+    
+        let iconfileDTO: IngestedIconfileDTO;
+        if (props.iconName) {
+            formData.append("iconName", props.iconName);
+            iconfileDTO = await ingestIconfile(props.iconName, formData);
+        } else {
+            formData.append("iconName", fileName.replace(/(.*)\.[^.]*$/, "$1"));
+            const response = await createIcon(formData);
+            iconfileDTO = {
+                iconName: response.name,
+                format: response.paths[0].format,
+                size: response.paths[0].size,
+                path: response.paths[0].path
+            }
+        }
+    
+        props.handleFileUpload(iconfileDTO);
+    } catch(err) {
+        showErrorMessage(err);
+    };
 };
 
 const hasImageUrl = (props: IconfilePortalProps) => typeof props.imageUrl !== "undefined";

@@ -62,6 +62,7 @@ const staticDialogOptions = {
 export class IconDetailsDialog extends React.Component<IconDetailsDialogProps, IconDetailsDialogState> {
     constructor(props: IconDetailsDialogProps) {
         super(props);
+        console.log("aaaaa props.username", props.username);
         this.state = {
             iconName: props.iconDescriptor ? props.iconDescriptor.name : null,
             iconfileList: props.iconDescriptor ? createIconfileList(props.iconDescriptor.paths) : List.of(),

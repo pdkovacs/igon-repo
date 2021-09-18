@@ -86,19 +86,19 @@ func (s *iconTestSuite) assertEndState() {
 	s.assertReposInSync()
 }
 
-func (s *iconTestSuite) assertResponseIconSetsEqual(expected []httpadapter.ResponseIcon, actual []httpadapter.ResponseIcon) {
+func (s *iconTestSuite) assertResponseIconSetsEqual(expected []httpadapter.IconDTO, actual []httpadapter.IconDTO) {
 	sortResponseIconSlice(expected)
 	sortResponseIconSlice(actual)
 	s.Equal(expected, actual)
 }
 
-func (s *iconTestSuite) assertResponseIconsEqual(expected httpadapter.ResponseIcon, actual httpadapter.ResponseIcon) {
+func (s *iconTestSuite) assertResponseIconsEqual(expected httpadapter.IconDTO, actual httpadapter.IconDTO) {
 	sortResponseIconPaths(expected)
 	sortResponseIconPaths(actual)
 	s.Equal(expected, actual)
 }
 
-func sortResponseIconSlice(slice []httpadapter.ResponseIcon) {
+func sortResponseIconSlice(slice []httpadapter.IconDTO) {
 	sort.Slice(slice, func(i, j int) bool {
 		return strings.Compare(slice[i].Name, slice[j].Name) < 0
 	})
@@ -107,7 +107,7 @@ func sortResponseIconSlice(slice []httpadapter.ResponseIcon) {
 	}
 }
 
-func sortResponseIconPaths(respIcon httpadapter.ResponseIcon) {
+func sortResponseIconPaths(respIcon httpadapter.IconDTO) {
 	sort.Slice(respIcon.Paths, func(i, j int) bool {
 		return strings.Compare(respIcon.Paths[i].Path, respIcon.Paths[j].Path) < 0
 	})

@@ -42,7 +42,7 @@ func (s *deleteIconTestSuite) TestSucceedsWithPrivilege() {
 	s.Equal(204, statusCode)
 	respIcons, listError := session.describeAllIcons()
 	s.NoError((listError))
-	s.assertResponseIconSetsEqual([]httpadapter.ResponseIcon{dataOut[1]}, respIcons)
+	s.assertResponseIconSetsEqual([]httpadapter.IconDTO{dataOut[1]}, respIcons)
 
 	s.assertEndState()
 }

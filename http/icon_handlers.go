@@ -21,7 +21,7 @@ type IconPath struct {
 	Path string `json:"path"`
 }
 
-type ResponseIcon struct {
+type IconDTO struct {
 	Name       string     `json:"name"`
 	ModifiedBy string     `json:"modifiedBy"`
 	Paths      []IconPath `json:"paths"`
@@ -50,8 +50,8 @@ func CreateIconfilePaths(baseUrl string, iconDesc domain.IconDescriptor) []IconP
 	return iconPaths
 }
 
-func CreateResponseIcon(iconPathRoot string, iconDesc domain.IconDescriptor) ResponseIcon {
-	return ResponseIcon{
+func CreateResponseIcon(iconPathRoot string, iconDesc domain.IconDescriptor) IconDTO {
+	return IconDTO{
 		Name:       iconDesc.Name,
 		ModifiedBy: iconDesc.ModifiedBy,
 		Paths:      CreateIconfilePaths(iconPathRoot, iconDesc),
@@ -67,7 +67,7 @@ func IconfilesToIconfileDescriptors(iconfiles []domain.Iconfile) []domain.Iconfi
 	return iconfileDescriptors
 }
 
-func iconToResponseIcon(icon domain.Icon) ResponseIcon {
+func iconToResponseIcon(icon domain.Icon) IconDTO {
 	return CreateResponseIcon(
 		iconRootPath,
 		domain.IconDescriptor{
@@ -85,7 +85,7 @@ func describeAllIconsHanler(api API) func(c *gin.Context) {
 			logger.Errorf("%v", err)
 			c.AbortWithStatus(500)
 		}
-		responseIcon := []ResponseIcon{}
+		responseIcon := []IconDTO{}
 		for _, icon := range icons {
 			responseIcon = append(responseIcon, CreateResponseIcon(iconRootPath, icon))
 		}
