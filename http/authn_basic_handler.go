@@ -9,6 +9,7 @@ import (
 	"github.com/pdkovacs/igo-repo/app/security/authn"
 	"github.com/pdkovacs/igo-repo/app/services"
 	"github.com/pdkovacs/igo-repo/config"
+	log "github.com/sirupsen/logrus"
 )
 
 // BasicConfig holds the configuration for the Basic authentication scheme
@@ -35,7 +36,10 @@ func decodeBasicAuthnHeaderValue(headerValue string) (userid string, password st
 	return pair[0], pair[1], true
 }
 
-func basicScheme(config BasicConfig, userService *services.UserService) gin.HandlerFunc {
+func checkBasicAuthentication(options BasicConfig, userService services.UserService) func(c *gin.Context) {
+	logger := log.WithField("prefix", "basic-authn")
+	logger.Debugf("options.PasswordCredentials size: %d", len(options.PasswordCredentialsList))
+
 	return func(c *gin.Context) {
 		authorized := false
 
@@ -48,7 +52,7 @@ func basicScheme(config BasicConfig, userService *services.UserService) gin.Hand
 			if hasHeader {
 				username, password, decodeOK := decodeBasicAuthnHeaderValue(authnHeaderValue[0])
 				if decodeOK {
-					for _, pc := range config.PasswordCredentialsList {
+					for _, pc := range options.PasswordCredentialsList {
 						if pc.Username == username && pc.Password == password {
 							userId := authn.LocalDomain.CreateUserID(username)
 							userInfo := userService.GetUserInfo(userId)
@@ -69,5 +73,11 @@ func basicScheme(config BasicConfig, userService *services.UserService) gin.Hand
 			c.Header("WWW-Authenticate", "Basic")
 			c.AbortWithStatus(401)
 		}
+	}
+}
+
+func basicScheme(options BasicConfig, userService *services.UserService) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Status(200)
 	}
 }

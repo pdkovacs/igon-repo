@@ -82,49 +82,50 @@ func (s *Server) initEndpoints(options config.Options) *gin.Engine {
 	userService := services.NewUserService(&authorizationService)
 
 	gob.Register(SessionData{})
-	r := gin.Default()
+
+	rootEngine := gin.Default()
+
 	store := memstore.NewStore([]byte("secret"))
 	store.Options(sessions.Options{MaxAge: 60 * 60 * 24})
-	r.Use(sessions.Sessions("mysession", store))
-	logger.Debugf("options.PasswordCredentials size: %d", len(options.PasswordCredentials))
-	if options.PasswordCredentials != nil && len(options.PasswordCredentials) > 0 {
-		r.Use(Authentication(BasicConfig{PasswordCredentialsList: options.PasswordCredentials}, &userService))
-	}
+	rootEngine.Use(sessions.Sessions("mysession", store))
 
-	r.POST("/login", func(c *gin.Context) {
-		session := MustGetUserSession(c)
-		logger.Infof("%v logged in", session.UserInfo)
-		c.JSON(200, session.UserInfo)
-	})
+	rootEngine.NoRoute(Authentication(options, &userService), gin.WrapH(web.AssetHandler("/", "dist")))
 
-	r.GET("/app-info", func(c *gin.Context) {
+	rootEngine.GET("/login", Authentication(options, &userService))
+
+	rootEngine.GET("/app-info", func(c *gin.Context) {
 		c.JSON(200, config.GetBuildInfo())
 	})
 
-	r.GET("/user", UserInfoHandler(userService))
+	logger.Debug("Creating authorized group....")
 
-	if options.EnableBackdoors {
-		r.PUT("/backdoor/authentication", HandlePutIntoBackdoorRequest)
-		r.GET("/backdoor/authentication", HandleGetIntoBackdoorRequest)
+	authorizedGroup := rootEngine.Group("/")
+	{
+		logger.Debug("Setting up authorized group...")
+		authorizedGroup.Use(AuthenticationCheck(options, &userService))
+
+		authorizedGroup.GET("/user", UserInfoHandler(userService))
+
+		if options.EnableBackdoors {
+			authorizedGroup.PUT("/backdoor/authentication", HandlePutIntoBackdoorRequest)
+			authorizedGroup.GET("/backdoor/authentication", HandleGetIntoBackdoorRequest)
+		}
+
+		authorizedGroup.GET("/icon", describeAllIconsHanler(s.API))
+		authorizedGroup.GET("/icon/:name", describeIconHandler(s.API))
+		authorizedGroup.POST("/icon", createIconHandler(s.API))
+		authorizedGroup.DELETE("/icon/:name", deleteIconHandler(s.API))
+
+		authorizedGroup.POST("/icon/:name", addIconfileHandler(s.API))
+		authorizedGroup.GET("/icon/:name/format/:format/size/:size", getIconfileHandler(s.API))
+		authorizedGroup.DELETE("/icon/:name/format/:format/size/:size", deleteIconfileHandler(s.API))
+
+		authorizedGroup.GET("/tag", getTagsHandler(s.API))
+		authorizedGroup.POST("/icon/:name/tag", addTagHandler(s.API))
+		authorizedGroup.DELETE("/icon/:name/tag/:tag", removeTagHandler(s.API))
 	}
 
-	r.GET("/icon", describeAllIconsHanler(s.API))
-	r.GET("/icon/:name", describeIconHandler(s.API))
-	r.POST("/icon", createIconHandler(s.API))
-	r.DELETE("/icon/:name", deleteIconHandler(s.API))
-
-	r.POST("/icon/:name", addIconfileHandler(s.API))
-	r.GET("/icon/:name/format/:format/size/:size", getIconfileHandler(s.API))
-	r.DELETE("/icon/:name/format/:format/size/:size", deleteIconfileHandler(s.API))
-
-	r.GET("/tag", getTagsHandler(s.API))
-	r.POST("/icon/:name/tag", addTagHandler(s.API))
-	r.DELETE("/icon/:name/tag/:tag", removeTagHandler(s.API))
-
-	assetHandler := web.AssetHandler("/", "dist")
-	r.NoRoute(gin.WrapH(assetHandler))
-
-	return r
+	return rootEngine
 }
 
 // KillListener kills the listener

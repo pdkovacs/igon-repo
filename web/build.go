@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 	"path"
+
+	log "github.com/sirupsen/logrus"
 )
 
 //go:embed dist/*
@@ -21,6 +23,11 @@ func (f fsFunc) Open(name string) (fs.File, error) {
 
 func AssetHandler(prefix, root string) http.Handler {
 	handler := fsFunc(func(name string) (fs.File, error) {
+
+		logger := log.WithField("prefix", "AssetHandler")
+
+		logger.Debugf("%v requested...", name)
+
 		assetPath := path.Join(root, name)
 
 		// If we can't find the asset, return the default index.html

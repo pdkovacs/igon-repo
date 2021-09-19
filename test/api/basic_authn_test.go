@@ -18,7 +18,7 @@ func TestBasicAuthnTestSuite(t *testing.T) {
 
 func (s *basicAuthnTestSuite) TestShouldFailWith401WithoutCredentials() {
 	req := testRequest{
-		path:          "/info",
+		path:          "/icon",
 		credentials:   &requestCredentials{"", ""},
 		respBodyProto: nil,
 	}
@@ -34,7 +34,7 @@ func (s *basicAuthnTestSuite) TestShouldFailWith401WithWrongCredentials() {
 	reqCreds, makeReqCredErr := makeRequestCredentials(config.BasicAuthentication, "ux", "definitely-wrong-password....!~")
 	s.Require().NoError(makeReqCredErr)
 	req := testRequest{
-		path:          "/info",
+		path:          "/icon",
 		credentials:   &reqCreds,
 		respBodyProto: nil,
 	}
@@ -50,7 +50,7 @@ func (s *basicAuthnTestSuite) TestShouldPasssWithCorrectCredentials() {
 	reqCreds, makeReqCredErr := makeRequestCredentials(config.BasicAuthentication, testdata.DefaultCredentials.Username, testdata.DefaultCredentials.Password)
 	s.Require().NoError(makeReqCredErr)
 	req := testRequest{
-		path:          "/app-info",
+		path:          "/icon",
 		credentials:   &reqCreds,
 		respBodyProto: nil,
 	}
