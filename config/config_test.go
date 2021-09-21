@@ -71,7 +71,7 @@ func storeJSONConfig(config map[string]interface{}, file *os.File) error {
 	return nil
 }
 
-func storeConfigInTempFile(key string, value string) (configFile *os.File) {
+func storeConfigInTempFile(key string, value interface{}) (configFile *os.File) {
 	var err *error
 	configFile = createTempFileForConfig()
 	defer func() {
@@ -115,7 +115,7 @@ func (s *readConfigurationTestSuite) TestFailOnMissingConfigFile() {
 // 2. config.json is overwritten with the go-flags output
 // 3. empty-defaults are overwritten with non-empty defaults (where to store the non-empties???)
 // Currently, only simple configuration setting values have default, which are easy to override from the CL or via env var
-func (s *readConfigurationTestSuite) /* Test */ ConfigFileSettingsOverridesDefaults() {
+func (s *readConfigurationTestSuite) TestConfigFileSettingsOverridesDefaults() {
 	dbHostInFile := "tohuvabohu"
 
 	configFile := storeConfigInTempFile("dbHost", dbHostInFile)
@@ -192,6 +192,41 @@ func (s *readConfigurationTestSuite) TestCliArgsOverridesEnvVarSettings() {
 	s.Equal("localhost", opts.ServerHostname)
 	s.Equal(8080, opts.ServerPort)
 	s.Equal(dbHostInArg, opts.DBHost)
+	s.Equal(5432, opts.DBPort)
+	s.Equal(false, opts.EnableBackdoors)
+}
+
+func (s *readConfigurationTestSuite) TestPasswordCredentialsFromConfigFile() {
+	expected := []PasswordCredentials{{
+		Username: "zazi",
+		Password: "metro",
+	}}
+
+	configFile := storeConfigInTempFile("passwordCredentials", expected)
+	defer closeRemoveFile(configFile)
+
+	clArgs := []string{}
+	opts, err := ReadConfiguration(configFile.Name(), clArgs)
+	s.NoError(err)
+	s.Equal("localhost", opts.ServerHostname)
+	s.Equal(8080, opts.ServerPort)
+	s.Equal(expected, opts.PasswordCredentials)
+	s.Equal(5432, opts.DBPort)
+	s.Equal(false, opts.EnableBackdoors)
+}
+
+func (s *readConfigurationTestSuite) TestUsersByRolesFromConfigFile() {
+	expected := UsersByRoles{"zazi": []string{"metro", "paris"}}
+
+	configFile := storeConfigInTempFile("usersByRoles", expected)
+	defer closeRemoveFile(configFile)
+
+	clArgs := []string{}
+	opts, err := ReadConfiguration(configFile.Name(), clArgs)
+	s.NoError(err)
+	s.Equal("localhost", opts.ServerHostname)
+	s.Equal(8080, opts.ServerPort)
+	s.Equal(expected, opts.UsersByRoles)
 	s.Equal(5432, opts.DBPort)
 	s.Equal(false, opts.EnableBackdoors)
 }
