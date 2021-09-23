@@ -20,3 +20,6 @@ backend:
 		-X 'github.com/pdkovacs/igo-repo/build.commit=$$(git rev-parse HEAD)' \
 	" -o igo-repo cmd/main.go
 build: ui backend
+docker: build
+	cp igo-repo deployments/docker
+	docker build -t iconrepo deployments/docker

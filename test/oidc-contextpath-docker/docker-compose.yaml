@@ -29,8 +29,7 @@ services:
             SERVER_HOSTNAME: "0.0.0.0"
             SERVER_PORT: 8080
             SERVER_URL_CONTEXT: "/icons"
-            PATH_TO_STATIC_FILES: "/usr/src/app/frontend"
-            CONN_HOST: "iconrepo-db"
+            DB_HOST: "iconrepo-db"
             ICON_DATA_LOCATION_GIT: "/data/git-repo"
             ICON_DATA_CREATE_NEW: "init"
             AUTHENTICATION_TYPE: "oidc"
@@ -42,10 +41,10 @@ services:
             OIDC_TOKEN_ISSUER: "http://id-server.test:9001"
             OIDC_IP_JWT_PUBLIC_KEY_PEM_BASE64: "LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQklqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FROEFNSUlCQ2dLQ0FRRUFuRTR4bi9QMS9aemhpNm92QkFsZgpDUDN1MnNOeUswVjQ4RG1QTDFZU3FRSHZ6ZFhvMC80NEhEWjl2T1BCWFBBWjlPenRDeWJHaS81NjdRWVFac2pJClp2T3Ztcm9yNVkzL1hSZTZOQUVBL1hic3FsNTlDWjIrb1BDbVE5TlFHVk16bEEvK29VRnhJbUFWbnRZY2pCSysKZXdWVU4wM3hwcXkrcmk5dTFmbnNHVFZYRHRkalAxeDdJZWdUc2QxMEVocmJMcnhVbGcrZ29iTlZOUFIrZTV5dgo5azhQcXRzc1ZPUjBBamREeGtUazN3ODYwczRMVzAza3Blb05xODhaVEcyOE9MWWQ1eTNXRkowSjhlUDhtbkRXCmV3cEVudEpteGxZbWhOUVpQR091VjJoWm1pM21GeHZLeTFKNlNtSzB0MGNRNDlHbmNxZGNjK1JxS1VWSHJWSmsKVndJREFRQUIKLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg=="
             OIDC_IP_LOGOUT_URL: "http://id-server.test:9001/logout"
-            USERS_BY_ROLES: "{ \"ICON_EDITOR\": [ \"9XE3-JI34-00132A\" ] }"
-            LOGGER_LEVEL: "debug"
+            IGOREPO_LOG_LEVEL: "debug"
+            ICON_REPO_CONFIG_FILE: "/data/config.json"
         volumes:
-            - ~/.ui-toolbox/icon-repo:/data
+            - ${HOME}/.ui-toolbox/icon-repo:/data
         networks:
             - design-net
             - it-net

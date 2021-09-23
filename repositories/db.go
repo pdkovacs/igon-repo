@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strings"
 	"syscall"
 	"time"
 
@@ -136,27 +137,37 @@ func (repo DatabaseRepository) Close() error {
 }
 
 func maybeTransient(err error) bool {
+	logger := log.WithField("prefix", "maybeTransient")
+	logger.Infof("checking db error: %+v.(%T)...", err, err)
+
 	if netError, ok := err.(net.Error); ok && netError.Timeout() {
-		println("Timeout")
+		logger.Info("Timeout")
+		return true
+	}
+
+	errMsg := err.Error()
+	if strings.Contains(errMsg, "dial") && strings.Contains(errMsg, "connect: connection refused") {
 		return true
 	}
 
 	switch t := err.(type) {
 	case *net.OpError:
 		if t.Op == "dial" {
-			println("unknown host / connection refused")
+			logger.Info("unknown host / connection refused")
 			return true
 		} else if t.Op == "read" {
-			println("connection refused")
+			logger.Info("connection refused")
 			return true
 		}
 
 	case syscall.Errno:
 		if t == syscall.ECONNREFUSED {
-			println("connection refused")
+			logger.Info("connection refused")
 			return true
 		}
 	}
+
+	logger.Debug("non-transient")
 	return false
 }
 
