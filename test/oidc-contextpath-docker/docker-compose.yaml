@@ -4,10 +4,13 @@ services:
     fake-oidc:
         image: nightmanager/fake-oidc-server
         user: "1002"
+        environment:
+            ID_PROVIDER_LISTEN_ADDRESS: "172.30.0.2"
+            ID_PROVIDER_HOSTNAME: "id-server.test"
         networks:
             - it-net
         ports:
-            - "127.0.0.1:9001:9001"
+            - "0.0.0.0:9001:9001"
     iconrepo-db:
         image: nightmanager/postgres_10
         command: [
