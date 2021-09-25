@@ -4,7 +4,9 @@ import (
 	"fmt"
 	_ "image/jpeg"
 	_ "image/png"
+	"math/rand"
 	"os"
+	"time"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/pdkovacs/igo-repo/app"
@@ -26,6 +28,8 @@ func setLogLevel(levelArg string) {
 }
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
+
 	log.SetFormatter(&log.TextFormatter{
 		DisableColors:   true,
 		FullTimestamp:   true,

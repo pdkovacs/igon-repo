@@ -1,7 +1,7 @@
 # user  nobody;
 worker_processes  1;
 
-# error_log  /tmp/nginx-error.log debug;
+error_log  /tmp/nginx-error.log debug;
 # pid   /run/nginx.pid;
 
 events {
@@ -17,8 +17,8 @@ http {
             proxy_pass https://151.101.65.67;
         }
         
-        location /icons {
-            proxy_pass http://iconrepo-app:8080;
+        location /icons/ {
+            proxy_pass http://$APP_HOST:8080/;
         }
     }
 }

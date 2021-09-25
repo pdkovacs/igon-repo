@@ -56,6 +56,7 @@ func Authentication(options config.Options, userService *services.UserService) g
 			IpLogoutURL:             options.OIDCIpLogoutURL,
 			ClientID:                options.OIDCClientID,
 			ClientSecret:            options.OIDCClientSecret,
+			ServerURLContext:        options.ServerURLContext,
 		}, userService)
 	}
 	return nil

@@ -38,6 +38,7 @@ type OIDCConfig struct {
 	IpJwtPublicKeyURL       string
 	IpJwtPublicKeyPemBase64 string
 	IpLogoutURL             string
+	ServerURLContext        string
 }
 
 const oidcTokenRequestStateKey = "oidcTokenRequestState"
@@ -88,7 +89,8 @@ func oidcScheme(config OIDCConfig, userService *services.UserService) gin.Handle
 		session := sessions.Default(c)
 		user := session.Get(UserKey)
 		if userSession, ok := user.(SessionData); ok {
-			if len(userSession.UserInfo.UserId.IDInDomain) > 0 { // already authenticated
+			if len(userSession.UserInfo.UserId.IDInDomain) > 0 {
+				logger.Debugf("session already authenticated")
 				return
 			}
 			logger.Errorf("has user-session, but no user-id")
@@ -98,10 +100,11 @@ func oidcScheme(config OIDCConfig, userService *services.UserService) gin.Handle
 
 		authrCode := c.Query("code")
 		if authrCode != "" {
+			logger.Debugf("incoming user approval with autherization code %v", authrCode)
 			state := session.Get(oidcTokenRequestStateKey)
 			storedState, ok := state.(string)
 			if !ok {
-				logger.Error("no suitable state stored for session")
+				logger.Error("no suitable auth2-state stored for session")
 				c.AbortWithStatus(401)
 				return
 			}
@@ -114,7 +117,7 @@ func oidcScheme(config OIDCConfig, userService *services.UserService) gin.Handle
 				session.Set(UserKey, SessionData{userInfo})
 				session.Save()
 				c.Abort()
-				c.Redirect(http.StatusFound, "/")
+				c.Redirect(http.StatusFound, fmt.Sprintf("%s/", config.ServerURLContext))
 				return
 			}
 			if handleCallbackErr != nil {
@@ -130,6 +133,8 @@ func oidcScheme(config OIDCConfig, userService *services.UserService) gin.Handle
 		state := randSeq(32)
 		session.Set(oidcTokenRequestStateKey, state)
 		session.Save()
+
+		logger.Debugf("new authn round started, state %v saved to session", state)
 
 		c.Abort()
 		c.Redirect(http.StatusFound, oauth2Config.AuthCodeURL(state))
