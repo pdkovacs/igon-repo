@@ -2,10 +2,8 @@ package common
 
 import (
 	"crypto/rand"
-	"encoding/json"
 
 	"github.com/pdkovacs/igo-repo/app/domain"
-	"github.com/pdkovacs/igo-repo/config"
 )
 
 func createTestIconfile(format, size string) domain.Iconfile {
@@ -52,23 +50,6 @@ func randomBytes(len int) []byte {
 		panic(err)
 	}
 	return b
-}
-
-func CloneConfig(conf config.Options) config.Options {
-	var clone config.Options
-	var err error
-
-	var configAsJSON []byte
-	configAsJSON, err = json.Marshal(conf)
-	if err != nil {
-		panic(err)
-	}
-	err = json.Unmarshal([]byte(configAsJSON), &clone)
-	if err != nil {
-		panic(err)
-	}
-
-	return clone
 }
 
 var TestData = []domain.Icon{

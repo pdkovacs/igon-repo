@@ -28,7 +28,7 @@ type apiTestSuite struct {
 }
 
 func (s *apiTestSuite) SetupSuite() {
-	s.defaultConfig = common.CloneConfig(config.GetDefaultConfiguration())
+	s.defaultConfig = common.GetTestConfig()
 	s.defaultConfig.PasswordCredentials = []config.PasswordCredentials{
 		testdata.DefaultCredentials,
 	}

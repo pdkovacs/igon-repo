@@ -8,6 +8,7 @@ import (
 	"github.com/pdkovacs/igo-repo/app/domain"
 	"github.com/pdkovacs/igo-repo/config"
 	"github.com/pdkovacs/igo-repo/repositories"
+	"github.com/pdkovacs/igo-repo/test/common"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"
 )
@@ -43,7 +44,7 @@ func DeleteDBData(db *sql.DB) error {
 func (s *DBTestSuite) NewTestDBRepo() {
 	var logger = log.WithField("prefix", "make-sure-has-uptodate-db-schema-with-no-data")
 	var err error
-	config := config.GetDefaultConfiguration()
+	config := common.GetTestConfig()
 	s.dbRepo, err = repositories.InitDBRepo(config)
 	if err != nil {
 		panic(err)
