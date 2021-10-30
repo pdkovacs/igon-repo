@@ -9,4 +9,4 @@
 /deploy/dist/
 /output
 /tmp/config
-test/oidc-contextpath-docker/tmp/
+/**/tmp/
