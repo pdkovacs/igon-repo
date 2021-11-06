@@ -3,7 +3,7 @@ import { SelectFileToUpload } from "./select-file-to-upload";
 import { ingestIconfile, createIcon, IngestedIconfileDTO } from "../../services/icon";
 import { showErrorMessage } from "../../services/toasters";
 
-import "./iconfile-portal.scss";
+import "./iconfile-portal.styl";
 
 interface IconfilePortalProps {
     iconName: string;

@@ -2,7 +2,7 @@ import * as React from "react";
 import { IconDescriptor } from "../../services/icon";
 import { preferredIconfileUrl } from "../../services/icon";
 
-import "./icon-cell.scss";
+import "./icon-cell.styl";
 
 export interface IconCellProps {
     readonly icon: IconDescriptor;

@@ -98,10 +98,6 @@ module.exports = {
                 loader: 'source-map-loader'
             },
             {
-                test: /normalize\.css$/,
-                loaders: cssLoader
-            },
-            {
                 test: /\.(woff|woff2)$/,
                 use: {
                   loader: 'url-loader',
@@ -122,9 +118,30 @@ module.exports = {
                 }
             },
             {
-                test: /\.scss$/,
-                loaders: ["style-loader", "css-loader", "sass-loader"],
-                exclude: /node_modules/
+                test: /normalize\.css$/,
+                use: [
+                    {
+                        loader: "style-loader"
+                    },
+                    {
+                        loader: "css-loader"
+                    }
+                ]
+            },
+            {
+                exclude: /node_modules/,
+                test: /\.styl$/,
+                use: [
+                    {
+                        loader: "style-loader"
+                    },
+                    {
+                        loader: "css-loader"
+                    },
+                    {
+                        loader: "stylus-loader"
+                    }
+                ]
             },
             {
                 test: /\.svg$/,

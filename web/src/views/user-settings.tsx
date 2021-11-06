@@ -2,7 +2,7 @@ import * as React from "react";
 import { Icon, MenuItem } from "@blueprintjs/core";
 import { Select, ItemRenderer } from "@blueprintjs/select";
 
-import "./user-settings.scss";
+import "./user-settings.styl";
 import { logout } from "../services/user";
 
 interface UserSettingsProps {

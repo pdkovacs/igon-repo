@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Map } from "immutable";
 
-import "./layout-util.scss";
+import "./layout-util.styl";
 
 export const renderMapAsTable = (properties: Map<string, JSX.Element>) =>
     <table className="property-list">

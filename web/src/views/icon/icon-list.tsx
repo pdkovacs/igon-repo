@@ -7,7 +7,7 @@ import { AppSettgins } from "../app-settings";
 import { UserSettings } from "../user-settings";
 import { UserInfo, fetchUserInfo, hasAddIconPrivilege, hasUpdateIconPrivilege } from "../../services/user";
 
-import "./icon-list.scss";
+import "./icon-list.styl";
 import { Icon, Button, Intent } from "@blueprintjs/core";
 import { IconDetailsDialog } from "./icon-details-dialog";
 
