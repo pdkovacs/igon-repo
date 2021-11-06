@@ -1,6 +1,6 @@
 import * as React from "react";
 import { VersionInfo } from "../services/config";
-import "./app-settings.scss";
+import "./app-settings.styl";
 
 import { Dialog, Classes, Button } from "@blueprintjs/core";
 

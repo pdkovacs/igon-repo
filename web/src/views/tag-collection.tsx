@@ -2,7 +2,7 @@ import { List, Set } from "immutable";
 import * as React from "react";
 import { Tag, ITagProps, Popover, MenuItem } from "@blueprintjs/core";
 
-import "./tag-collection.scss";
+import "./tag-collection.styl";
 
 export interface TagForSelection {
     readonly text: string;

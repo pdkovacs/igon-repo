@@ -1,5 +1,5 @@
 import "normalize.css";
-import "./global.scss";
+import "./global.styl";
 
 import * as React from "react";
 import * as ReactDOM from "react-dom";

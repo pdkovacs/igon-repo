@@ -21,7 +21,7 @@ import getUrl from "../../services/url";
 import { showSuccessMessage, showErrorMessage } from "../../services/toasters";
 import { IconfilePortal } from "./iconfile-portal";
 
-import "./icon-details-dialog.scss";
+import "./icon-details-dialog.styl";
 
 interface IconDetailsDialogProps {
     readonly username: string;

@@ -1,6 +1,6 @@
 import * as React from "react";
 
-import "./select-file-to-upload.scss";
+import "./select-file-to-upload.styl";
 import { Icon } from "@blueprintjs/core";
 
 interface SelectFileToUploadProps {
