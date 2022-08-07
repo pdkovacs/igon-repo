@@ -8,7 +8,7 @@ import (
 	"reflect"
 	"strconv"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 )
 
 const BasicAuthentication = "basic"
@@ -65,7 +65,7 @@ func GetConfigFilePath() string {
 	} else {
 		result = DefaultConfigFilePath
 	}
-	log.Infof("Configuration file: %s", result)
+	log.Info().Msgf("Configuration file: %s", result)
 	return result
 }
 

@@ -10,7 +10,7 @@ import (
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 )
 
 // BasicConfig holds the configuration for the Basic authentication scheme
@@ -38,8 +38,8 @@ func decodeBasicAuthnHeaderValue(headerValue string) (userid string, password st
 }
 
 func checkBasicAuthentication(options BasicConfig, userService services.UserService) func(c *gin.Context) {
-	logger := log.WithField("prefix", "basic-authn")
-	logger.Debugf("options.PasswordCredentials size: %d", len(options.PasswordCredentialsList))
+	logger := log.With().Str("method", "basic-authn").Logger()
+	logger.Debug().Msgf("options.PasswordCredentials size: %d", len(options.PasswordCredentialsList))
 
 	return func(c *gin.Context) {
 		authorized := false

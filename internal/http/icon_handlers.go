@@ -12,7 +12,7 @@ import (
 	"igo-repo/internal/app/security/authr"
 
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 )
 
 const iconRootPath = "/icon"
@@ -78,12 +78,11 @@ func iconToResponseIcon(icon domain.Icon) IconDTO {
 	)
 }
 
-func describeAllIconsHanler(api API) func(c *gin.Context) {
+func describeAllIconsHanler(describeAllIcons func() ([]domain.IconDescriptor, error), logger zerolog.Logger) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		logger := log.WithField("prefix", "createIconHandler")
-		icons, err := api.IconService.DescribeAllIcons()
+		icons, err := describeAllIcons()
 		if err != nil {
-			logger.Errorf("%v", err)
+			logger.Error().Msgf("%v", err)
 			c.AbortWithStatus(500)
 		}
 		responseIcon := []IconDTO{}
@@ -94,13 +93,12 @@ func describeAllIconsHanler(api API) func(c *gin.Context) {
 	}
 }
 
-func describeIconHandler(api API) func(c *gin.Context) {
+func describeIconHandler(describeIcon func(iconName string) (domain.IconDescriptor, error), logger zerolog.Logger) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		logger := log.WithField("prefix", "createIconHandler")
 		iconName := c.Param("name")
-		icon, err := api.IconService.DescribeIcon(iconName)
+		icon, err := describeIcon(iconName)
 		if err != nil {
-			logger.Errorf("%v", err)
+			logger.Error().Msgf("%v", err)
 			if errors.Is(err, domain.ErrIconNotFound) {
 				c.AbortWithStatus(404)
 				return
@@ -113,44 +111,45 @@ func describeIconHandler(api API) func(c *gin.Context) {
 	}
 }
 
-func createIconHandler(api API) func(c *gin.Context) {
+func createIconHandler(
+	createIcon func(iconName string, initialIconfileContent []byte, modifiedBy authr.UserInfo) (domain.Icon, error),
+	logger zerolog.Logger,
+) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		logger := log.WithField("prefix", "createIconHandler")
-
 		r := c.Request
 		r.ParseMultipartForm(32 << 20) // limit your max input length to 32MB
 
 		iconName := r.FormValue("iconName")
 		if len(iconName) == 0 {
-			logger.Infof("invalid icon name: <empty-string>")
+			logger.Info().Msgf("invalid icon name: <empty-string>")
 			c.AbortWithStatus(400)
 			return
 		}
-		logger.Debugf("icon name: %s", iconName)
+		logger.Debug().Msgf("icon name: %s", iconName)
 
 		var buf bytes.Buffer
 
 		// in your case file would be fileupload
 		file, header, err := r.FormFile("iconfile")
 		if err != nil {
-			logger.Infof("failed to retrieve iconfile for icon %s: %v", iconName, err)
+			logger.Info().Msgf("failed to retrieve iconfile for icon %s: %v", iconName, err)
 			c.AbortWithStatus(400)
 			return
 		}
 		defer file.Close()
 
 		name := strings.Split(header.Filename, ".")
-		logger.Infof("File name %s\n", name[0])
+		logger.Info().Msgf("File name %s\n", name[0])
 
 		// Copy the file data to my buffer
 		io.Copy(&buf, file)
 		defer buf.Reset()
-		logger.Infof("received %d bytes for icon %s", buf.Len(), iconName)
+		logger.Info().Msgf("received %d bytes for icon %s", buf.Len(), iconName)
 
 		// do something with the contents...
-		icon, errCreate := api.IconService.CreateIcon(iconName, buf.Bytes(), MustGetUserSession(c).UserInfo)
+		icon, errCreate := createIcon(iconName, buf.Bytes(), MustGetUserSession(c).UserInfo)
 		if errCreate != nil {
-			logger.Errorf("failed to create icon %v", errCreate)
+			logger.Error().Msgf("failed to create icon %v", errCreate)
 			if errors.Is(errCreate, authr.ErrPermission) {
 				c.AbortWithStatus(403)
 				return
@@ -163,27 +162,28 @@ func createIconHandler(api API) func(c *gin.Context) {
 	}
 }
 
-func getIconfileHandler(api API) func(c *gin.Context) {
+func getIconfileHandler(getIconFile func(iconName string, iconfile domain.IconfileDescriptor) ([]byte, error), logger zerolog.Logger) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		logger := log.WithField("prefix", "getIconfileHandler")
 		iconName := c.Param("name")
 		format := c.Param("format")
 		size := c.Param("size")
-		iconFile, err := api.IconService.GetIconfile(iconName, domain.IconfileDescriptor{
+		iconFile, err := getIconFile(iconName, domain.IconfileDescriptor{
 			Format: format,
 			Size:   size,
 		})
 		if err != nil {
-			logger.Errorf("failed to retrieve %s:%scontents for icon %s: %v", iconName, size, format, err)
+			logger.Error().Msgf("failed to retrieve %s:%scontents for icon %s: %v", iconName, size, format, err)
 			c.AbortWithStatus(500)
 		}
 		c.Data(200, "application/octet-stream", iconFile)
 	}
 }
 
-func addIconfileHandler(api API) func(c *gin.Context) {
+func addIconfileHandler(
+	addIconfile func(iconName string, initialIconfileContent []byte, modifiedBy authr.UserInfo) (domain.IconfileDescriptor, error),
+	logger zerolog.Logger,
+) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		logger := log.WithField("prefix", "addIconfileHandler")
 
 		session := MustGetUserSession(c)
 		authrErr := authr.HasRequiredPermissions(
@@ -203,34 +203,34 @@ func addIconfileHandler(api API) func(c *gin.Context) {
 
 		iconName := r.FormValue("iconName")
 		if len(iconName) == 0 {
-			logger.Infof("invalid icon name: <empty-string>")
+			logger.Info().Msgf("invalid icon name: <empty-string>")
 			c.AbortWithStatus(400)
 			return
 		}
-		logger.Debugf("icon name: %s", iconName)
+		logger.Debug().Msgf("icon name: %s", iconName)
 
 		var buf bytes.Buffer
 
 		// in your case file would be fileupload
 		file, header, err := r.FormFile("iconfile")
 		if err != nil {
-			logger.Infof("failed to retrieve iconfile for icon %s: %v", iconName, err)
+			logger.Info().Msgf("failed to retrieve iconfile for icon %s: %v", iconName, err)
 			c.AbortWithStatus(400)
 			return
 		}
 		defer file.Close()
 
 		name := strings.Split(header.Filename, ".")
-		logger.Infof("File name %s\n", name[0])
+		logger.Info().Msgf("File name %s\n", name[0])
 
 		// Copy the file data to my buffer
 		io.Copy(&buf, file)
-		logger.Infof("received %d bytes as iconfile content for icon %s", buf.Len(), iconName)
+		logger.Info().Msgf("received %d bytes as iconfile content for icon %s", buf.Len(), iconName)
 
 		// do something with the contents...
-		iconfileDescriptor, errCreate := api.IconService.AddIconfile(iconName, buf.Bytes(), MustGetUserSession(c).UserInfo)
+		iconfileDescriptor, errCreate := addIconfile(iconName, buf.Bytes(), MustGetUserSession(c).UserInfo)
 		if errCreate != nil {
-			logger.Errorf("failed to add iconfile %v", errCreate)
+			logger.Error().Msgf("failed to add iconfile %v", errCreate)
 			if errors.Is(errCreate, authr.ErrPermission) {
 				c.AbortWithStatus(403)
 				return
@@ -247,18 +247,17 @@ func addIconfileHandler(api API) func(c *gin.Context) {
 	}
 }
 
-func deleteIconHandler(api API) func(c *gin.Context) {
-	logger := log.WithField("prefix", "deleteIconHandler")
+func deleteIconHandler(deleteIcon func(iconName string, modifiedBy authr.UserInfo) error, logger zerolog.Logger) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		session := MustGetUserSession(c)
 		iconName := c.Param("name")
-		deleteError := api.IconService.DeleteIcon(iconName, session.UserInfo)
+		deleteError := deleteIcon(iconName, session.UserInfo)
 		if deleteError != nil {
 			if errors.Is(deleteError, authr.ErrPermission) {
 				c.AbortWithStatus(403)
 				return
 			}
-			logger.Errorf("failed to delete icon \"%s\": %v", iconName, deleteError)
+			logger.Error().Msgf("failed to delete icon \"%s\": %v", iconName, deleteError)
 			c.AbortWithStatus(500)
 			return
 		}
@@ -266,31 +265,33 @@ func deleteIconHandler(api API) func(c *gin.Context) {
 	}
 }
 
-func deleteIconfileHandler(api API) func(c *gin.Context) {
-	logger := log.WithField("prefix", "delteIconfileHandler")
+func deleteIconfileHandler(
+	deleteIconfile func(iconName string, iconfile domain.IconfileDescriptor, modifiedBy authr.UserInfo) error,
+	logger zerolog.Logger,
+) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		session := MustGetUserSession(c)
 		iconName := c.Param("name")
 		format := c.Param("format")
 		size := c.Param("size")
 		iconfileDescriptor := domain.IconfileDescriptor{Format: format, Size: size}
-		deleteError := api.IconService.DeleteIconfile(iconName, iconfileDescriptor, session.UserInfo)
+		deleteError := deleteIconfile(iconName, iconfileDescriptor, session.UserInfo)
 		if deleteError != nil {
 			if errors.Is(deleteError, authr.ErrPermission) {
 				c.AbortWithStatus(403)
 				return
 			}
 			if errors.Is(deleteError, domain.ErrIconNotFound) {
-				logger.Infof("Icon %s not found", iconName)
+				logger.Info().Msgf("Icon %s not found", iconName)
 				c.AbortWithStatus(404)
 				return
 			}
 			if errors.Is(deleteError, domain.ErrIconfileNotFound) {
-				logger.Infof("Iconfile %v of %s not found", iconfileDescriptor, iconName)
+				logger.Info().Msgf("Iconfile %v of %s not found", iconfileDescriptor, iconName)
 				c.AbortWithStatus(404)
 				return
 			}
-			logger.Errorf("failed to delete iconfile %v of \"%s\": %v", iconfileDescriptor, iconName, deleteError)
+			logger.Error().Msgf("failed to delete iconfile %v of \"%s\": %v", iconfileDescriptor, iconName, deleteError)
 			c.AbortWithStatus(500)
 			return
 		}
@@ -298,12 +299,11 @@ func deleteIconfileHandler(api API) func(c *gin.Context) {
 	}
 }
 
-func getTagsHandler(api API) func(c *gin.Context) {
-	logger := log.WithField("prefix", "getTagsHandler")
+func getTagsHandler(getTags func() ([]string, error), logger zerolog.Logger) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		tags, serviceError := api.IconService.GetTags()
+		tags, serviceError := getTags()
 		if serviceError != nil {
-			logger.Errorf("Failed to retrieve tags: %v", serviceError)
+			logger.Error().Msgf("Failed to retrieve tags: %v", serviceError)
 			c.AbortWithStatus(500)
 			return
 		}
@@ -315,15 +315,17 @@ type AddServiceRequestData struct {
 	Tag string `json:"tag"`
 }
 
-func addTagHandler(api API) func(c *gin.Context) {
-	logger := log.WithField("prefix", "addTagHandler")
+func addTagHandler(
+	addTag func(iconName string, tag string, modifiedBy authr.UserInfo) error,
+	logger zerolog.Logger,
+) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		session := MustGetUserSession(c)
 		iconName := c.Param("name")
 
 		jsonData, readBodyErr := io.ReadAll(c.Request.Body)
 		if readBodyErr != nil {
-			logger.Errorf("failed to read body: %v", readBodyErr)
+			logger.Error().Msgf("failed to read body: %v", readBodyErr)
 			c.AbortWithStatus(400)
 			return
 		}
@@ -331,19 +333,19 @@ func addTagHandler(api API) func(c *gin.Context) {
 		json.Unmarshal(jsonData, &tagRequestData)
 		tag := tagRequestData.Tag
 
-		serviceError := api.IconService.AddTag(iconName, tag, session.UserInfo)
+		serviceError := addTag(iconName, tag, session.UserInfo)
 		if serviceError != nil {
 			if errors.Is(serviceError, authr.ErrPermission) {
-				logger.Infof("Icon %s not found to add/remove tag %s to/from: %v", iconName, tag, serviceError)
+				logger.Info().Msgf("Icon %s not found to add/remove tag %s to/from: %v", iconName, tag, serviceError)
 				c.AbortWithStatus(403)
 				return
 			}
 			if errors.Is(serviceError, domain.ErrIconNotFound) {
-				logger.Infof("Icon %s not found to add/remove tag %s to/from: %v", iconName, tag, serviceError)
+				logger.Info().Msgf("Icon %s not found to add/remove tag %s to/from: %v", iconName, tag, serviceError)
 				c.AbortWithStatus(404)
 				return
 			}
-			logger.Errorf("Failed to add/remove tag %s to/from %s: %v", tag, iconName, serviceError)
+			logger.Error().Msgf("Failed to add/remove tag %s to/from %s: %v", tag, iconName, serviceError)
 			c.AbortWithStatus(500)
 			return
 		}
@@ -351,25 +353,24 @@ func addTagHandler(api API) func(c *gin.Context) {
 	}
 }
 
-func removeTagHandler(api API) func(c *gin.Context) {
-	logger := log.WithField("prefix", "removeTagHandler")
+func removeTagHandler(removeTag func(iconName string, tag string, modifiedBy authr.UserInfo) error, logger zerolog.Logger) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		session := MustGetUserSession(c)
 		iconName := c.Param("name")
 		tag := c.Param("tag")
-		serviceError := api.IconService.RemoveTag(iconName, tag, session.UserInfo)
+		serviceError := removeTag(iconName, tag, session.UserInfo)
 		if serviceError != nil {
 			if errors.Is(serviceError, authr.ErrPermission) {
-				logger.Infof("Icon %s not found to add/remove tag %s to/from: %v", iconName, tag, serviceError)
+				logger.Info().Msgf("Icon %s not found to add/remove tag %s to/from: %v", iconName, tag, serviceError)
 				c.AbortWithStatus(403)
 				return
 			}
 			if errors.Is(serviceError, domain.ErrIconNotFound) {
-				logger.Infof("Icon %s not found to add/remove tag %s to/from: %v", iconName, tag, serviceError)
+				logger.Info().Msgf("Icon %s not found to add/remove tag %s to/from: %v", iconName, tag, serviceError)
 				c.AbortWithStatus(404)
 				return
 			}
-			logger.Errorf("Failed to add/remove tag %s to/from %s: %v", tag, iconName, serviceError)
+			logger.Error().Msgf("Failed to add/remove tag %s to/from %s: %v", tag, iconName, serviceError)
 			c.AbortWithStatus(500)
 			return
 		}

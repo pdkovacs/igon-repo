@@ -5,7 +5,7 @@ import (
 	"igo-repo/internal/app/security/authr"
 	"igo-repo/internal/config"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 )
 
 type UsersByGroups map[authr.GroupID][]authn.UserID
@@ -47,7 +47,7 @@ func getLocalGroupsFor(userID authn.UserID, usersByGroups map[string][]string) [
 			}
 		}
 	}
-	log.Debugf("Groups of %s: %v", userID, groupNames)
+	log.Debug().Msgf("Groups of %s: %v", userID, groupNames)
 	return groupNames2GroupIDs(groupNames)
 }
 

@@ -7,7 +7,7 @@ import (
 	"os"
 	"path"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 )
 
 //go:embed dist/*
@@ -24,9 +24,9 @@ func (f fsFunc) Open(name string) (fs.File, error) {
 func AssetHandler(prefix, root string) http.Handler {
 	handler := fsFunc(func(name string) (fs.File, error) {
 
-		logger := log.WithField("prefix", "AssetHandler")
+		logger := log.With().Str("prefix", "AssetHandler").Logger()
 
-		logger.Debugf("%v requested...", name)
+		logger.Debug().Msgf("%v requested...", name)
 
 		assetPath := path.Join(root, name)
 

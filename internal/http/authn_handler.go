@@ -9,7 +9,6 @@ import (
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
 )
 
 const UserKey = "igo-user"
@@ -28,8 +27,6 @@ func MustGetUserSession(c *gin.Context) SessionData {
 }
 
 func AuthenticationCheck(options config.Options, userService *services.UserService) gin.HandlerFunc {
-	logger := log.WithField("prefix", "AuthenticationCheck")
-	logger.Debugf("AuthenticationType: %v", options.AuthenticationType)
 	switch options.AuthenticationType {
 	case config.BasicAuthentication:
 		return checkBasicAuthentication(BasicConfig{PasswordCredentialsList: options.PasswordCredentials}, *userService)
@@ -41,8 +38,6 @@ func AuthenticationCheck(options config.Options, userService *services.UserServi
 
 // Authentication handles authentication
 func Authentication(options config.Options, userService *services.UserService) gin.HandlerFunc {
-	logger := log.WithField("prefix", "Authentication")
-	logger.Debugf("AuthenticationType: %v", options.AuthenticationType)
 	switch options.AuthenticationType {
 	case config.BasicAuthentication:
 		return basicScheme(BasicConfig{PasswordCredentialsList: options.PasswordCredentials}, userService)

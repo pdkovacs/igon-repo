@@ -3,10 +3,11 @@ package repositories
 import (
 	"database/sql"
 	"fmt"
+	"igo-repo/internal/config"
 	"sort"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 )
 
 type upgradeStep struct {
@@ -45,6 +46,23 @@ var upgradeSteps = []upgradeStep{
 				")",
 		},
 	},
+}
+
+type dbSchema struct {
+	conn   dbConnection
+	logger zerolog.Logger
+}
+
+func OpenDBSchema(config config.Options, dbConn dbConnection, logger zerolog.Logger) (didExist bool, errUpgrade error) {
+	schema := dbSchema{
+		conn:   dbConn,
+		logger: logger,
+	}
+	didExist, errUpgrade = schema.upgradeAirSchema()
+	if errUpgrade != nil {
+		return false, fmt.Errorf("failed to open schema: %w", errUpgrade)
+	}
+	return
 }
 
 func compareVersions(upgrStep1 upgradeStep, upgrStep2 upgradeStep) int {
@@ -98,13 +116,14 @@ func applyUpgrade(tx *sql.Tx, upgrStep upgradeStep) error {
 	return nil
 }
 
-func (repo DatabaseRepository) ExecuteSchemaUpgrade() error {
+func (schema *dbSchema) executeUpgrade() error {
 	var err error
-	logger := log.WithField("prefix", "execute-schema-upgrade")
+	logger := schema.logger.With().Str("method", "executeUpgrade").Logger()
+
 	sort.Slice(upgradeSteps, func(i int, j int) bool { return compareVersions(upgradeSteps[i], upgradeSteps[j]) < 0 })
 
 	var tx *sql.Tx
-	tx, err = repo.ConnectionPool.Begin()
+	tx, err = schema.conn.Pool.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to execute schema upgrade: %w", err)
 	}
@@ -117,9 +136,9 @@ func (repo DatabaseRepository) ExecuteSchemaUpgrade() error {
 			return fmt.Errorf("failed to execute schema upgrade: %w", err)
 		}
 		if applied {
-			logger.Infof("Version already applied: %s", upgrStep.version)
+			logger.Info().Msgf("Version already applied: %s", upgrStep.version)
 		} else {
-			logger.Infof("Applying upgrade: '%s' ...", upgrStep.version)
+			logger.Info().Msgf("Applying upgrade: '%s' ...", upgrStep.version)
 			err = applyUpgrade(tx, upgrStep)
 			if err != nil {
 				return fmt.Errorf("failed to apply upgrade step '%s': %w", upgrStep.version, err)
@@ -128,4 +147,61 @@ func (repo DatabaseRepository) ExecuteSchemaUpgrade() error {
 	}
 	tx.Commit()
 	return nil
+}
+
+func (schema *dbSchema) doesExist() (bool, error) {
+	logger := schema.logger.With().Str("method", "createMaybe").Logger()
+	db := schema.conn.Pool
+	schemaName := schema.conn.schemaName
+	row := db.QueryRow("SELECT schema_name FROM information_schema.schemata WHERE schema_name = $1", schemaName)
+	errQuery := row.Err()
+	if errQuery != nil {
+		return false, fmt.Errorf("failed to query whether AIR schema '%s' exists or not: %w", schemaName, errQuery)
+	}
+
+	var scheName sql.NullString
+	errRowScan := row.Scan(&scheName)
+	if errRowScan != nil && errRowScan != sql.ErrNoRows {
+		return false, errRowScan
+	}
+
+	if scheName.Valid && scheName.String == schemaName {
+		logger.Info().Msgf("AIR schema '%s' exists", schemaName)
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func (schema *dbSchema) create() error {
+	db := schema.conn.Pool
+	schemaName := schema.conn.schemaName
+	_, errCreate := db.Exec("create schema " + schemaName)
+	if errCreate != nil {
+		return fmt.Errorf("failed to create AIR schema '%s': %w", schemaName, errCreate)
+	}
+	return nil
+}
+
+func (schema *dbSchema) upgradeAirSchema() (bool, error) {
+	exists, errDoesExist := schema.doesExist()
+	if errDoesExist != nil {
+		return false, errDoesExist
+	}
+
+	if !exists {
+		errCreateSchema := schema.create()
+		if errCreateSchema != nil {
+			return false, errCreateSchema
+		}
+	}
+
+	if !exists {
+		errUpgrade := schema.executeUpgrade()
+		if errUpgrade != nil {
+			return false, errUpgrade
+		}
+	}
+
+	return exists, nil
 }

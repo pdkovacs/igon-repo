@@ -11,31 +11,14 @@ import (
 	"igo-repo/internal/app"
 	"igo-repo/internal/config"
 	httpadapter "igo-repo/internal/http"
+	"igo-repo/internal/logging"
 	"igo-repo/internal/repositories"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
-	log "github.com/sirupsen/logrus"
 )
-
-func setLogLevel(levelArg string) {
-	var level log.Level
-	if levelArg == "info" {
-		level = log.InfoLevel
-	} else if levelArg == "debug" {
-		level = log.DebugLevel
-	}
-	fmt.Printf("Log level: %v\n", level)
-	log.SetLevel(level)
-}
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
-
-	log.SetFormatter(&log.TextFormatter{
-		DisableColors:   true,
-		FullTimestamp:   true,
-		TimestampFormat: "2006-01-02 15:04:05.000",
-	})
 
 	var serverWanted bool = true
 
@@ -54,14 +37,15 @@ func main() {
 			panic(confErr)
 		}
 
-		setLogLevel(conf.LogLevel)
+		rootLogger := logging.CreateRootLogger(conf.LogLevel)
 
-		db, dbErr := repositories.InitDBRepo(conf)
+		connection, dbErr := repositories.NewDBConnection(conf, logging.CreateUnitLogger(rootLogger, "db-connection"))
 		if dbErr != nil {
 			panic(dbErr)
 		}
+		db := repositories.NewDBRepository(connection, logging.CreateUnitLogger(rootLogger, "db-repository"))
 
-		git := &repositories.GitRepository{Location: conf.IconDataLocationGit}
+		git := repositories.NewGitRepository(conf.IconDataLocationGit, logging.CreateUnitLogger(rootLogger, "git-repository"))
 		gitErr := git.InitMaybe()
 		if gitErr != nil {
 			panic(gitErr)
@@ -71,12 +55,13 @@ func main() {
 
 		app := app.App{Repository: &combinedRepo}
 
-		server := httpadapter.Server{API: httpadapter.API{
-			IconService: &app.GetAPI().IconService,
-		}}
+		server := httpadapter.CreateServer(
+			conf,
+			httpadapter.CreateAPI(app.GetAPI(logging.CreateUnitLogger(rootLogger, "api")).IconService),
+			logging.CreateUnitLogger(rootLogger, "server"),
+		)
 
 		server.SetupAndStart(conf, func(port int) {
 		})
-
 	}
 }

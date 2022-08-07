@@ -35,13 +35,13 @@ func (s *deleteIconfileFromDBTestSuite) TestDeleteTheOnlyIconfile() {
 	s.Error(domain.ErrIconNotFound, err)
 
 	var rowCount int
-	err = s.dbRepo.ConnectionPool.QueryRow("select count(*) as row_count from icon").Scan(&rowCount)
+	err = s.dbRepo.Conn.Pool.QueryRow("select count(*) as row_count from icon").Scan(&rowCount)
 	s.NoError(err)
 	s.Equal(0, rowCount)
-	err = s.dbRepo.ConnectionPool.QueryRow("select count(*) as row_count from icon_file").Scan(&rowCount)
+	err = s.dbRepo.Conn.Pool.QueryRow("select count(*) as row_count from icon_file").Scan(&rowCount)
 	s.NoError(err)
 	s.Equal(0, rowCount)
-	err = s.dbRepo.ConnectionPool.QueryRow("select count(*) as row_count from icon_to_tags").Scan(&rowCount)
+	err = s.dbRepo.Conn.Pool.QueryRow("select count(*) as row_count from icon_to_tags").Scan(&rowCount)
 	s.NoError(err)
 	s.Equal(0, rowCount)
 }
