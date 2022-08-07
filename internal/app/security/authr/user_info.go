@@ -1,6 +1,6 @@
 package authr
 
-import "github.com/pdkovacs/igo-repo/app/security/authn"
+import "igo-repo/internal/app/security/authn"
 
 type UserInfo struct {
 	UserId      authn.UserID   `json:"userID"`

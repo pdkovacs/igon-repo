@@ -4,12 +4,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"igo-repo/internal/config"
 	"net"
 	"strings"
 	"syscall"
 	"time"
 
-	"github.com/pdkovacs/igo-repo/config"
 	log "github.com/sirupsen/logrus"
 )
 

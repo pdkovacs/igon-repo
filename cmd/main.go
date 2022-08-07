@@ -8,11 +8,12 @@ import (
 	"os"
 	"time"
 
+	"igo-repo/internal/app"
+	"igo-repo/internal/config"
+	httpadapter "igo-repo/internal/http"
+	"igo-repo/internal/repositories"
+
 	_ "github.com/jackc/pgx/v4/stdlib"
-	"github.com/pdkovacs/igo-repo/app"
-	"github.com/pdkovacs/igo-repo/config"
-	httpadapter "github.com/pdkovacs/igo-repo/http"
-	"github.com/pdkovacs/igo-repo/repositories"
 	log "github.com/sirupsen/logrus"
 )
 

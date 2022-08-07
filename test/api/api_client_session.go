@@ -9,11 +9,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/pdkovacs/igo-repo/app/domain"
-	"github.com/pdkovacs/igo-repo/app/security/authr"
-	"github.com/pdkovacs/igo-repo/config"
-	httpadapter "github.com/pdkovacs/igo-repo/http"
-	"github.com/pdkovacs/igo-repo/test/testdata"
+	"igo-repo/internal/app/domain"
+	"igo-repo/internal/app/security/authr"
+	"igo-repo/internal/config"
+	httpadapter "igo-repo/internal/http"
+	"igo-repo/test/testdata"
 )
 
 type apiTestSession struct {

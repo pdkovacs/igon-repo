@@ -6,9 +6,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pdkovacs/igo-repo/app/domain"
-	"github.com/pdkovacs/igo-repo/app/security/authn"
-	"github.com/pdkovacs/igo-repo/config"
+	"igo-repo/internal/app/domain"
+	"igo-repo/internal/app/security/authn"
+	"igo-repo/internal/config"
+
 	log "github.com/sirupsen/logrus"
 )
 

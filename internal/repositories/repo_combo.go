@@ -3,8 +3,8 @@ package repositories
 import (
 	"fmt"
 
-	"github.com/pdkovacs/igo-repo/app/domain"
-	"github.com/pdkovacs/igo-repo/app/security/authr"
+	"igo-repo/internal/app/domain"
+	"igo-repo/internal/app/security/authr"
 )
 
 type RepoCombo struct {

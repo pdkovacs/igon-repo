@@ -3,9 +3,9 @@ package repositories
 import (
 	"database/sql"
 	"fmt"
+	"igo-repo/internal/app/domain"
 
 	"github.com/jackc/pgx"
-	"github.com/pdkovacs/igo-repo/app/domain"
 	log "github.com/sirupsen/logrus"
 )
 

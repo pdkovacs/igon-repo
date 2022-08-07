@@ -3,8 +3,7 @@ package api
 import (
 	"encoding/base64"
 	"fmt"
-
-	"github.com/pdkovacs/igo-repo/config"
+	"igo-repo/internal/config"
 )
 
 func makeRequestCredentials(authnScheme string, usernameOrToken string, password string) (requestCredentials, error) {

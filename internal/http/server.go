@@ -7,14 +7,15 @@ import (
 	"net/http"
 	"strconv"
 
+	"igo-repo/internal/app/domain"
+	"igo-repo/internal/app/security/authr"
+	"igo-repo/internal/app/services"
+	"igo-repo/internal/config"
+	"igo-repo/web"
+
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/memstore"
 	"github.com/gin-gonic/gin"
-	"github.com/pdkovacs/igo-repo/app/domain"
-	"github.com/pdkovacs/igo-repo/app/security/authr"
-	"github.com/pdkovacs/igo-repo/app/services"
-	"github.com/pdkovacs/igo-repo/config"
-	"github.com/pdkovacs/igo-repo/web"
 	log "github.com/sirupsen/logrus"
 )
 

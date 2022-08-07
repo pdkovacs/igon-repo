@@ -1,9 +1,9 @@
 package api
 
 import (
+	"igo-repo/internal/config"
 	"testing"
 
-	"github.com/pdkovacs/igo-repo/config"
 	"github.com/stretchr/testify/suite"
 )
 

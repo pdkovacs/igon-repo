@@ -2,9 +2,8 @@ package common
 
 import (
 	"encoding/json"
+	"igo-repo/internal/config"
 	"os"
-
-	"github.com/pdkovacs/igo-repo/config"
 )
 
 func CloneConfig(conf config.Options) config.Options {

@@ -6,14 +6,15 @@ import (
 	"os"
 	"sync"
 
+	"igo-repo/internal/app"
+	"igo-repo/internal/config"
+	httpadapter "igo-repo/internal/http"
+	"igo-repo/internal/repositories"
+	"igo-repo/test/common"
+	repositories_itests "igo-repo/test/repositories"
+	"igo-repo/test/testdata"
+
 	_ "github.com/jackc/pgx/v4/stdlib"
-	"github.com/pdkovacs/igo-repo/app"
-	"github.com/pdkovacs/igo-repo/config"
-	httpadapter "github.com/pdkovacs/igo-repo/http"
-	"github.com/pdkovacs/igo-repo/repositories"
-	"github.com/pdkovacs/igo-repo/test/common"
-	repositories_itests "github.com/pdkovacs/igo-repo/test/repositories"
-	"github.com/pdkovacs/igo-repo/test/testdata"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"
 )

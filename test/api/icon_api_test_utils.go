@@ -7,8 +7,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/pdkovacs/igo-repo/app/domain"
-	httpadapter "github.com/pdkovacs/igo-repo/http"
+	"igo-repo/internal/app/domain"
+	httpadapter "igo-repo/internal/http"
 )
 
 type iconTestSuite struct {

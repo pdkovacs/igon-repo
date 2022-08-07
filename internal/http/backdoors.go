@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"io"
 
+	"igo-repo/internal/app/security/authr"
+
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"github.com/pdkovacs/igo-repo/app/security/authr"
 	log "github.com/sirupsen/logrus"
 )
 

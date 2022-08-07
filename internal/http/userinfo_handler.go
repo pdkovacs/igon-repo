@@ -1,11 +1,12 @@
 package http
 
 import (
+	"igo-repo/internal/app/security/authn"
+	"igo-repo/internal/app/security/authr"
+	"igo-repo/internal/app/services"
+
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"github.com/pdkovacs/igo-repo/app/security/authn"
-	"github.com/pdkovacs/igo-repo/app/security/authr"
-	"github.com/pdkovacs/igo-repo/app/services"
 	log "github.com/sirupsen/logrus"
 )
 

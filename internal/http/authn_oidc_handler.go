@@ -6,11 +6,12 @@ import (
 	"math/rand"
 	"net/http"
 
+	"igo-repo/internal/app/security/authn"
+	"igo-repo/internal/app/services"
+
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"github.com/pdkovacs/igo-repo/app/security/authn"
-	"github.com/pdkovacs/igo-repo/app/services"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 )

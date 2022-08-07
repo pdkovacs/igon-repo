@@ -4,8 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/pdkovacs/igo-repo/app/domain"
-	itests_common "github.com/pdkovacs/igo-repo/test/common"
+	"igo-repo/internal/app/domain"
+	itests_common "igo-repo/test/common"
+
 	"github.com/stretchr/testify/suite"
 )
 
