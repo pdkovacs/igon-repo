@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os/exec"
 
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 )
 
 type CmdOpts struct {
@@ -29,9 +29,9 @@ func (e ExecCmdParams) String() string {
 	return fmt.Sprintf("%v, %v, %v", e.Name, e.Args, option_string)
 }
 
-func ExecuteCommand(params ExecCmdParams) (string, error) {
-	logger := log.WithField("prefix", "config.ExecuteCommand")
-	logger.Infof("Starting: %v...", params)
+func ExecuteCommand(params ExecCmdParams, logger zerolog.Logger) (string, error) {
+	execCmdLogger := logger.With().Str("prefix", "config.ExecuteCommand").Logger()
+	execCmdLogger.Info().Msgf("Starting: %v...", params)
 
 	cmd := exec.Command(params.Name, params.Args...)
 	if params.Opts != nil {

@@ -10,14 +10,14 @@ import (
 	"igo-repo/test/common"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/suite"
 )
 
 type DBTestSuite struct {
 	suite.Suite
 	config config.Options
-	dbRepo *repositories.DatabaseRepository
+	dbRepo *repositories.DBRepository
 }
 
 func DeleteDBData(db *sql.DB) error {
@@ -43,28 +43,20 @@ func DeleteDBData(db *sql.DB) error {
 }
 
 func (s *DBTestSuite) NewTestDBRepo() {
-	var logger = log.WithField("prefix", "make-sure-has-uptodate-db-schema-with-no-data")
 	var err error
 	config := common.GetTestConfig()
-	s.dbRepo, err = repositories.InitDBRepo(config)
+	connection, err := repositories.NewDBConnection(config, log.With().Str("unit", "test-db-connection").Logger())
+	if err != nil {
+		panic(fmt.Sprintf("failed to create test connection: %v", err))
+	}
+	err = DeleteDBData(connection.Pool)
+	if err != nil {
+		panic(fmt.Sprintf("failed to delete test data: %v", err))
+	}
+	s.dbRepo = repositories.NewDBRepository(connection, log.With().Str("unit", "test-db-repo").Logger())
 	if err != nil {
 		panic(err)
 	}
-	err = DeleteDBData(s.dbRepo.ConnectionPool)
-	if err != nil {
-		logger.Errorf("failed to delete test data: %v", err)
-		panic(err)
-	}
-}
-
-func (s DBTestSuite) getIconCount() (int, error) {
-	var getIconCountSQL = "SELECT count(*) from icon"
-	var count int
-	err := s.dbRepo.ConnectionPool.QueryRow(getIconCountSQL).Scan(&count)
-	if err != nil {
-		return 0, nil
-	}
-	return count, nil
 }
 
 func manageTestResourcesAfterEach() {
@@ -75,7 +67,7 @@ func (s *DBTestSuite) SetupSuite() {
 }
 
 func (s *DBTestSuite) TearDownSuite() {
-	s.dbRepo.Close()
+	s.dbRepo.Conn.Pool.Close()
 }
 
 func (s *DBTestSuite) BeforeTest(suiteName, testName string) {
@@ -92,6 +84,16 @@ func (s *DBTestSuite) equalIconAttributes(icon1 domain.Icon, icon2 domain.IconDe
 	if expectedTags != nil {
 		s.Equal(expectedTags, icon2.Tags)
 	}
+}
+
+func (s DBTestSuite) getIconCount() (int, error) {
+	var getIconCountSQL = "SELECT count(*) from icon"
+	var count int
+	err := s.dbRepo.Conn.Pool.QueryRow(getIconCountSQL).Scan(&count)
+	if err != nil {
+		return 0, nil
+	}
+	return count, nil
 }
 
 func (s *DBTestSuite) getIconfile(iconName string, iconfile domain.Iconfile) ([]byte, error) {

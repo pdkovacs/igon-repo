@@ -8,7 +8,7 @@ import (
 )
 
 type RepoCombo struct {
-	DB  *DatabaseRepository
+	DB  *DBRepository
 	Git *GitRepository
 }
 

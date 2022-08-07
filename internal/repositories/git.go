@@ -10,11 +10,20 @@ import (
 	"igo-repo/internal/app/security/authn"
 	"igo-repo/internal/config"
 
+	"github.com/rs/zerolog"
 	log "github.com/sirupsen/logrus"
 )
 
 type GitRepository struct {
 	Location string
+	Logger   zerolog.Logger
+}
+
+func NewGitRepository(location string, logger zerolog.Logger) *GitRepository {
+	return &GitRepository{
+		Location: location,
+		Logger:   logger,
+	}
 }
 
 var IntrusiveGitTestEnvvarName = "GIT_COMMIT_FAIL_INTRUSIVE_TEST"
@@ -66,7 +75,7 @@ func (g GitRepository) ExecuteGitCommand(args []string) (string, error) {
 		Name: "git",
 		Args: args,
 		Opts: &config.CmdOpts{Cwd: g.Location},
-	})
+	}, g.Logger)
 }
 
 type getCommitMessageFn func(filelist []string) string
@@ -276,7 +285,7 @@ func (s *GitRepository) createInitializeGitRepo() error {
 	}
 
 	for _, cmd := range cmds {
-		out, err = config.ExecuteCommand(cmd)
+		out, err = config.ExecuteCommand(cmd, s.Logger)
 		println(out)
 		if err != nil {
 			return fmt.Errorf("failed to create git repo at %s: %w", s.Location, err)
@@ -289,7 +298,7 @@ func (s *GitRepository) createInitializeGitRepo() error {
 func (s *GitRepository) test() bool {
 	if GitRepoLocationExists(s.Location) {
 		testCommand := config.ExecCmdParams{Name: "git", Args: []string{"init"}, Opts: &config.CmdOpts{Cwd: s.Location}}
-		outOrErr, err := config.ExecuteCommand(testCommand)
+		outOrErr, err := config.ExecuteCommand(testCommand, s.Logger)
 		if err != nil {
 			if strings.Contains(outOrErr, "not a git repository") {
 				return false

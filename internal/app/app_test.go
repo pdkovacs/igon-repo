@@ -11,11 +11,15 @@ import (
 	"igo-repo/internal/app/security/authn"
 	"igo-repo/internal/app/security/authr"
 	"igo-repo/internal/app/services"
+	"igo-repo/internal/logging"
 	"igo-repo/mocks"
 	"igo-repo/test/testdata"
 
 	"github.com/stretchr/testify/suite"
 )
+
+var appTestLogger = logging.CreateRootLogger(logging.DebugLevel)
+var appTestApiLogger = logging.CreateUnitLogger(appTestLogger, "app-test-api")
 
 func createUserInfo(withPerms []authr.PermissionID) authr.UserInfo {
 	return authr.UserInfo{
@@ -51,7 +55,7 @@ func TestAppTestSuite(t *testing.T) {
 }
 
 func (s *appTestSuite) SetupSuite() {
-	services.RegisterSVGDecoder()
+	services.RegisterSVGDecoder(logging.CreateUnitLogger(appTestLogger, "app-test-suite"))
 }
 
 func (s *appTestSuite) TestCreateIconNoPerm() {
@@ -60,7 +64,7 @@ func (s *appTestSuite) TestCreateIconNoPerm() {
 	iconfile := getTestIconfile()
 	mockRepo := mocks.Repository{}
 	application := App{Repository: &mockRepo}
-	api := application.GetAPI()
+	api := application.GetAPI(appTestApiLogger)
 	_, err := api.IconService.CreateIcon(iconName, iconfile.Content, testUser)
 	s.True(errors.Is(err, authr.ErrPermission))
 	mockRepo.AssertExpectations(s.t)
@@ -81,7 +85,7 @@ func (s *appTestSuite) TestCreateIcon() {
 	mockRepo := mocks.Repository{}
 	mockRepo.On("CreateIcon", iconName, iconfile, testUser).Return(nil)
 	application := App{Repository: &mockRepo}
-	api := application.GetAPI()
+	api := application.GetAPI(appTestApiLogger)
 	icon, err := api.IconService.CreateIcon(iconName, iconfile.Content, testUser)
 	s.NoError(err)
 	s.Equal(expectedResponseIcon, icon)

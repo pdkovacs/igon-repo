@@ -9,21 +9,28 @@ import (
 	"igo-repo/internal/app"
 	"igo-repo/internal/config"
 	httpadapter "igo-repo/internal/http"
+	"igo-repo/internal/logging"
 	"igo-repo/internal/repositories"
 	"igo-repo/test/common"
 	repositories_itests "igo-repo/test/repositories"
 	"igo-repo/test/testdata"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/suite"
 )
+
+var rootAPILogger = logging.CreateRootLogger(logging.DebugLevel)
+
+type Closeable interface {
+	Close()
+}
 
 type apiTestSuite struct {
 	suite.Suite
 	defaultConfig config.Options
-	server        httpadapter.Server
-	testDBRepo    repositories.DatabaseRepository
+	server        Closeable
+	testDBRepo    repositories.DBRepository
 	testGitRepo   repositories_itests.GitTestRepo
 	client        apiTestClient
 }
@@ -54,22 +61,22 @@ func (s *apiTestSuite) AfterTest(suiteName, testName string) {
 	}
 	os.Unsetenv(repositories.IntrusiveGitTestEnvvarName)
 
-	repositories_itests.DeleteDBData(s.testDBRepo.ConnectionPool)
-	s.testDBRepo.Close()
+	repositories_itests.DeleteDBData(s.testDBRepo.Conn.Pool)
+	s.testDBRepo.Conn.Pool.Close()
 }
 
 // startTestServer starts a test server
 func (s *apiTestSuite) startTestServer(conf config.Options) {
 
-	log.SetLevel(log.DebugLevel)
-
-	db, dbErr := repositories.InitDBRepo(conf)
-	if dbErr != nil {
-		panic(dbErr)
+	connection, connOpenErr := repositories.NewDBConnection(conf, log.With().Str("unit", "test-db-connection").Logger())
+	if connOpenErr != nil {
+		panic(connOpenErr)
 	}
+
+	db := repositories.NewDBRepository(connection, log.With().Str("unit", "test-db-repo").Logger())
 	s.testDBRepo = *db
 
-	git := &repositories.GitRepository{Location: conf.IconDataLocationGit}
+	git := repositories.NewGitRepository(conf.IconDataLocationGit, logging.CreateUnitLogger(rootAPILogger, "git-repository"))
 	gitErr := git.InitMaybe()
 	if gitErr != nil {
 		panic(gitErr)
@@ -83,12 +90,15 @@ func (s *apiTestSuite) startTestServer(conf config.Options) {
 	conf.ServerPort = 0
 	var wg sync.WaitGroup
 	wg.Add(1)
-	s.server = httpadapter.Server{API: httpadapter.API{
-		IconService: &app.GetAPI().IconService,
-	}}
-	go s.server.SetupAndStart(conf, func(port int) {
+	server := httpadapter.CreateServer(
+		conf,
+		httpadapter.CreateAPI(app.GetAPI(logging.CreateUnitLogger(rootAPILogger, "api")).IconService),
+		logging.CreateUnitLogger(rootAPILogger, "server"),
+	)
+	s.server = &server
+	go server.SetupAndStart(conf, func(port int) {
 		s.client.serverPort = port
-		log.Infof("Server is listening on port %d", port)
+		log.Logger.Info().Msgf("Server is listening on port %d", port)
 		wg.Done()
 	})
 	wg.Wait()
@@ -96,5 +106,5 @@ func (s *apiTestSuite) startTestServer(conf config.Options) {
 
 // terminateTestServer terminates a test server
 func (s *apiTestSuite) terminateTestServer() {
-	s.server.KillListener()
+	s.server.Close()
 }

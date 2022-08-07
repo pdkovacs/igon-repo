@@ -8,12 +8,11 @@ import (
 	"io"
 	"net/http"
 	"net/http/cookiejar"
+	"os"
 
 	"igo-repo/internal/app/domain"
 	"igo-repo/internal/config"
 	"igo-repo/test/testdata"
-
-	log "github.com/sirupsen/logrus"
 )
 
 var errUnexpecteHTTPStatus = errors.New("unexpected HTTP status")
@@ -83,7 +82,6 @@ func encodeRequestBody(requestBody interface{}, isJSON bool) (io.Reader, error) 
 }
 
 func (c *apiTestClient) sendRequest(method string, req *testRequest) (testResponse, error) {
-	logger := log.WithField("prefix", "sendRequest")
 	body, errBodyEncode := encodeRequestBody(req.body, req.json)
 	if errBodyEncode != nil {
 		return testResponse{}, errBodyEncode
@@ -133,7 +131,7 @@ func (c *apiTestClient) sendRequest(method string, req *testRequest) (testRespon
 			// TODO: We should somehow better handle unmarshalling failed calls as well...
 			//       ... using some standard error JSON for example?
 			if jsonUnmarshalError != nil {
-				logger.Errorf("failed to unmarshal JSON response: %v\n", jsonUnmarshalError)
+				fmt.Fprintf(os.Stderr, "[send-request] failed to unmarshal JSON response: %v\n", jsonUnmarshalError)
 				return testResponse{
 					headers:    resp.Header,
 					statusCode: resp.StatusCode,
