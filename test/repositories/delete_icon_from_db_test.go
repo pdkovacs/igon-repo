@@ -3,7 +3,8 @@ package repositories
 import (
 	"testing"
 
-	itests_common "github.com/pdkovacs/igo-repo/test/common"
+	itests_common "igo-repo/test/common"
+
 	"github.com/stretchr/testify/suite"
 )
 

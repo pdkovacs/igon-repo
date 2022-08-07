@@ -5,10 +5,10 @@ import (
 	"os"
 	"path"
 
-	"github.com/pdkovacs/igo-repo/app/domain"
-	"github.com/pdkovacs/igo-repo/app/security/authn"
-	"github.com/pdkovacs/igo-repo/config"
-	httpadapter "github.com/pdkovacs/igo-repo/http"
+	"igo-repo/internal/app/domain"
+	"igo-repo/internal/app/security/authn"
+	"igo-repo/internal/config"
+	httpadapter "igo-repo/internal/http"
 )
 
 var backendSourceHome = os.Getenv("BACKEND_SOURCE_HOME")

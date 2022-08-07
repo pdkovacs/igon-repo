@@ -3,9 +3,10 @@ package api
 import (
 	"testing"
 
-	"github.com/pdkovacs/igo-repo/app/security/authr"
-	httpadapter "github.com/pdkovacs/igo-repo/http"
-	"github.com/pdkovacs/igo-repo/test/testdata"
+	"igo-repo/internal/app/security/authr"
+	httpadapter "igo-repo/internal/http"
+	"igo-repo/test/testdata"
+
 	"github.com/stretchr/testify/suite"
 )
 

@@ -4,11 +4,12 @@ import (
 	"database/sql"
 	"fmt"
 
+	"igo-repo/internal/app/domain"
+	"igo-repo/internal/config"
+	"igo-repo/internal/repositories"
+	"igo-repo/test/common"
+
 	_ "github.com/jackc/pgx/v4/stdlib"
-	"github.com/pdkovacs/igo-repo/app/domain"
-	"github.com/pdkovacs/igo-repo/config"
-	"github.com/pdkovacs/igo-repo/repositories"
-	"github.com/pdkovacs/igo-repo/test/common"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/suite"
 )

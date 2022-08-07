@@ -7,12 +7,13 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 
-	"github.com/pdkovacs/igo-repo/app/domain"
-	"github.com/pdkovacs/igo-repo/app/security/authn"
-	"github.com/pdkovacs/igo-repo/app/security/authr"
-	"github.com/pdkovacs/igo-repo/app/services"
-	"github.com/pdkovacs/igo-repo/mocks"
-	"github.com/pdkovacs/igo-repo/test/testdata"
+	"igo-repo/internal/app/domain"
+	"igo-repo/internal/app/security/authn"
+	"igo-repo/internal/app/security/authr"
+	"igo-repo/internal/app/services"
+	"igo-repo/mocks"
+	"igo-repo/test/testdata"
+
 	"github.com/stretchr/testify/suite"
 )
 

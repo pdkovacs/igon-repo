@@ -3,8 +3,8 @@
 package mocks
 
 import (
-	domain "github.com/pdkovacs/igo-repo/app/domain"
-	authr "github.com/pdkovacs/igo-repo/app/security/authr"
+	domain "igo-repo/internal/app/domain"
+	authr "igo-repo/internal/app/security/authr"
 
 	mock "github.com/stretchr/testify/mock"
 )

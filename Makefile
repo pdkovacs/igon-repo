@@ -5,9 +5,9 @@ export BACKEND_SOURCE_HOME = $(dir $(mkfile_path))
 clean:
 	go clean -testcache
 	rm -f igo-repo
-test: build
+test: backend
 	go test ./...
-test-verbose: build
+test-verbose: backend
 	go test -v ./...
 run:
 	go run cmd/main.go
@@ -16,10 +16,10 @@ ui:
 backend:
 	echo "GOOS: ${GOOS} GOARCH: ${GOARCH}"
 	env GOOS=${GOOS} GOARCH=${GOARCH} go build -ldflags "\
-		-X 'github.com/pdkovacs/igo-repo/build.version=0.0.1' \
-		-X 'github.com/pdkovacs/igo-repo/build.user=$$(id -u -n)' \
-		-X 'github.com/pdkovacs/igo-repo/build.time=$$(date)' \
-		-X 'github.com/pdkovacs/igo-repo/build.commit=$$(git rev-parse HEAD)' \
+		-X 'igo-repo/build.version=0.0.1' \
+		-X 'igo-repo/build.user=$$(id -u -n)' \
+		-X 'igo-repo/build.time=$$(date)' \
+		-X 'igo-repo/build.commit=$$(git rev-parse HEAD)' \
 	" -o igo-repo cmd/main.go
 build: ui backend
 docker: GOOS=linux

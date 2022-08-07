@@ -1,9 +1,10 @@
 package services
 
 import (
-	"github.com/pdkovacs/igo-repo/app/security/authn"
-	"github.com/pdkovacs/igo-repo/app/security/authr"
-	"github.com/pdkovacs/igo-repo/config"
+	"igo-repo/internal/app/security/authn"
+	"igo-repo/internal/app/security/authr"
+	"igo-repo/internal/config"
+
 	log "github.com/sirupsen/logrus"
 )
 

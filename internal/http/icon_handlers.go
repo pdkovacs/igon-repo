@@ -8,9 +8,10 @@ import (
 	"io"
 	"strings"
 
+	"igo-repo/internal/app/domain"
+	"igo-repo/internal/app/security/authr"
+
 	"github.com/gin-gonic/gin"
-	"github.com/pdkovacs/igo-repo/app/domain"
-	"github.com/pdkovacs/igo-repo/app/security/authr"
 	log "github.com/sirupsen/logrus"
 )
 

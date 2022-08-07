@@ -8,9 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/pdkovacs/igo-repo/app/domain"
-	"github.com/pdkovacs/igo-repo/config"
-	"github.com/pdkovacs/igo-repo/repositories"
+	"igo-repo/internal/app/domain"
+	"igo-repo/internal/config"
+	"igo-repo/internal/repositories"
+
 	"github.com/stretchr/testify/suite"
 )
 

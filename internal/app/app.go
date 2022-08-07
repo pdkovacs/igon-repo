@@ -1,7 +1,7 @@
 package app
 
 import (
-	"github.com/pdkovacs/igo-repo/app/services"
+	"igo-repo/internal/app/services"
 )
 
 // Primary port

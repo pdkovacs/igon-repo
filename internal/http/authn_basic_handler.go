@@ -4,11 +4,12 @@ import (
 	"encoding/base64"
 	"strings"
 
+	"igo-repo/internal/app/security/authn"
+	"igo-repo/internal/app/services"
+	"igo-repo/internal/config"
+
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"github.com/pdkovacs/igo-repo/app/security/authn"
-	"github.com/pdkovacs/igo-repo/app/services"
-	"github.com/pdkovacs/igo-repo/config"
 	log "github.com/sirupsen/logrus"
 )
 

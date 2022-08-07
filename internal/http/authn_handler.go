@@ -3,11 +3,12 @@ package http
 import (
 	"fmt"
 
+	"igo-repo/internal/app/security/authr"
+	"igo-repo/internal/app/services"
+	"igo-repo/internal/config"
+
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"github.com/pdkovacs/igo-repo/app/security/authr"
-	"github.com/pdkovacs/igo-repo/app/services"
-	"github.com/pdkovacs/igo-repo/config"
 	log "github.com/sirupsen/logrus"
 )
 
