@@ -5,10 +5,12 @@ export BACKEND_SOURCE_HOME = $(dir $(mkfile_path))
 clean:
 	go clean -testcache
 	rm -f igo-repo
-test: backend
+test: ui backend
 	go test ./...
 test-verbose: backend
 	go test -v ./...
+test-single: backend
+	go test -v ./test/api -run '^TestIconCreateTestSuite$$' -testify.m TestRollbackToLastConsistentStateOnError
 run:
 	go run cmd/main.go
 ui:

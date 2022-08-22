@@ -45,21 +45,25 @@ func CreateAPI(iconService iconService) api {
 
 type server struct {
 	listener      net.Listener
-	Configuration config.Options
-	API           api
+	configuration config.Options
 	logger        zerolog.Logger
+	api           api
 }
 
 func CreateServer(configuration config.Options, api api, logger zerolog.Logger) server {
 	return server{
-		Configuration: configuration,
-		API:           api,
+		configuration: configuration,
+		api:           api,
 		logger:        logger,
 	}
 }
 
+type Stoppable interface {
+	Stop()
+}
+
 // Start starts the service
-func (s *server) Start(portRequested int, r http.Handler, ready func(port int)) {
+func (s *server) Start(portRequested int, r http.Handler, ready func(port int, server Stoppable)) {
 	logger := s.logger.With().Str("prefix", "StartServer").Logger()
 	logger.Info().Msg("Starting server on ephemeral....")
 	var err error
@@ -81,14 +85,14 @@ func (s *server) Start(portRequested int, r http.Handler, ready func(port int)) 
 		if err != nil {
 			panic(err)
 		}
-		ready(portAsInt)
+		ready(portAsInt, s)
 	}
 
 	http.Serve(s.listener, r)
 }
 
 // SetupAndStart sets up and starts server.
-func (s *server) SetupAndStart(options config.Options, ready func(port int)) {
+func (s *server) SetupAndStart(options config.Options, ready func(port int, server Stoppable)) {
 	r := s.initEndpoints(options)
 	s.Start(options.ServerPort, r, ready)
 }
@@ -129,25 +133,25 @@ func (s *server) initEndpoints(options config.Options) *gin.Engine {
 			authorizedGroup.GET("/backdoor/authentication", HandleGetIntoBackdoorRequest)
 		}
 
-		authorizedGroup.GET("/icon", describeAllIconsHanler(s.API.iconService.DescribeAllIcons, logging.CreateMethodLogger(s.logger, "describeAllIconsHanler")))
-		authorizedGroup.GET("/icon/:name", describeIconHandler(s.API.iconService.DescribeIcon, logging.CreateMethodLogger(s.logger, "describeIconHandler")))
-		authorizedGroup.POST("/icon", createIconHandler(s.API.iconService.CreateIcon, logging.CreateMethodLogger(s.logger, "createIconHandler")))
-		authorizedGroup.DELETE("/icon/:name", deleteIconHandler(s.API.iconService.DeleteIcon, logging.CreateMethodLogger(s.logger, "deleteIconHandler")))
+		authorizedGroup.GET("/icon", describeAllIconsHanler(s.api.iconService.DescribeAllIcons, logging.CreateMethodLogger(s.logger, "describeAllIconsHanler")))
+		authorizedGroup.GET("/icon/:name", describeIconHandler(s.api.iconService.DescribeIcon, logging.CreateMethodLogger(s.logger, "describeIconHandler")))
+		authorizedGroup.POST("/icon", createIconHandler(s.api.iconService.CreateIcon, logging.CreateMethodLogger(s.logger, "createIconHandler")))
+		authorizedGroup.DELETE("/icon/:name", deleteIconHandler(s.api.iconService.DeleteIcon, logging.CreateMethodLogger(s.logger, "deleteIconHandler")))
 
-		authorizedGroup.POST("/icon/:name", addIconfileHandler(s.API.iconService.AddIconfile, logging.CreateMethodLogger(s.logger, "addIconfileHandler")))
-		authorizedGroup.GET("/icon/:name/format/:format/size/:size", getIconfileHandler(s.API.iconService.GetIconfile, logging.CreateMethodLogger(s.logger, "getIconfileHandler")))
-		authorizedGroup.DELETE("/icon/:name/format/:format/size/:size", deleteIconfileHandler(s.API.iconService.DeleteIconfile, logging.CreateMethodLogger(s.logger, "deleteIconfileHandler")))
+		authorizedGroup.POST("/icon/:name", addIconfileHandler(s.api.iconService.AddIconfile, logging.CreateMethodLogger(s.logger, "addIconfileHandler")))
+		authorizedGroup.GET("/icon/:name/format/:format/size/:size", getIconfileHandler(s.api.iconService.GetIconfile, logging.CreateMethodLogger(s.logger, "getIconfileHandler")))
+		authorizedGroup.DELETE("/icon/:name/format/:format/size/:size", deleteIconfileHandler(s.api.iconService.DeleteIconfile, logging.CreateMethodLogger(s.logger, "deleteIconfileHandler")))
 
-		authorizedGroup.GET("/tag", getTagsHandler(s.API.iconService.GetTags, logging.CreateMethodLogger(s.logger, "getTagsHandler")))
-		authorizedGroup.POST("/icon/:name/tag", addTagHandler(s.API.iconService.AddTag, logging.CreateMethodLogger(s.logger, "addTagHandler")))
-		authorizedGroup.DELETE("/icon/:name/tag/:tag", removeTagHandler(s.API.iconService.RemoveTag, logging.CreateMethodLogger(s.logger, "removeTagHandler")))
+		authorizedGroup.GET("/tag", getTagsHandler(s.api.iconService.GetTags, logging.CreateMethodLogger(s.logger, "getTagsHandler")))
+		authorizedGroup.POST("/icon/:name/tag", addTagHandler(s.api.iconService.AddTag, logging.CreateMethodLogger(s.logger, "addTagHandler")))
+		authorizedGroup.DELETE("/icon/:name/tag/:tag", removeTagHandler(s.api.iconService.RemoveTag, logging.CreateMethodLogger(s.logger, "removeTagHandler")))
 	}
 
 	return rootEngine
 }
 
-// Close kills the listener
-func (s *server) Close() {
+// Stop kills the listener
+func (s *server) Stop() {
 	logger := s.logger.With().Str("prefix", "ListenerKiller").Logger()
 	logger.Info().Msgf("listener: %v", s.listener)
 	error := s.listener.Close()

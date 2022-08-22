@@ -41,7 +41,7 @@ func (s *authBackDoorTestSuite) BeforeTest(suiteName string, testName string) {
 			panic("Unexpected testName: " + testName)
 		}
 	}
-	s.startTestServer(serverConfig)
+	s.apiTestSuite.startApp(serverConfig)
 }
 
 func (s *authBackDoorTestSuite) TestBackDoorMustntBeAvailableByDefault() {

@@ -1,40 +1,45 @@
 package app
 
 import (
-	"igo-repo/internal/app/domain"
-	"igo-repo/internal/app/security/authr"
-	"igo-repo/internal/app/services"
-
-	"github.com/rs/zerolog"
+	"igo-repo/internal/config"
+	httpadapter "igo-repo/internal/http"
+	"igo-repo/internal/logging"
+	"igo-repo/internal/repositories"
 )
 
-type iconService interface {
-	DescribeAllIcons() ([]domain.IconDescriptor, error)
-	DescribeIcon(iconName string) (domain.IconDescriptor, error)
-	CreateIcon(iconName string, initialIconfileContent []byte, modifiedBy authr.UserInfo) (domain.Icon, error)
-	GetIconfile(iconName string, iconfile domain.IconfileDescriptor) ([]byte, error)
-	AddIconfile(iconName string, initialIconfileContent []byte, modifiedBy authr.UserInfo) (domain.IconfileDescriptor, error)
-	DeleteIcon(iconName string, modifiedBy authr.UserInfo) error
-	DeleteIconfile(iconName string, iconfileDescriptor domain.IconfileDescriptor, modifiedBy authr.UserInfo) error
-	GetTags() ([]string, error)
-	AddTag(iconName string, tag string, userInfo authr.UserInfo) error
-	RemoveTag(iconName string, tag string, userInfo authr.UserInfo) error
-}
+func Start(conf config.Options, ready func(port int, server httpadapter.Stoppable)) {
 
-// Primary port
-type api struct {
-	IconService iconService
-}
+	rootLogger := logging.CreateRootLogger(conf.LogLevel)
 
-// Secondary port
-type Repository = services.Repository
-
-type App struct {
-	Repository Repository
-}
-
-func (app *App) GetAPI(logger zerolog.Logger) *api {
-	return &api{
-		IconService: services.NewIconService(app.Repository, logger),
+	connection, dbErr := repositories.NewDBConnection(conf, logging.CreateUnitLogger(rootLogger, "db-connection"))
+	if dbErr != nil {
+		panic(dbErr)
 	}
+
+	_, schemaErr := repositories.OpenDBSchema(conf, connection, logging.CreateUnitLogger(rootLogger, "db-schema"))
+	if schemaErr != nil {
+		panic(schemaErr)
+	}
+
+	db := repositories.NewDBRepository(connection, logging.CreateUnitLogger(rootLogger, "db-repository"))
+
+	git := repositories.NewGitRepository(conf.IconDataLocationGit, logging.CreateUnitLogger(rootLogger, "git-repository"))
+	gitErr := git.InitMaybe()
+	if gitErr != nil {
+		panic(gitErr)
+	}
+
+	combinedRepo := repositories.RepoCombo{DB: db, Git: git}
+
+	appRef := &AppCore{Repository: &combinedRepo}
+
+	server := httpadapter.CreateServer(
+		conf,
+		httpadapter.CreateAPI(appRef.GetAPI(logging.CreateUnitLogger(rootLogger, "api")).IconService),
+		logging.CreateUnitLogger(rootLogger, "server"),
+	)
+
+	server.SetupAndStart(conf, func(port int, app httpadapter.Stoppable) {
+		ready(port, app)
+	})
 }

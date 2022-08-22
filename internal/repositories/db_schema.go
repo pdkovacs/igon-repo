@@ -58,7 +58,7 @@ func OpenDBSchema(config config.Options, dbConn dbConnection, logger zerolog.Log
 		conn:   dbConn,
 		logger: logger,
 	}
-	didExist, errUpgrade = schema.upgradeAirSchema()
+	didExist, errUpgrade = schema.upgradeSchema()
 	if errUpgrade != nil {
 		return false, fmt.Errorf("failed to open schema: %w", errUpgrade)
 	}
@@ -183,7 +183,7 @@ func (schema *dbSchema) create() error {
 	return nil
 }
 
-func (schema *dbSchema) upgradeAirSchema() (bool, error) {
+func (schema *dbSchema) upgradeSchema() (bool, error) {
 	exists, errDoesExist := schema.doesExist()
 	if errDoesExist != nil {
 		return false, errDoesExist

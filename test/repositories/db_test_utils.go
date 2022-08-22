@@ -6,10 +6,13 @@ import (
 
 	"igo-repo/internal/app/domain"
 	"igo-repo/internal/config"
+	"igo-repo/internal/logging"
 	"igo-repo/internal/repositories"
 	"igo-repo/test/common"
 
+	"github.com/jackc/pgx"
 	_ "github.com/jackc/pgx/v4/stdlib"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/suite"
 )
@@ -18,6 +21,7 @@ type DBTestSuite struct {
 	suite.Suite
 	config config.Options
 	dbRepo *repositories.DBRepository
+	logger zerolog.Logger
 }
 
 func DeleteDBData(db *sql.DB) error {
@@ -34,6 +38,9 @@ func DeleteDBData(db *sql.DB) error {
 	for _, table := range tables {
 		_, err = tx.Exec("DELETE FROM " + table)
 		if err != nil {
+			if pgErr, ok := err.(*pgx.PgError); !ok || pgErr.Code != "42P01" {
+				continue
+			}
 			return fmt.Errorf("failed to delete test data from table %s: %w", table, err)
 		}
 	}
@@ -45,9 +52,13 @@ func DeleteDBData(db *sql.DB) error {
 func (s *DBTestSuite) NewTestDBRepo() {
 	var err error
 	config := common.GetTestConfig()
-	connection, err := repositories.NewDBConnection(config, log.With().Str("unit", "test-db-connection").Logger())
+	connection, err := repositories.NewDBConnection(config, logging.CreateUnitLogger(s.logger, "test-db-connection"))
 	if err != nil {
 		panic(fmt.Sprintf("failed to create test connection: %v", err))
+	}
+	_, schemaErr := repositories.OpenDBSchema(config, connection, logging.CreateUnitLogger(s.logger, "db-schema"))
+	if schemaErr != nil {
+		panic(schemaErr)
 	}
 	err = DeleteDBData(connection.Pool)
 	if err != nil {
@@ -64,6 +75,7 @@ func manageTestResourcesAfterEach() {
 
 func (s *DBTestSuite) SetupSuite() {
 	s.config.DBSchemaName = "itest_repositories"
+	s.logger = logging.CreateRootLogger(logging.DebugLevel)
 }
 
 func (s *DBTestSuite) TearDownSuite() {

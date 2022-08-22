@@ -6,13 +6,13 @@ import (
 	_ "image/png"
 	"math/rand"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"igo-repo/internal/app"
 	"igo-repo/internal/config"
 	httpadapter "igo-repo/internal/http"
-	"igo-repo/internal/logging"
-	"igo-repo/internal/repositories"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
 )
@@ -37,31 +37,22 @@ func main() {
 			panic(confErr)
 		}
 
-		rootLogger := logging.CreateRootLogger(conf.LogLevel)
+		var server httpadapter.Stoppable
 
-		connection, dbErr := repositories.NewDBConnection(conf, logging.CreateUnitLogger(rootLogger, "db-connection"))
-		if dbErr != nil {
-			panic(dbErr)
-		}
-		db := repositories.NewDBRepository(connection, logging.CreateUnitLogger(rootLogger, "db-repository"))
+		sigc := make(chan os.Signal, 1)
+		signal.Notify(sigc,
+			syscall.SIGHUP,
+			syscall.SIGINT,
+			syscall.SIGTERM,
+			syscall.SIGQUIT)
+		go func() {
+			s := <-sigc
+			fmt.Fprintf(os.Stderr, "Caught %v, stopping...", s)
+			server.Stop()
+		}()
 
-		git := repositories.NewGitRepository(conf.IconDataLocationGit, logging.CreateUnitLogger(rootLogger, "git-repository"))
-		gitErr := git.InitMaybe()
-		if gitErr != nil {
-			panic(gitErr)
-		}
-
-		combinedRepo := repositories.RepoCombo{DB: db, Git: git}
-
-		app := app.App{Repository: &combinedRepo}
-
-		server := httpadapter.CreateServer(
-			conf,
-			httpadapter.CreateAPI(app.GetAPI(logging.CreateUnitLogger(rootLogger, "api")).IconService),
-			logging.CreateUnitLogger(rootLogger, "server"),
-		)
-
-		server.SetupAndStart(conf, func(port int) {
+		app.Start(conf, func(port int, stoppable httpadapter.Stoppable) {
+			server = stoppable
 		})
 	}
 }

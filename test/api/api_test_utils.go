@@ -1,12 +1,13 @@
 package api
 
 import (
+	"fmt"
 	_ "image/jpeg"
 	_ "image/png"
 	"os"
 	"sync"
 
-	"igo-repo/internal/app"
+	app "igo-repo/internal/app"
 	"igo-repo/internal/config"
 	httpadapter "igo-repo/internal/http"
 	"igo-repo/internal/logging"
@@ -16,20 +17,15 @@ import (
 	"igo-repo/test/testdata"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
-	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/suite"
 )
 
 var rootAPILogger = logging.CreateRootLogger(logging.DebugLevel)
 
-type Closeable interface {
-	Close()
-}
-
 type apiTestSuite struct {
 	suite.Suite
 	defaultConfig config.Options
-	server        Closeable
+	server        httpadapter.Stoppable
 	testDBRepo    repositories.DBRepository
 	testGitRepo   repositories_itests.GitTestRepo
 	client        apiTestClient
@@ -45,12 +41,31 @@ func (s *apiTestSuite) SetupSuite() {
 
 	s.defaultConfig.DBSchemaName = "itest_api"
 	s.defaultConfig.IconDataCreateNew = "itest-api"
+	repoConn, testDBErr := repositories.NewDBConnection(s.defaultConfig, logging.CreateUnitLogger(rootAPILogger, "test-db-connection"))
+	if testDBErr != nil {
+		panic(testDBErr)
+	}
+	s.testDBRepo = *repositories.NewDBRepository(repoConn, logging.CreateUnitLogger(rootAPILogger, "test-db-repository"))
+	s.testGitRepo = repositories_itests.GitTestRepo{
+		GitRepository: *repositories.NewGitRepository(s.defaultConfig.IconDataLocationGit, logging.CreateUnitLogger(rootAPILogger, "test-git-repository")),
+	}
 }
 
 func (s *apiTestSuite) BeforeTest(suiteName string, testName string) {
 	serverConfig := common.CloneConfig(s.defaultConfig)
 	serverConfig.EnableBackdoors = true
-	s.startTestServer(serverConfig)
+	s.startApp(serverConfig)
+}
+
+func (s *apiTestSuite) startApp(serverConfig config.Options) {
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go app.Start(serverConfig, func(port int, server httpadapter.Stoppable) {
+		s.client.serverPort = port
+		s.server = server
+		wg.Done()
+	})
+	wg.Wait()
 }
 
 func (s *apiTestSuite) AfterTest(suiteName, testName string) {
@@ -62,49 +77,10 @@ func (s *apiTestSuite) AfterTest(suiteName, testName string) {
 	os.Unsetenv(repositories.IntrusiveGitTestEnvvarName)
 
 	repositories_itests.DeleteDBData(s.testDBRepo.Conn.Pool)
-	s.testDBRepo.Conn.Pool.Close()
-}
-
-// startTestServer starts a test server
-func (s *apiTestSuite) startTestServer(conf config.Options) {
-
-	connection, connOpenErr := repositories.NewDBConnection(conf, log.With().Str("unit", "test-db-connection").Logger())
-	if connOpenErr != nil {
-		panic(connOpenErr)
-	}
-
-	db := repositories.NewDBRepository(connection, log.With().Str("unit", "test-db-repo").Logger())
-	s.testDBRepo = *db
-
-	git := repositories.NewGitRepository(conf.IconDataLocationGit, logging.CreateUnitLogger(rootAPILogger, "git-repository"))
-	gitErr := git.InitMaybe()
-	if gitErr != nil {
-		panic(gitErr)
-	}
-	s.testGitRepo = repositories_itests.GitTestRepo{GitRepository: *git}
-
-	combinedRepo := repositories.RepoCombo{DB: db, Git: git}
-
-	app := app.App{Repository: &combinedRepo}
-
-	conf.ServerPort = 0
-	var wg sync.WaitGroup
-	wg.Add(1)
-	server := httpadapter.CreateServer(
-		conf,
-		httpadapter.CreateAPI(app.GetAPI(logging.CreateUnitLogger(rootAPILogger, "api")).IconService),
-		logging.CreateUnitLogger(rootAPILogger, "server"),
-	)
-	s.server = &server
-	go server.SetupAndStart(conf, func(port int) {
-		s.client.serverPort = port
-		log.Logger.Info().Msgf("Server is listening on port %d", port)
-		wg.Done()
-	})
-	wg.Wait()
 }
 
 // terminateTestServer terminates a test server
 func (s *apiTestSuite) terminateTestServer() {
-	s.server.Close()
+	fmt.Fprintln(os.Stderr, "Stopping test server...")
+	s.server.Stop()
 }

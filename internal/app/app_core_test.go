@@ -63,7 +63,7 @@ func (s *appTestSuite) TestCreateIconNoPerm() {
 	iconName := "test-icon"
 	iconfile := getTestIconfile()
 	mockRepo := mocks.Repository{}
-	application := App{Repository: &mockRepo}
+	application := AppCore{Repository: &mockRepo}
 	api := application.GetAPI(appTestApiLogger)
 	_, err := api.IconService.CreateIcon(iconName, iconfile.Content, testUser)
 	s.True(errors.Is(err, authr.ErrPermission))
@@ -84,7 +84,7 @@ func (s *appTestSuite) TestCreateIcon() {
 	}
 	mockRepo := mocks.Repository{}
 	mockRepo.On("CreateIcon", iconName, iconfile, testUser).Return(nil)
-	application := App{Repository: &mockRepo}
+	application := AppCore{Repository: &mockRepo}
 	api := application.GetAPI(appTestApiLogger)
 	icon, err := api.IconService.CreateIcon(iconName, iconfile.Content, testUser)
 	s.NoError(err)
