@@ -22,7 +22,7 @@
 #
 
 path_to_google_matdes_icon_repo=${HOME}/github/google/material-design-icons
-destination_root=$(readlink -f $(dirname $0)/../test/demo-data)
+destination_root=$(readlink -f $(dirname $0)/../test/load-tests/demo-data)
 selector_name_length_modulus=2
 
 

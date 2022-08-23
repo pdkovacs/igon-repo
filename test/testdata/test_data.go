@@ -27,7 +27,7 @@ func init() {
 }
 
 func GetDemoIconfileContent(iconName string, iconfile domain.IconfileDescriptor) []byte {
-	pathToContent := path.Join(backendSourceHome, "test/demo-data", iconfile.Format, iconfile.Size, fmt.Sprintf("%s.%s", iconName, iconfile.Format))
+	pathToContent := path.Join(backendSourceHome, "test/load-tests/demo-data", iconfile.Format, iconfile.Size, fmt.Sprintf("%s.%s", iconName, iconfile.Format))
 	content, err := os.ReadFile(pathToContent)
 	if err != nil {
 		panic(err)
