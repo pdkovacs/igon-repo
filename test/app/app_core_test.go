@@ -7,12 +7,13 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 
+	"igo-repo/internal/app"
 	"igo-repo/internal/app/domain"
 	"igo-repo/internal/app/security/authn"
 	"igo-repo/internal/app/security/authr"
 	"igo-repo/internal/app/services"
 	"igo-repo/internal/logging"
-	"igo-repo/mocks"
+	"igo-repo/test/mocks"
 	"igo-repo/test/testdata"
 
 	"github.com/stretchr/testify/suite"
@@ -63,7 +64,7 @@ func (s *appTestSuite) TestCreateIconNoPerm() {
 	iconName := "test-icon"
 	iconfile := getTestIconfile()
 	mockRepo := mocks.Repository{}
-	application := AppCore{Repository: &mockRepo}
+	application := app.AppCore{Repository: &mockRepo}
 	api := application.GetAPI(appTestApiLogger)
 	_, err := api.IconService.CreateIcon(iconName, iconfile.Content, testUser)
 	s.True(errors.Is(err, authr.ErrPermission))
@@ -84,7 +85,7 @@ func (s *appTestSuite) TestCreateIcon() {
 	}
 	mockRepo := mocks.Repository{}
 	mockRepo.On("CreateIcon", iconName, iconfile, testUser).Return(nil)
-	application := AppCore{Repository: &mockRepo}
+	application := app.AppCore{Repository: &mockRepo}
 	api := application.GetAPI(appTestApiLogger)
 	icon, err := api.IconService.CreateIcon(iconName, iconfile.Content, testUser)
 	s.NoError(err)

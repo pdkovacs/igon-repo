@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"igo-repo/internal/config"
 	"io/fs"
 	"io/ioutil"
 	"os"
@@ -93,18 +94,18 @@ func (s *readConfigurationTestSuite) AfterTest(suiteName, testName string) {
 }
 
 func (s *readConfigurationTestSuite) TestGetDefaultConfiguration() {
-	opts := GetDefaultConfiguration()
+	opts := config.GetDefaultConfiguration()
 	s.Equal("localhost", opts.ServerHostname)
 	s.Equal(8080, opts.ServerPort)
 	s.Equal("localhost", opts.DBHost)
 	s.Equal(5432, opts.DBPort)
 	s.Equal(false, opts.EnableBackdoors)
-	s.Equal(DefaultIconDataLocationGit, opts.IconDataLocationGit)
+	s.Equal(config.DefaultIconDataLocationGit, opts.IconDataLocationGit)
 }
 
 func (s *readConfigurationTestSuite) TestFailOnMissingConfigFile() {
 	clArgs := []string{}
-	_, err := ReadConfiguration("some non-existent file", clArgs)
+	_, err := config.ReadConfiguration("some non-existent file", clArgs)
 	s.True(errors.Is(err, fs.ErrNotExist))
 }
 
@@ -121,7 +122,7 @@ func (s *readConfigurationTestSuite) TestConfigFileSettingsOverridesDefaults() {
 	defer closeRemoveFile(configFile)
 
 	clArgs := []string{}
-	opts, err := ReadConfiguration(configFile.Name(), clArgs)
+	opts, err := config.ReadConfiguration(configFile.Name(), clArgs)
 	s.NoError(err)
 	s.Equal("localhost", opts.ServerHostname)
 	s.Equal(8080, opts.ServerPort)
@@ -136,7 +137,7 @@ func (s *readConfigurationTestSuite) TestEnvVarSettingOverridesDefaults() {
 	setEnvVar("DB_HOST", dbHostInEnvVar)
 
 	clArgs := []string{}
-	opts := ParseCommandLineArgs(clArgs)
+	opts := config.ParseCommandLineArgs(clArgs)
 	s.Equal("localhost", opts.ServerHostname)
 	s.Equal(8080, opts.ServerPort)
 	s.Equal(dbHostInEnvVar, opts.DBHost)
@@ -154,7 +155,7 @@ func (s *readConfigurationTestSuite) TestEnvVarSettingOverridesConfigFile() {
 	setEnvVar("DB_HOST", dbHostInEnvVar)
 
 	clArgs := []string{}
-	opts, err := ReadConfiguration(configFile.Name(), clArgs)
+	opts, err := config.ReadConfiguration(configFile.Name(), clArgs)
 	s.NoError(err)
 	s.Equal("localhost", opts.ServerHostname)
 	s.Equal(8080, opts.ServerPort)
@@ -171,7 +172,7 @@ func (s *readConfigurationTestSuite) TestCliArgsOverrideConfigFile() {
 	defer closeRemoveFile(configFile)
 
 	clArgs := []string{"--db-host", dbHostInArg}
-	opts, err := ReadConfiguration(configFile.Name(), clArgs)
+	opts, err := config.ReadConfiguration(configFile.Name(), clArgs)
 	s.NoError(err)
 	s.Equal("localhost", opts.ServerHostname)
 	s.Equal(8080, opts.ServerPort)
@@ -187,7 +188,7 @@ func (s *readConfigurationTestSuite) TestCliArgsOverridesEnvVarSettings() {
 	setEnvVar("DB_HOST", connHostInEnvVar)
 
 	clArgs := []string{"--db-host", dbHostInArg}
-	opts := ParseCommandLineArgs(clArgs)
+	opts := config.ParseCommandLineArgs(clArgs)
 	s.Equal("localhost", opts.ServerHostname)
 	s.Equal(8080, opts.ServerPort)
 	s.Equal(dbHostInArg, opts.DBHost)
@@ -196,7 +197,7 @@ func (s *readConfigurationTestSuite) TestCliArgsOverridesEnvVarSettings() {
 }
 
 func (s *readConfigurationTestSuite) TestPasswordCredentialsFromConfigFile() {
-	expected := []PasswordCredentials{{
+	expected := []config.PasswordCredentials{{
 		Username: "zazi",
 		Password: "metro",
 	}}
@@ -205,7 +206,7 @@ func (s *readConfigurationTestSuite) TestPasswordCredentialsFromConfigFile() {
 	defer closeRemoveFile(configFile)
 
 	clArgs := []string{}
-	opts, err := ReadConfiguration(configFile.Name(), clArgs)
+	opts, err := config.ReadConfiguration(configFile.Name(), clArgs)
 	s.NoError(err)
 	s.Equal("localhost", opts.ServerHostname)
 	s.Equal(8080, opts.ServerPort)
@@ -215,13 +216,13 @@ func (s *readConfigurationTestSuite) TestPasswordCredentialsFromConfigFile() {
 }
 
 func (s *readConfigurationTestSuite) TestUsersByRolesFromConfigFile() {
-	expected := UsersByRoles{"zazi": []string{"metro", "paris"}}
+	expected := config.UsersByRoles{"zazi": []string{"metro", "paris"}}
 
 	configFile := storeConfigInTempFile("usersByRoles", expected)
 	defer closeRemoveFile(configFile)
 
 	clArgs := []string{}
-	opts, err := ReadConfiguration(configFile.Name(), clArgs)
+	opts, err := config.ReadConfiguration(configFile.Name(), clArgs)
 	s.NoError(err)
 	s.Equal("localhost", opts.ServerHostname)
 	s.Equal(8080, opts.ServerPort)
