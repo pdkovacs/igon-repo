@@ -10,3 +10,6 @@
 /output
 /tmp/config
 /**/tmp/
+.terraform/
+.terraform.lock*
+terraform.tfstate*

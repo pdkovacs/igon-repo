@@ -1,19 +1,15 @@
 {
     "serverHostname": "localhost",
-    "serverPort": 8080,
+    "serverPort": 8091,
     "serverUrlContext": "",
     "authenticationType": "oidc",
-    "oidcClientId": "oauth-client-2",
-    "oidcClientSecret": "oauth-client-secret-2",
-    "oidcAccessTokenUrl": "http://localhost:9001/token",
-    "oidcUserAuthorizationUrl": "http://localhost:9001/authorize",
-    "oidcClientRedirectBackUrl": "http://localhost:8080/login",
-    "oidcTokenIssuer": "http://localhost:9001",
-    "oidcIpJwtPublicKeyPemBase64": "LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUlJQklqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FROEFNSUlCQ2dLQ0FRRUFuRTR4bi9QMS9aemhpNm92QkFsZgpDUDN1MnNOeUswVjQ4RG1QTDFZU3FRSHZ6ZFhvMC80NEhEWjl2T1BCWFBBWjlPenRDeWJHaS81NjdRWVFac2pJClp2T3Ztcm9yNVkzL1hSZTZOQUVBL1hic3FsNTlDWjIrb1BDbVE5TlFHVk16bEEvK29VRnhJbUFWbnRZY2pCSysKZXdWVU4wM3hwcXkrcmk5dTFmbnNHVFZYRHRkalAxeDdJZWdUc2QxMEVocmJMcnhVbGcrZ29iTlZOUFIrZTV5dgo5azhQcXRzc1ZPUjBBamREeGtUazN3ODYwczRMVzAza3Blb05xODhaVEcyOE9MWWQ1eTNXRkowSjhlUDhtbkRXCmV3cEVudEpteGxZbWhOUVpQR091VjJoWm1pM21GeHZLeTFKNlNtSzB0MGNRNDlHbmNxZGNjK1JxS1VWSHJWSmsKVndJREFRQUIKLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==",
-    "oidcIpLogoutUrl": "http://localhost:9001/logout",
+    "oidcClientId": "iconrepo",
+    "oidcClientSecret": "Xb5BtE9RvMWCjJGfeMJDYOWIZGKSMm3z",
+    "oidcTokenIssuer": "http://localhost:8080/auth/realms/my-realm",
+    "oidcClientRedirectBackUrl": "http://localhost:8091/openid-callback",
     "usersByRoles": {
         "ICON_EDITOR": [
-            "alice.wonderland@example.com"
+            "alice@domain.com"
         ]
     },
     "logLevel": "debug"

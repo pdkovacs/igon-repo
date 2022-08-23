@@ -30,16 +30,11 @@ func checkOIDCAuthentication(c *gin.Context) {
 }
 
 type OIDCConfig struct {
-	ClientID                string
-	ClientSecret            string
-	AccessTokenURL          string
-	UserAuthorizationURL    string
-	ClientRedirectBackURL   string
-	TokenIssuer             string
-	IpJwtPublicKeyURL       string
-	IpJwtPublicKeyPemBase64 string
-	IpLogoutURL             string
-	ServerURLContext        string
+	ClientID              string
+	ClientSecret          string
+	ClientRedirectBackURL string
+	TokenIssuer           string
+	ServerURLContext      string
 }
 
 const oidcTokenRequestStateKey = "oidcTokenRequestState"

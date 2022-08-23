@@ -43,16 +43,11 @@ func Authentication(options config.Options, userService *services.UserService) g
 		return basicScheme(BasicConfig{PasswordCredentialsList: options.PasswordCredentials}, userService)
 	case config.OIDCAuthentication:
 		return oidcScheme(OIDCConfig{
-			TokenIssuer:             options.OIDCTokenIssuer,
-			UserAuthorizationURL:    options.OIDCUserAuthorizationURL,
-			ClientRedirectBackURL:   options.OIDCClientRedirectBackURL,
-			AccessTokenURL:          options.OIDCAccessTokenURL,
-			IpJwtPublicKeyURL:       options.OIDCIpJwtPublicKeyURL,
-			IpJwtPublicKeyPemBase64: options.OIDCIpJwtPublicKeyPemBase64,
-			IpLogoutURL:             options.OIDCIpLogoutURL,
-			ClientID:                options.OIDCClientID,
-			ClientSecret:            options.OIDCClientSecret,
-			ServerURLContext:        options.ServerURLContext,
+			TokenIssuer:           options.OIDCTokenIssuer,
+			ClientRedirectBackURL: options.OIDCClientRedirectBackURL,
+			ClientID:              options.OIDCClientID,
+			ClientSecret:          options.OIDCClientSecret,
+			ServerURLContext:      options.ServerURLContext,
 		}, userService)
 	}
 	return nil
