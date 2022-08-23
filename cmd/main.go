@@ -38,6 +38,7 @@ func main() {
 		}
 
 		var server httpadapter.Stoppable
+		exitc := make(chan struct{})
 
 		sigc := make(chan os.Signal, 1)
 		signal.Notify(sigc,
@@ -47,12 +48,16 @@ func main() {
 			syscall.SIGQUIT)
 		go func() {
 			s := <-sigc
-			fmt.Fprintf(os.Stderr, "Caught %v, stopping...", s)
+			fmt.Fprintf(os.Stderr, "Caught %v, stopping server...\n", s)
 			server.Stop()
+			fmt.Fprintln(os.Stderr, "Server stopped")
+			exitc <- struct{}{}
 		}()
 
 		app.Start(conf, func(port int, stoppable httpadapter.Stoppable) {
 			server = stoppable
 		})
+
+		<-exitc
 	}
 }
