@@ -1,4 +1,4 @@
-export ICON_REPO_CONFIG_FILE=deployments/configurations/dev-oidc.json
+export ICON_REPO_CONFIG_FILE=deployments/dev/configurations/dev-oidc.json
 cmd="make backend"
 settle_down_secs=1
 

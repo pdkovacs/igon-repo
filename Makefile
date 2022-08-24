@@ -23,6 +23,8 @@ backend:
 		-X 'igo-repo/build.time=$$(date)' \
 		-X 'igo-repo/build.commit=$$(git rev-parse HEAD)' \
 	" -o igo-repo cmd/main.go
+keycloak:
+	deployments/dev/keycloak/build.sh
 build: ui backend
 docker: GOOS=linux
 docker: GOARCH=amd64

@@ -31,6 +31,20 @@ resource "keycloak_user" "user" {
   last_name  = "Bobson"
 }
 
+resource "keycloak_group" "icon_editor" {
+  realm_id = keycloak_realm.realm.id
+  name     = "ICON_EDITOR"
+}
+
+resource "keycloak_user_groups" "user_groups" {
+  realm_id = keycloak_realm.realm.id
+  user_id = keycloak_user.alice.id
+
+  group_ids  = [
+    keycloak_group.icon_editor.id
+  ]
+}
+
 resource "keycloak_user" "alice" {
   realm_id   = keycloak_realm.realm.id
   username   = "alice"
@@ -61,23 +75,10 @@ resource "keycloak_user" "joe" {
   }
 }
 
-resource "keycloak_group" "icon_editor" {
-  realm_id = keycloak_realm.realm.id
-  name     = "ICON_EDITOR"
-}
-
-resource "keycloak_user_groups" "user_groups" {
-  realm_id = keycloak_realm.realm.id
-  user_id = keycloak_user.alice.id
-
-  group_ids  = [
-    keycloak_group.icon_editor.id
-  ]
-}
-
 resource "keycloak_openid_client" "iconrepo" {
   realm_id            = keycloak_realm.realm.id
   client_id           = "iconrepo"
+  client_secret       = "Xb5BtE9RvMWCjJGfeMJDYOWIZGKSMm3z"
 
   name                = "Icon Repository"
   enabled             = true
