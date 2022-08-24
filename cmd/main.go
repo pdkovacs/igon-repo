@@ -54,10 +54,14 @@ func main() {
 			exitc <- struct{}{}
 		}()
 
-		app.Start(conf, func(port int, stoppable httpadapter.Stoppable) {
+		errAppStart := app.Start(conf, func(port int, stoppable httpadapter.Stoppable) {
 			server = stoppable
 		})
+		if errAppStart != nil {
+			panic(errAppStart)
+		}
 
 		<-exitc
+		fmt.Fprintln(os.Stderr, "Exiting...")
 	}
 }

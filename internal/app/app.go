@@ -7,18 +7,18 @@ import (
 	"igo-repo/internal/repositories"
 )
 
-func Start(conf config.Options, ready func(port int, server httpadapter.Stoppable)) {
+func Start(conf config.Options, ready func(port int, server httpadapter.Stoppable)) error {
 
 	rootLogger := logging.CreateRootLogger(conf.LogLevel)
 
 	connection, dbErr := repositories.NewDBConnection(conf, logging.CreateUnitLogger(rootLogger, "db-connection"))
 	if dbErr != nil {
-		panic(dbErr)
+		return dbErr
 	}
 
 	_, schemaErr := repositories.OpenDBSchema(conf, connection, logging.CreateUnitLogger(rootLogger, "db-schema"))
 	if schemaErr != nil {
-		panic(schemaErr)
+		return schemaErr
 	}
 
 	db := repositories.NewDBRepository(connection, logging.CreateUnitLogger(rootLogger, "db-repository"))
@@ -26,7 +26,7 @@ func Start(conf config.Options, ready func(port int, server httpadapter.Stoppabl
 	git := repositories.NewGitRepository(conf.IconDataLocationGit, logging.CreateUnitLogger(rootLogger, "git-repository"))
 	gitErr := git.InitMaybe()
 	if gitErr != nil {
-		panic(gitErr)
+		return gitErr
 	}
 
 	combinedRepo := repositories.RepoCombo{DB: db, Git: git}
@@ -42,4 +42,6 @@ func Start(conf config.Options, ready func(port int, server httpadapter.Stoppabl
 	server.SetupAndStart(conf, func(port int, app httpadapter.Stoppable) {
 		ready(port, app)
 	})
+
+	return nil
 }

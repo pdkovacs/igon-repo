@@ -15,9 +15,10 @@ type UserService struct {
 	authorizationService AuthorizationService
 }
 
-func (us *UserService) getPermissionsForUser(userId authn.UserID, memberIn []authr.GroupID) []authr.PermissionID {
+func (us *UserService) getPermissionsForUser(userId authn.UserID) []authr.PermissionID {
 	userPermissions := []authr.PermissionID{}
 
+	memberIn := us.authorizationService.GetGroupsForUser(userId)
 	for _, group := range memberIn {
 		userPermissions = append(userPermissions, authr.GetPermissionsForGroup(group)...)
 	}
@@ -34,7 +35,11 @@ func (us *UserService) GetUserInfo(userId authn.UserID) authr.UserInfo {
 	return authr.UserInfo{
 		UserId:      userId,
 		Groups:      memberIn,
-		Permissions: us.getPermissionsForUser(userId, memberIn),
+		Permissions: us.getPermissionsForUser(userId),
 		DisplayName: us.getDisplayName(userId),
 	}
+}
+
+func (us *UserService) UpdateUserInfo(userId authn.UserID, memberIn []authr.GroupID) {
+	us.authorizationService.UpdateUser(userId, memberIn)
 }

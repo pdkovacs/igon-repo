@@ -13,10 +13,11 @@ type UsersByGroups map[authr.GroupID][]authn.UserID
 type AuthorizationService interface {
 	GetGroupsForUser(userID authn.UserID) []authr.GroupID
 	GetPermissionsForGroup(group authr.GroupID) []authr.PermissionID
+	UpdateUser(userId authn.UserID, groups []authr.GroupID)
 }
 
-func NewAuthorizationService(config config.Options) authRService {
-	return authRService{config.UsersByRoles}
+func NewAuthorizationService(options config.Options) authRService {
+	return authRService{options.UsersByRoles}
 }
 
 type authRService struct {
@@ -31,6 +32,15 @@ func (as *authRService) GetGroupsForUser(userID authn.UserID) []authr.GroupID {
 
 func (as *authRService) GetPermissionsForGroup(group authr.GroupID) []authr.PermissionID {
 	return authr.GetPermissionsForGroup(group)
+}
+
+func (as *authRService) UpdateUser(userId authn.UserID, groups []authr.GroupID) {
+	if as.usersByGroups == nil {
+		as.usersByGroups = make(map[string][]string)
+	}
+	for _, group := range groups {
+		as.usersByGroups[string(group)] = append(as.usersByGroups[string(group)], userId.IDInDomain)
+	}
 }
 
 func str2GroupID(s string) authr.GroupID {

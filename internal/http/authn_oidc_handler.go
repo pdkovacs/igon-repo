@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"igo-repo/internal/app/security/authn"
+	"igo-repo/internal/app/security/authr"
 	"igo-repo/internal/app/services"
 
 	"github.com/coreos/go-oidc/v3/oidc"
@@ -40,8 +41,9 @@ type OIDCConfig struct {
 const oidcTokenRequestStateKey = "oidcTokenRequestState"
 
 type claims struct {
-	Email    string `json:"email"`
-	Verified bool   `json:"email_verified"`
+	Email    string   `json:"email"`
+	Verified bool     `json:"email_verified"`
+	Groups   []string `json:"groups"`
 }
 
 func oidcScheme(config OIDCConfig, userService *services.UserService) gin.HandlerFunc {
@@ -109,6 +111,14 @@ func oidcScheme(config OIDCConfig, userService *services.UserService) gin.Handle
 				logger.Infof("claims collected: %+v", claims)
 				// FIXME: Use other than local-domain
 				userId := authn.LocalDomain.CreateUserID(claims.Email)
+				var groupIds []authr.GroupID
+				if claims.Groups != nil {
+					groupIds = []authr.GroupID{}
+					for _, group := range claims.Groups {
+						groupIds = append(groupIds, authr.GroupID(group))
+					}
+					userService.UpdateUserInfo(userId, groupIds)
+				}
 				userInfo := userService.GetUserInfo(userId)
 				session.Set(UserKey, SessionData{userInfo})
 				session.Save()

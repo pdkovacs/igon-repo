@@ -97,4 +97,5 @@ resource "keycloak_openid_group_membership_protocol_mapper" "group_membership_ma
   name      = "group-membership-mapper"
 
   claim_name = "groups"
+  full_path = false
 }
