@@ -111,13 +111,8 @@ func oidcScheme(config OIDCConfig, userService *services.UserService) gin.Handle
 				logger.Infof("claims collected: %+v", claims)
 				// FIXME: Use other than local-domain
 				userId := authn.LocalDomain.CreateUserID(claims.Email)
-				var groupIds []authr.GroupID
 				if claims.Groups != nil {
-					groupIds = []authr.GroupID{}
-					for _, group := range claims.Groups {
-						groupIds = append(groupIds, authr.GroupID(group))
-					}
-					userService.UpdateUserInfo(userId, groupIds)
+					userService.UpdateUserInfo(userId, authr.GroupNamesToGroupIDs(claims.Groups))
 				}
 				userInfo := userService.GetUserInfo(userId)
 				session.Set(UserKey, SessionData{userInfo})

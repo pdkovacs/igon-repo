@@ -43,10 +43,6 @@ func (as *authRService) UpdateUser(userId authn.UserID, groups []authr.GroupID) 
 	}
 }
 
-func str2GroupID(s string) authr.GroupID {
-	return authr.GroupID(s)
-}
-
 func getLocalGroupsFor(userID authn.UserID, usersByGroups map[string][]string) []authr.GroupID {
 	groupNames := []string{}
 	for groupName, members := range usersByGroups {
@@ -58,13 +54,5 @@ func getLocalGroupsFor(userID authn.UserID, usersByGroups map[string][]string) [
 		}
 	}
 	log.Debug().Msgf("Groups of %s: %v", userID, groupNames)
-	return groupNames2GroupIDs(groupNames)
-}
-
-func groupNames2GroupIDs(strs []string) []authr.GroupID {
-	groupIDs := []authr.GroupID{}
-	for _, s := range strs {
-		groupIDs = append(groupIDs, str2GroupID((s)))
-	}
-	return groupIDs
+	return authr.GroupNamesToGroupIDs(groupNames)
 }
