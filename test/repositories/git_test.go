@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-func TestgitRepositoryTestSuite(t *testing.T) {
+func TestGitRepositoryTestSuite(t *testing.T) {
 	suite.Run(t, &GitTestSuite{})
 }
 
