@@ -147,7 +147,7 @@ func createIconHandler(
 		logger.Info().Msgf("received %d bytes for icon %s", buf.Len(), iconName)
 
 		// do something with the contents...
-		icon, errCreate := createIcon(iconName, buf.Bytes(), MustGetUserSession(c).UserInfo)
+		icon, errCreate := createIcon(iconName, buf.Bytes(), mustGetUserSession(c).UserInfo)
 		if errCreate != nil {
 			logger.Error().Msgf("failed to create icon %v", errCreate)
 			if errors.Is(errCreate, authr.ErrPermission) {
@@ -185,7 +185,7 @@ func addIconfileHandler(
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
 
-		session := MustGetUserSession(c)
+		session := mustGetUserSession(c)
 		authrErr := authr.HasRequiredPermissions(
 			session.UserInfo.UserId,
 			session.UserInfo.Permissions,
@@ -228,7 +228,7 @@ func addIconfileHandler(
 		logger.Info().Msgf("received %d bytes as iconfile content for icon %s", buf.Len(), iconName)
 
 		// do something with the contents...
-		iconfileDescriptor, errCreate := addIconfile(iconName, buf.Bytes(), MustGetUserSession(c).UserInfo)
+		iconfileDescriptor, errCreate := addIconfile(iconName, buf.Bytes(), mustGetUserSession(c).UserInfo)
 		if errCreate != nil {
 			logger.Error().Msgf("failed to add iconfile %v", errCreate)
 			if errors.Is(errCreate, authr.ErrPermission) {
@@ -249,7 +249,7 @@ func addIconfileHandler(
 
 func deleteIconHandler(deleteIcon func(iconName string, modifiedBy authr.UserInfo) error, logger zerolog.Logger) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		session := MustGetUserSession(c)
+		session := mustGetUserSession(c)
 		iconName := c.Param("name")
 		deleteError := deleteIcon(iconName, session.UserInfo)
 		if deleteError != nil {
@@ -270,7 +270,7 @@ func deleteIconfileHandler(
 	logger zerolog.Logger,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		session := MustGetUserSession(c)
+		session := mustGetUserSession(c)
 		iconName := c.Param("name")
 		format := c.Param("format")
 		size := c.Param("size")
@@ -320,7 +320,7 @@ func addTagHandler(
 	logger zerolog.Logger,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		session := MustGetUserSession(c)
+		session := mustGetUserSession(c)
 		iconName := c.Param("name")
 
 		jsonData, readBodyErr := io.ReadAll(c.Request.Body)
@@ -355,7 +355,7 @@ func addTagHandler(
 
 func removeTagHandler(removeTag func(iconName string, tag string, modifiedBy authr.UserInfo) error, logger zerolog.Logger) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		session := MustGetUserSession(c)
+		session := mustGetUserSession(c)
 		iconName := c.Param("name")
 		tag := c.Param("tag")
 		serviceError := removeTag(iconName, tag, session.UserInfo)

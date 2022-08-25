@@ -110,10 +110,10 @@ func (s *server) initEndpoints(options config.Options) *gin.Engine {
 	store.Options(sessions.Options{MaxAge: 60 * 60 * 24})
 	rootEngine.Use(sessions.Sessions("mysession", store))
 
-	rootEngine.NoRoute(Authentication(options, &userService, s.logger.With().Logger()), gin.WrapH(web.AssetHandler("/", "dist", logger)))
+	rootEngine.NoRoute(authentication(options, &userService, s.logger.With().Logger()), gin.WrapH(web.AssetHandler("/", "dist", logger)))
 
 	logger.Debug().Msgf("Creating login end-point with authentication type: %v...", options.AuthenticationType)
-	rootEngine.GET("/login", Authentication(options, &userService, s.logger.With().Logger()))
+	rootEngine.GET("/login", authentication(options, &userService, s.logger.With().Logger()))
 
 	rootEngine.GET("/app-info", func(c *gin.Context) {
 		c.JSON(200, config.GetBuildInfo())
@@ -124,9 +124,9 @@ func (s *server) initEndpoints(options config.Options) *gin.Engine {
 	authorizedGroup := rootEngine.Group("/")
 	{
 		logger.Debug().Msgf("Setting up authorized group with authentication type: %v...", options.AuthenticationType)
-		authorizedGroup.Use(AuthenticationCheck(options, &userService, s.logger.With().Logger()))
+		authorizedGroup.Use(authenticationCheck(options, &userService, s.logger.With().Logger()))
 
-		authorizedGroup.GET("/user", UserInfoHandler(userService, s.logger.With().Logger()))
+		authorizedGroup.GET("/user", userInfoHandler(userService, s.logger.With().Logger()))
 
 		if options.EnableBackdoors {
 			authorizedGroup.PUT("/backdoor/authentication", HandlePutIntoBackdoorRequest(s.logger.With().Logger()))

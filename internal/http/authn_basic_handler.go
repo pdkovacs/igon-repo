@@ -14,8 +14,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
-// BasicConfig holds the configuration for the Basic authentication scheme
-type BasicConfig struct {
+// basicConfig holds the configuration for the Basic authentication scheme
+type basicConfig struct {
 	PasswordCredentialsList []config.PasswordCredentials
 }
 
@@ -38,7 +38,7 @@ func decodeBasicAuthnHeaderValue(headerValue string) (userid string, password st
 	return pair[0], pair[1], true
 }
 
-func checkBasicAuthentication(options BasicConfig, userService services.UserService, log zerolog.Logger) func(c *gin.Context) {
+func checkBasicAuthentication(options basicConfig, userService services.UserService, log zerolog.Logger) func(c *gin.Context) {
 	logger := logging.CreateMethodLogger(log, "basic-authn")
 	logger.Debug().Msgf("options.PasswordCredentials size: %d", len(options.PasswordCredentialsList))
 
@@ -78,7 +78,7 @@ func checkBasicAuthentication(options BasicConfig, userService services.UserServ
 	}
 }
 
-func basicScheme(options BasicConfig, userService *services.UserService) gin.HandlerFunc {
+func basicScheme(options basicConfig, userService *services.UserService) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.Status(200)
 	}

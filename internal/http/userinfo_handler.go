@@ -11,14 +11,14 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type UserInfoDTO struct {
+type userInfoDTO struct {
 	Username    string               `json:"username"`
 	Groups      []authr.GroupID      `json:"groups"`
 	Permissions []authr.PermissionID `json:"permissions"`
 	DisplayName string               `json:"displayName"`
 }
 
-func UserInfoHandler(userService services.UserService, log zerolog.Logger) func(c *gin.Context) {
+func userInfoHandler(userService services.UserService, log zerolog.Logger) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		userId := c.Query("userId")
 		logger := logging.CreateMethodLogger(log, "UserInfoHandler")
@@ -38,7 +38,7 @@ func UserInfoHandler(userService services.UserService, log zerolog.Logger) func(
 		}
 		logger.Debug().Msgf("User info: %v", userInfo)
 
-		responseUserInfo := UserInfoDTO{
+		responseUserInfo := userInfoDTO{
 			Username:    userInfo.UserId.IDInDomain,
 			Groups:      userInfo.Groups,
 			Permissions: userInfo.Permissions,

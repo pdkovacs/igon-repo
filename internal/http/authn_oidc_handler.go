@@ -33,12 +33,12 @@ func checkOIDCAuthentication(log zerolog.Logger) func(c *gin.Context) {
 	}
 }
 
-type OIDCConfig struct {
-	ClientID              string
-	ClientSecret          string
-	ClientRedirectBackURL string
-	TokenIssuer           string
-	ServerURLContext      string
+type oidcConfig struct {
+	clientID              string
+	clientSecret          string
+	clientRedirectBackURL string
+	tokenIssuer           string
+	serverURLContext      string
 }
 
 const oidcTokenRequestStateKey = "oidcTokenRequestState"
@@ -49,36 +49,36 @@ type claims struct {
 	Groups   []string `json:"groups"`
 }
 
-type OIDCScheme struct {
-	config      OIDCConfig
+type oidcScheme struct {
+	config      oidcConfig
 	logger      zerolog.Logger
 	userService *services.UserService
 }
 
-func CreateOIDCSCheme(config OIDCConfig, userService *services.UserService, logger zerolog.Logger) gin.HandlerFunc {
-	scheme := OIDCScheme{
+func CreateOIDCSChemeHandler(config oidcConfig, userService *services.UserService, logger zerolog.Logger) gin.HandlerFunc {
+	scheme := oidcScheme{
 		config:      config,
 		userService: userService,
 		logger:      logger,
 	}
-	return scheme.oidcScheme()
+	return scheme.createHandler()
 }
 
-func (oidcScheme *OIDCScheme) oidcScheme() gin.HandlerFunc {
-	logger := logging.CreateMethodLogger(oidcScheme.logger, "oidc-authn")
-	config := oidcScheme.config
+func (scheme *oidcScheme) createHandler() gin.HandlerFunc {
+	logger := logging.CreateMethodLogger(scheme.logger, "oidc-authn")
+	config := scheme.config
 
-	provider, err := oidc.NewProvider(context.TODO(), config.TokenIssuer)
+	provider, err := oidc.NewProvider(context.TODO(), config.tokenIssuer)
 	if err != nil {
 		panic(err)
 	}
 
-	var verifier = provider.Verifier(&oidc.Config{ClientID: config.ClientID})
+	var verifier = provider.Verifier(&oidc.Config{ClientID: config.clientID})
 
 	oauth2Config := oauth2.Config{
-		ClientID:     config.ClientID,
-		ClientSecret: config.ClientSecret,
-		RedirectURL:  config.ClientRedirectBackURL,
+		ClientID:     config.clientID,
+		ClientSecret: config.clientSecret,
+		RedirectURL:  config.clientRedirectBackURL,
 
 		// Discovery returns the OAuth2 endpoints.
 		Endpoint: provider.Endpoint(),
@@ -87,7 +87,7 @@ func (oidcScheme *OIDCScheme) oidcScheme() gin.HandlerFunc {
 		Scopes: []string{oidc.ScopeOpenID, "profile", "email"},
 	}
 
-	handleOAuth2Callback := oidcScheme.handleOAuth2Callback(oauth2Config, verifier)
+	handleOAuth2Callback := scheme.handleOAuth2Callback(oauth2Config, verifier)
 
 	logger.Debug().Msg("Returning oidc-authn handler")
 
@@ -131,13 +131,13 @@ func (oidcScheme *OIDCScheme) oidcScheme() gin.HandlerFunc {
 				// FIXME: Use other than local-domain
 				userId := authn.LocalDomain.CreateUserID(claims.Email)
 				if claims.Groups != nil {
-					oidcScheme.userService.UpdateUserInfo(userId, authr.GroupNamesToGroupIDs(claims.Groups))
+					scheme.userService.UpdateUserInfo(userId, authr.GroupNamesToGroupIDs(claims.Groups))
 				}
-				userInfo := oidcScheme.userService.GetUserInfo(userId)
+				userInfo := scheme.userService.GetUserInfo(userId)
 				session.Set(UserKey, SessionData{userInfo})
 				session.Save()
 				c.Abort()
-				c.Redirect(http.StatusFound, fmt.Sprintf("%s/", config.ServerURLContext))
+				c.Redirect(http.StatusFound, fmt.Sprintf("%s/", config.serverURLContext))
 				return
 			}
 			if handleCallbackErr != nil {
@@ -161,9 +161,9 @@ func (oidcScheme *OIDCScheme) oidcScheme() gin.HandlerFunc {
 	}
 }
 
-func (oidcScheme *OIDCScheme) handleOAuth2Callback(oauth2Config oauth2.Config, verifier *oidc.IDTokenVerifier) func(c *gin.Context, storedState string) (*claims, error) {
+func (scheme *oidcScheme) handleOAuth2Callback(oauth2Config oauth2.Config, verifier *oidc.IDTokenVerifier) func(c *gin.Context, storedState string) (*claims, error) {
 
-	logger := logging.CreateMethodLogger(oidcScheme.logger, "handleOAuth2Callback")
+	logger := logging.CreateMethodLogger(scheme.logger, "handleOAuth2Callback")
 
 	return func(c *gin.Context, storedState string) (*claims, error) {
 		r := c.Request
