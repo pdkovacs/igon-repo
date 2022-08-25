@@ -63,7 +63,7 @@ type Stoppable interface {
 }
 
 // Start starts the service
-func (s *server) Start(portRequested int, r http.Handler, ready func(port int, server Stoppable)) {
+func (s *server) Start(portRequested int, r http.Handler, ready func(port int, stop func())) {
 	logger := logging.CreateMethodLogger(s.logger, "StartServer")
 	logger.Info().Msg("Starting server on ephemeral....")
 	var err error
@@ -85,14 +85,14 @@ func (s *server) Start(portRequested int, r http.Handler, ready func(port int, s
 		if err != nil {
 			panic(err)
 		}
-		ready(portAsInt, s)
+		ready(portAsInt, s.Stop)
 	}
 
 	http.Serve(s.listener, r)
 }
 
 // SetupAndStart sets up and starts server.
-func (s *server) SetupAndStart(options config.Options, ready func(port int, server Stoppable)) {
+func (s *server) SetupAndStart(options config.Options, ready func(port int, stop func())) {
 	r := s.initEndpoints(options)
 	s.Start(options.ServerPort, r, ready)
 }
@@ -107,7 +107,7 @@ func (s *server) initEndpoints(options config.Options) *gin.Engine {
 	rootEngine := gin.Default()
 
 	store := memstore.NewStore([]byte("secret"))
-	store.Options(sessions.Options{MaxAge: 60 * 60 * 24})
+	store.Options(sessions.Options{MaxAge: options.SessionMaxAge})
 	rootEngine.Use(sessions.Sessions("mysession", store))
 
 	rootEngine.NoRoute(authentication(options, &userService, s.logger.With().Logger()), gin.WrapH(web.AssetHandler("/", "dist", logger)))
@@ -123,19 +123,23 @@ func (s *server) initEndpoints(options config.Options) *gin.Engine {
 
 	authorizedGroup := rootEngine.Group("/")
 	{
+		notifService := services.CreateNotificationService(logger)
+
 		logger.Debug().Msgf("Setting up authorized group with authentication type: %v...", options.AuthenticationType)
 		authorizedGroup.Use(authenticationCheck(options, &userService, s.logger.With().Logger()))
 
-		authorizedGroup.GET("/user", userInfoHandler(userService, s.logger.With().Logger()))
+		authorizedGroup.GET("/subscribe", subscriptionHandler(notifService, logging.CreateMethodLogger(s.logger, "subscriptionHandler")))
+
+		authorizedGroup.GET("/user", userInfoHandler(userService, logging.CreateMethodLogger(s.logger, "UserInfoHandler")))
 
 		if options.EnableBackdoors {
-			authorizedGroup.PUT("/backdoor/authentication", HandlePutIntoBackdoorRequest(s.logger.With().Logger()))
-			authorizedGroup.GET("/backdoor/authentication", HandleGetIntoBackdoorRequest(s.logger.With().Logger()))
+			authorizedGroup.PUT("/backdoor/authentication", HandlePutIntoBackdoorRequest(logging.CreateMethodLogger(s.logger, "PUT /backdoor/authentication")))
+			authorizedGroup.GET("/backdoor/authentication", HandleGetIntoBackdoorRequest(logging.CreateMethodLogger(s.logger, "GET /backdoor/authentication")))
 		}
 
 		authorizedGroup.GET("/icon", describeAllIconsHanler(s.api.iconService.DescribeAllIcons, logging.CreateMethodLogger(s.logger, "describeAllIconsHanler")))
 		authorizedGroup.GET("/icon/:name", describeIconHandler(s.api.iconService.DescribeIcon, logging.CreateMethodLogger(s.logger, "describeIconHandler")))
-		authorizedGroup.POST("/icon", createIconHandler(s.api.iconService.CreateIcon, logging.CreateMethodLogger(s.logger, "createIconHandler")))
+		authorizedGroup.POST("/icon", createIconHandler(s.api.iconService.CreateIcon, notifService, logging.CreateMethodLogger(s.logger, "createIconHandler")))
 		authorizedGroup.DELETE("/icon/:name", deleteIconHandler(s.api.iconService.DeleteIcon, logging.CreateMethodLogger(s.logger, "deleteIconHandler")))
 
 		authorizedGroup.POST("/icon/:name", addIconfileHandler(s.api.iconService.AddIconfile, logging.CreateMethodLogger(s.logger, "addIconfileHandler")))
@@ -160,4 +164,5 @@ func (s *server) Stop() {
 	} else {
 		logger.Info().Msg("Listener closed successfully")
 	}
+
 }

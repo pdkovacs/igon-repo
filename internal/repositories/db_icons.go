@@ -2,12 +2,40 @@ package repositories
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"igo-repo/internal/app/domain"
 
-	"github.com/jackc/pgx"
+	"github.com/jackc/pgconn"
 	"github.com/rs/zerolog"
 )
+
+var (
+	ErrDuplicateRows  = errors.New("duplicat rows")
+	ErrMissingDBTable = errors.New("relation doesn't exists")
+)
+
+func MapDBError(err error) error {
+	pgErr, ok := err.(*pgconn.PgError)
+	if !ok {
+		return nil
+	}
+	fmt.Printf(">>>>> MapDBError: ok %v\n", pgErr.Code)
+	if pgErr.Code == "23505" {
+		return ErrDuplicateRows
+	}
+	if pgErr.Code == "42P01" {
+		return ErrMissingDBTable
+	}
+	return nil
+}
+
+func IsDBError(err error, target error) bool {
+	if knownDBError := MapDBError(err); errors.Is(knownDBError, target) {
+		return true
+	}
+	return false
+}
 
 func describeIconInTx(tx *sql.Tx, iconName string, forUpdate bool) (domain.IconDescriptor, error) {
 	var err error
@@ -165,7 +193,11 @@ func (repo DBRepository) CreateIcon(iconName string, iconfile domain.Iconfile, m
 	const insertIconSQL string = "INSERT INTO icon(name, modified_by) VALUES($1, $2) RETURNING id"
 	_, err = tx.Exec(insertIconSQL, iconName, modifiedBy)
 	if err != nil {
-		return fmt.Errorf("failed to create icon %v: %w", iconName, err)
+		reportErr := err
+		if IsDBError(err, ErrDuplicateRows) {
+			reportErr = domain.ErrIconAlreadyExists
+		}
+		return fmt.Errorf("failed to create icon %v: %w", iconName, reportErr)
 	}
 
 	err = insertIconfile(tx, iconName, iconfile, modifiedBy)
@@ -176,7 +208,7 @@ func (repo DBRepository) CreateIcon(iconName string, iconfile domain.Iconfile, m
 	if createSideEffect != nil {
 		err = createSideEffect()
 		if err != nil {
-			return fmt.Errorf("failed to create icon file %s due to error while creating side-effect, %w", iconName, err)
+			return fmt.Errorf("failed to create iconfile %s due to error while creating side-effect, %w", iconName, err)
 		}
 	}
 
@@ -229,7 +261,7 @@ func insertIconfile(tx *sql.Tx, iconName string, iconfile domain.Iconfile, modif
 		"SELECT id, $2, $3, $4 FROM icon WHERE name = $1 RETURNING id"
 	_, err := tx.Exec(insertIconfileSQL, iconName, iconfile.Format, iconfile.Size, iconfile.Content)
 	if err != nil {
-		if pgErr, ok := err.(*pgx.PgError); !ok || pgErr.Code != "23505" {
+		if IsDBError(err, ErrDuplicateRows) {
 			return domain.ErrIconfileAlreadyExists
 		}
 		return fmt.Errorf("failed to insert iconfile %v: %w", iconName, err)
@@ -237,7 +269,7 @@ func insertIconfile(tx *sql.Tx, iconName string, iconfile domain.Iconfile, modif
 	return nil
 }
 
-func (repo DBRepository) GetIconFile(iconName string, iconfileDesc domain.IconfileDescriptor) ([]byte, error) {
+func (repo DBRepository) GetIconfile(iconName string, iconfileDesc domain.IconfileDescriptor) ([]byte, error) {
 	const getIconfileSQL = "SELECT content FROM icon, icon_file " +
 		"WHERE icon_id = icon.id AND " +
 		"file_format = $2 AND " +

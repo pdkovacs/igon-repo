@@ -1,133 +1,66 @@
-import { List, Set } from "immutable";
-import * as React from "react";
-import { Tag, ITagProps, Popover, MenuItem } from "@blueprintjs/core";
+import { Autocomplete, Chip, TextField } from "@mui/material";
+import React from "react";
 
 import "./tag-collection.styl";
 
 export interface TagForSelection {
-    readonly text: string;
-    readonly toBeCreated: boolean;
+	readonly text: string;
+	readonly toBeCreated: boolean;
 }
 
 export interface TagCollectionProps {
-    readonly tags: List<string>;
-    readonly selectedIndex?: number;
-    readonly selectionChangeRequest?: (index: number) => void;
-    readonly tagsAvailableForAddition?: Set<string>;
-    readonly tagAdditionRequest?: (tagText: string) => void;
-    readonly tagRemovalRequest?: (index: number) => void;
+	readonly selectedTags: string[];
+	readonly selectionChangeRequest?: (tagText: string) => void;
+	readonly allTags?: string[];
+	readonly tagAdditionRequest?: (tagText: string) => void;
+	readonly tagRemovalRequest?: (tagText: string) => void;
 }
 
-export interface TagCollectionState {
-    readonly inputVisible: boolean;
-    readonly inputValue: string;
-}
+export const TagCollection = (props: TagCollectionProps) => {
 
-export class TagCollection extends React.Component<TagCollectionProps, TagCollectionState> {
+	const handleOnClick = (tagText: string) => {
+		if (props.selectionChangeRequest) {
+			props.selectionChangeRequest(tagText);
+		}
+	};
 
-    constructor(props: TagCollectionProps) {
-        super(props);
-        this.state = {
-            inputVisible: false,
-            inputValue: ""
-        };
-    }
+	const createOnRemoveHandler = (tagText: string) => {
+		return props.tagRemovalRequest
+			? () => props.tagRemovalRequest(tagText)
+			: undefined;
+	};
 
-    public render() {
-        return <div className="tag-collection">
-            {this.props.tags.toArray().map((t, key) => this.createTag(t, key, this.props.selectedIndex === key))}
-            {this.createInput()}
-        </div>;
-    }
+	const createTag = (tagText: string) => {
+		return <Chip className="tag-collection-item"
+			label={tagText}
+			key={tagText}
+			onClick={() => handleOnClick(tagText)}
+			onDelete={createOnRemoveHandler(tagText)}
+		/>;
+	};
 
-    private createTag(tagText: string, index: number, selected: boolean) {
-        return <Tag className="tag-collection-item"
-                    minimal={true}
-                    round={true}
-                    key={index}
-                    onClick={() => this.handleOnClick(index)}
-                    onRemove={this.createOnRemoveHandler(index)}
-                    data-selected={selected}>
-                <span>{tagText}</span>
-            </Tag>;
-    }
+	return <div className="tag-collection">
+		{
+			props.tagAdditionRequest
+				? <Autocomplete
+						multiple
+						id="tags-filled"
+						options={props.allTags.filter(tag => !props.selectedTags.includes(tag))}
+						value={props.selectedTags}
+						freeSolo
+						renderTags={(value: readonly string[]) => value.map((option: string) => createTag(option))}
+						renderInput={(params) => (
+							<TextField
+								{...params}
+								variant="standard"
+							/>
+						)}
+						onChange={(event: React.SyntheticEvent, value: string[]) => {
+							props.tagAdditionRequest(value.filter(tag => !props.selectedTags.includes(tag))?.[0]);
+						}}
+					/>
+				: props.selectedTags.map(t => createTag(t))
+		}
+	</div>;
+};
 
-    private createOnRemoveHandler(index: number) {
-        return this.props.tagRemovalRequest
-            ? (e: React.MouseEvent<HTMLButtonElement>, tagProps: ITagProps) => this.props.tagRemovalRequest(index)
-            : undefined;
-    }
-
-    private handleOnClick(index: number) {
-        if (this.props.selectionChangeRequest) {
-            this.props.selectionChangeRequest(index);
-        }
-    }
-
-    private createInput() {
-        if (this.props.tagAdditionRequest) {
-            return <Popover
-                        isOpen={this.getItemsToAdd().length > 0}
-                        minimal={true}>
-                <input
-                    value={this.state.inputValue}
-                    onKeyPress={e => this.handleInputKey(e)}
-                    onChange={e => this.handleInputChange(e)}/>
-                {this.getSuggestionList()}
-            </Popover>;
-        } else {
-            return null;
-        }
-    }
-
-    private handleInputKey(e: React.KeyboardEvent<HTMLInputElement>) {
-        if (e.charCode === 13) {
-            this.requestAddition(this.state.inputValue);
-        }
-    }
-
-    private handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-        this.setState({inputValue: e.target.value});
-    }
-
-    private getItemsToAdd() {
-        const currentUserInput = this.state.inputValue;
-
-        if (!this.props.tagsAvailableForAddition || !currentUserInput || !currentUserInput.length) {
-            return [];
-        }
-
-        const tagsForSelection: List<TagForSelection> = this.props.tagsAvailableForAddition
-                .subtract(this.props.tags)
-                .filter(tagText => tagText.indexOf(currentUserInput) > -1)
-                .map(t => ({
-                    text: t,
-                    toBeCreated: false
-                }))
-                .toList();
-
-        return this.props.tags.indexOf(currentUserInput) === -1 &&
-                    !this.props.tagsAvailableForAddition.contains(currentUserInput)
-            ? tagsForSelection.push({
-                    text: currentUserInput,
-                    toBeCreated: true
-                }).toArray()
-            : tagsForSelection.toArray();
-    }
-
-    private requestAddition(tagToAdd: string) {
-        this.props.tagAdditionRequest(tagToAdd);
-        this.setState({inputValue: ""});
-    }
-
-    private getSuggestionList() {
-        return <div className="suggestion-list">
-                    {this.getItemsToAdd().map((item, index) =>
-                        <MenuItem key={index}
-                            text={item.toBeCreated ? `+ ${item.text} (New Tag)` : item.text}
-                            onClick={() => this.requestAddition(item.text)}>
-                        </MenuItem>)}
-                </div>;
-
-    }
-}

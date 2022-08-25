@@ -31,3 +31,5 @@ docker: GOARCH=amd64
 docker: build
 	cp igo-repo deployments/docker
 	docker build -t iconrepo:1.0 deployments/docker
+watch:
+	./scripts/watch.sh

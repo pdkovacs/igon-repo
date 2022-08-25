@@ -119,7 +119,7 @@ func (s *iconCreateTestSuite) TestRollbackToLastConsistentStateOnError() {
 	os.Setenv(repositories.IntrusiveGitTestEnvvarName, "true")
 
 	statusCode, _, _ := session.createIcon(moreDataIn[1].Name, moreDataIn[1].Iconfiles[0].Content)
-	s.Equal(500, statusCode)
+	s.Equal(409, statusCode)
 
 	afterIncidentSHA1, afterIncidentGitErr := s.testGitRepo.GetCurrentCommit()
 	s.NoError(afterIncidentGitErr)

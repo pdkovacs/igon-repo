@@ -1,6 +1,5 @@
 import getEndpointUrl from "./url";
-import { throwError } from "./errors";
-import { Set, List } from "immutable";
+import { deleteData, getData, patchData, postData } from "./fetch-utils";
 
 export interface IconfileDescriptor {
     readonly format: string;
@@ -23,122 +22,19 @@ export interface IconPathWithUrl extends IconPath {
 export interface IconDescriptor {
     readonly name: string;
     readonly modifiedBy: string;
-    readonly paths: Set<IconPath>;
-    readonly tags: Set<string>;
-}
-
-export interface IconDTO {
-    readonly name: string;
-    readonly modifiedBy: string;
     readonly paths: IconPath[];
     readonly tags: string[];
 }
 
-export const describeAllIcons: () => Promise<Set<IconDescriptor>>
-= () => fetch(getEndpointUrl(`/icon`), {
-    method: "GET",
-    credentials: "include"
-})
-.then(response => {
-    if (response.status !== 200) {
-        return throwError("Failed to fetch icon descriptions", response);
-    } else {
-        return response.json();
-    }})
-.then((iconDtoArray: IconDTO[]) => Set(iconDtoArray.map(iconDto => ({
-        name: iconDto.name,
-        modifiedBy: iconDto.modifiedBy,
-        paths: Set(iconDto.paths),
-        tags: Set(iconDto.tags)
-    }))));
-
-export const describeIcon = (iconName: string) => fetch(getEndpointUrl(`/icon/${iconName}`), {
-    method: "GET",
-    credentials: "include"
-})
-.then(response => {
-    if (response.status !== 200) {
-        return throwError("Failed to fetch icon description", response);
-    } else {
-        return response.json();
-    }
-});
-
-export const createIcon: (formData: FormData) => Promise<IconDTO>
-= formData => fetch(getEndpointUrl("/icon"), {
-    method: "POST",
-    credentials: "include",
-    body: formData
-})
-.then(response => {
-    if (response.status !== 201) {
-        return throwError("Failed to create icon", response);
-    } else {
-        return response.json();
-    }
-});
+export const describeAllIcons: () => Promise<IconDescriptor[]> = () => getData("/icon", 200);
+export const describeIcon = (iconName: string) => getData(`/icon/${iconName}`, 200);
+export const createIcon: (formData: FormData) => Promise<IconDescriptor> = formData => postData("/icon", 201, null, formData, false);
+export const renameIcon = (oldName: string, newName: string) => patchData(`/icon/${oldName}`, 204, null, {name: newName});
+export const deleteIcon = (iconName: string) => deleteData(`/icon/${iconName}`, 204);
 
 export const ingestIconfile: (iconName: string, formData: FormData) => Promise<IngestedIconfileDTO>
-= (iconName, formData) => fetch(getEndpointUrl(`/icon/${iconName}`), {
-    method: "POST",
-    credentials: "include",
-    body: formData
-})
-.then(response => {
-    if (response.status !== 200) {
-        return throwError("Failed to add icon file", response);
-    } else {
-        return response.json();
-    }
-});
-
-export const renameIcon = (oldName: string, newName: string) => fetch(getEndpointUrl(`/icon/${oldName}`), {
-    method: "PATCH",
-    headers: {
-        "Content-Type": "application/json; charset=utf-8"
-    },
-    credentials: "include",
-    body: JSON.stringify({name: newName})
-})
-.then(response => {
-    if (response.status !== 204) {
-        return throwError("Failed to rename icon", response);
-    }
-});
-
-export const deleteIcon = (iconName: string) => fetch(getEndpointUrl(`/icon/${iconName}`), {
-    method: "DELETE",
-    credentials: "include"
-})
-.then(response => {
-    if (response.status !== 204) {
-        return throwError("Failed to delete icon", response);
-    }
-});
-
-export const addIconfile = (iconName: string, format: string, size: string, formData: FormData) => fetch(
-    getEndpointUrl(`/icon/${iconName}/format/${format}/size/${size}`),
-    {
-        method: "POST",
-        credentials: "include",
-        body: formData
-    }
-)
-.then(response => {
-    if (response.status !== 201) {
-        return throwError("Failed to add icon-file", response);
-    }
-});
-
-export const deleteIconfile = (iconfilePath: string) => fetch(getEndpointUrl(iconfilePath), {
-    method: "DELETE",
-    credentials: "include"
-})
-.then(response => {
-    if (response.status !== 204) {
-        return throwError("Failed to delete icon file", response);
-    }
-});
+	= (iconName, formData) => postData(`/icon/${iconName}`, 200, null, formData, false);
+export const deleteIconfile = (iconfilePath: string) => deleteData(iconfilePath, 204);
 
 export const getIconfileType = (iconfile: IconfileDescriptor) => `${iconfile.format}@${iconfile.size}`;
 
@@ -149,22 +45,22 @@ const ip2ipwu = (iconPath: IconPath) => ({
     url: getEndpointUrl(iconPath.path)
 });
 
-export const createIconfileList: (iconPaths: Set<IconPath>) => List<IconPathWithUrl>
-= iconPaths => iconPaths.map(iconPath => ip2ipwu(iconPath)).toList();
+export const createIconfileList: (iconPaths: IconPath[]) => IconPathWithUrl[]
+	= iconPaths => iconPaths.map(iconPath => ip2ipwu(iconPath));
 
 export const preferredIconfileType: (icon: IconDescriptor) => IconPath
-= icon => {
-    // If the icon has SVG format, prefer that
-    const svgFiles = icon.paths.filter(iconfile => iconfile.format === "svg");
-    return svgFiles.size > 0
-        ? svgFiles.first()
-        : icon.paths.first();
-};
+	= icon => {
+			// If the icon has SVG format, prefer that
+			const svgFiles = icon.paths.filter(iconfile => iconfile.format === "svg");
+			return svgFiles.length > 0
+					? svgFiles?.[0]
+					: icon.paths?.[0];
+	};
 
 export const urlOfIconfile = (icon: IconDescriptor, iconfileType: IconPath) => {
     const sameIconfileTypeFilter: (iconPath: IconPath) => boolean
         = iconPath => iconPath.format === iconfileType.format && iconPath.size === iconfileType.size;
-    const icnPath: IconPath = icon.paths.filter(sameIconfileTypeFilter).first();
+    const icnPath: IconPath = icon.paths.filter(sameIconfileTypeFilter)?.[0];
     if (!icnPath) {
         throw new Error(`${iconfileType} not found in icon ${icon.name}`);
     }
@@ -173,49 +69,7 @@ export const urlOfIconfile = (icon: IconDescriptor, iconfileType: IconPath) => {
 
 export const preferredIconfileUrl = (icon: IconDescriptor) => urlOfIconfile(icon, preferredIconfileType(icon));
 
-export const indexInIconfileListOfType = (iconfileList: List<IconfileDescriptor>, iconfileType: IconPath) =>
-    iconfileList.findIndex(iconfile => iconfile.format === iconfileType.format && iconfile.size === iconfileType.size);
-
-export const getTags: () => Promise<List<string>> = () => fetch(getEndpointUrl("/tag"), {
-    method: "GET",
-    credentials: "include"
-})
-.then(response => {
-    if (response.status !== 200) {
-        return throwError("Failed to retrieve tags", response);
-    } else {
-        return response.json();
-    }
-})
-.then(
-    (json: string[]) => List(json)
-);
-
+export const getTags: () => Promise<string[]> = () => getData("/tag", 200);
 export const addTag: (iconName: string, tagText: string) => Promise<void>
-= (iconName, tagText) => fetch(getEndpointUrl(`/icon/${iconName}/tag`), {
-    method: "POST",
-    headers: {
-        "Content-Type": "application/json; charset=utf-8"
-    },
-    credentials: "include",
-    body: JSON.stringify({tag: tagText})
-})
-.then(response => {
-    if (response.status !== 200) {
-        return throwError("Failed to add tag", response);
-    }
-});
-
-export const removeTag: (iconName: string, tag: string) => Promise<void>
-= (iconName, tag) => fetch(getEndpointUrl(`/icon/${iconName}/tag/${tag}`), {
-    method: "DELETE",
-    headers: {
-        "Content-Type": "application/json; charset=utf-8"
-    },
-    credentials: "include"
-})
-.then(response => {
-    if (response.status !== 200) {
-        return throwError("Failed to remove tag", response);
-    }
-});
+	= (iconName, tagText) => postData(`/icon/${iconName}/tag`, 201, null, {tag: tagText});
+export const removeTag: (iconName: string, tag: string) => Promise<void> = (iconName, tag) => deleteData<void, void>(`/icon/${iconName}/tag/${tag}`, 204);

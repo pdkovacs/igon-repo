@@ -30,15 +30,16 @@
   "license": "MIT",
   "homepage": "https://bitbucket.org/bitmover/iconrepo-client#readme",
   "devDependencies": {
-    "@blueprintjs/core": "^3.51.3",
-    "@blueprintjs/select": "^3.18.10",
-    "@types/react": "^17.0.34",
+    "@types/react": "^17.0.48",
     "@types/react-dom": "^17.0.11",
+    "@typescript-eslint/eslint-plugin": "^5.35.1",
+    "@typescript-eslint/parser": "^5.35.1",
     "cross-env": "^7.0.3",
     "css-loader": "^6.5.1",
+    "eslint": "^8.22.0",
+    "eslint-plugin-react": "^7.31.0",
     "file-loader": "^6.2.0",
     "html-webpack-plugin": "^5.5.0",
-    "immutable": "^4.0.0",
     "kind-of": ">=6.0.3",
     "node-sass": "^6.0.1",
     "nodemon": "^2.0.14",
@@ -58,7 +59,21 @@
     "webpack-node-externals": "^3.0.0"
   },
   "dependencies": {
+    "@emotion/react": "^11.10.0",
+    "@emotion/styled": "^11.10.0",
+    "@mui/icons-material": "^5.10.2",
+    "@mui/material": "^5.10.2",
+    "@reduxjs/toolkit": "^1.8.5",
+    "@types/lodash": "^4.14.184",
+    "lodash": "^4.17.21",
+    "material-ui-popup-state": "^4.0.2",
     "normalize.css": "^8.0.1",
-    "source-map-loader": "^3.0.0"
+    "react-error-boundary": "^3.1.4",
+    "react-redux": "^8.0.2",
+    "redux": "^4.2.0",
+    "redux-devtools-extension": "^2.13.9",
+    "redux-thunk": "^2.4.1",
+    "source-map-loader": "^3.0.0",
+    "typesafe-actions": "^5.1.0"
   }
 }

@@ -9,73 +9,68 @@ ic-color-text = #455156;
   fill: ic-color-text;
 }
 .inner-wrapper {
-  height: auto;
+	display: grid;
+	grid-template-columns: 1fr 377px; // Make room for .search_button: 422px - 45px = 377px
+	width: 100%;
+	height: auto;
+	padding: 10px 0 0 20px;
 }
 .branding {
-  position: absolute;
-  left: 40px;
-  margin: 10px 0;
+	display: flex;
+	flex-direction: column;
   .app-title {
     margin-bottom: 10px;
   }
 }
 .right-control-group {
-  position: absolute;
-  right: 0;
+	display: flex;
+	align-items: center;
   .search {
-    float: left;
+
     text-align: center;
-    .search-title {
-      height: 24px;
-      font-size: 20px;
-      line-height: 24px;
-    }
+
+		.search-button {
+			margin-right: -45px;
+		}
     .search-input-wrapper {
-      margin: 0 auto;
-      position: relative;
-      input {
-        width: 100%;
-      }
-    }
-    .search-icon {
-      position: absolute;
-      top: 24px;
-      left: 10px;
-      font-size: 36px;
+			display: flex;
     }
     .search-input {
-      width: 100%;
+      width: 300px;
       border: 4px solid #FFD999;
       border-radius: 26px;
       background-color: #FFFFFF;
       font-size: 20px;
       height: 42px;
       line-height: 48px;
-      padding: 0 20px 0 40px;
       color: ic-color-text;
-      margin-top: 15px;
+			padding-left: 40px; // Left border moves along to the right with .search_botton
+
       &:focus {
         outline: none;
       }
     }
   }
   .user-area {
+		display: flex;
     margin: 15px;
   }
 }
 
 .action-bar {
-  margin: 50px 60px 50px 30px;
+	display: flex;
+	justify-content: end;
+  margin: 5px 30px;
 
   .add-icon {
-    float: right;
-    span {
-        vertical-align: middle;
-    }
+		svg {
+			width: 50px;
+			height: 50px;
+		}
   }
 }
 
-icon-grid-size = 160px;
+icon-grid-size = 80px;
 .icon-grid {
   width: 100%;
   display: flex;
@@ -84,11 +79,6 @@ icon-grid-size = 160px;
   justify-content: flex-start;
   align-content: flex-start;
   .grid-cell {
-    display: block;
-    width: icon-grid-size;
-    height: icon-grid-size;
-    margin: 10px;
-    flex: 1 0 icon-grid-size;
     max-width: icon-grid-size;
   }
 }

@@ -3,55 +3,31 @@ package repositories
 import (
 	"fmt"
 	"os"
-	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
 	"igo-repo/internal/app/domain"
 	"igo-repo/internal/config"
+	"igo-repo/internal/logging"
 	"igo-repo/internal/repositories"
+	"igo-repo/test/common"
 
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 )
 
-var homeTmpDir = filepath.Join(os.Getenv("HOME"), "tmp")
-var testTmpDir = filepath.Join(homeTmpDir, "tmp-icon-repo-test")
-var repoBaseDir = filepath.Join(testTmpDir, strconv.Itoa(os.Getpid()))
-
-func (s *GitTestSuite) RecreateInitTestGitRepo() {
-	var err error
-
-	repoDir := filepath.Join(repoBaseDir, s.repo.Location)
-
-	err = rmdirMaybe(repoDir)
-	if err != nil {
-		panic(err)
-	}
-
-	err = s.repo.InitMaybe()
-	if err != nil {
-		panic(err)
-	}
-}
-
-func rmdirMaybe(dir string) error {
-	if repositories.GitRepoLocationExists(dir) {
-		err := os.RemoveAll(dir)
-		if err != nil {
-			return fmt.Errorf("failed to remove directory %s: %w", dir, err)
-		}
-		return nil
-	}
-	return nil
-}
-
-func DeleteTestGitRepo(repoLocation string) error {
-	return rmdirMaybe(repoLocation)
-}
-
 type GitTestRepo struct {
-	repositories.GitRepository
+	*repositories.GitRepository
+}
+
+func NewGitTestRepo(location string, logger zerolog.Logger) *GitTestRepo {
+	gitRepo, gitRepoErr := repositories.NewGitRepository(location, true, logging.CreateUnitLogger(logger, "test-git-repository"))
+	if gitRepoErr != nil {
+		panic(gitRepoErr)
+	}
+	return &GitTestRepo{
+		GitRepository: gitRepo,
+	}
 }
 
 func (repo *GitTestRepo) getGitStatus() (string, error) {
@@ -95,21 +71,11 @@ func (repo *GitTestRepo) GetIconfiles() ([]string, error) {
 
 type GitTestSuite struct {
 	suite.Suite
-	repo GitTestRepo
-}
-
-func (s *GitTestSuite) SetupSuite() {
-	s.repo = GitTestRepo{
-		repositories.GitRepository{Location: "itest-repositories"},
-	}
+	repo *GitTestRepo
 }
 
 func (s *GitTestSuite) BeforeTest(suiteName, testName string) {
-	err := DeleteTestGitRepo(s.repo.Location)
-	if err != nil {
-		panic(err)
-	}
-	s.RecreateInitTestGitRepo()
+	s.repo = NewGitTestRepo(common.GetTestConfig().IconDataLocationGit, logging.CreateRootLogger(logging.DebugLevel))
 	os.Unsetenv(repositories.IntrusiveGitTestEnvvarName)
 }
 

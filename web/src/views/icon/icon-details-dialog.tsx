@@ -1,302 +1,274 @@
-import { List, Map, Set } from "immutable";
-import * as React from "react";
-import { Dialog, Classes, Icon, IconName, AnchorButton } from "@blueprintjs/core";
+import React, { useEffect, useState } from "react";
 
 import {
-    IconDescriptor,
-    createIconfileList,
-    preferredIconfileType,
-    indexInIconfileListOfType,
-    IconPathWithUrl,
-    IngestedIconfileDTO,
-    deleteIconfile,
-    deleteIcon,
-    IconfileDescriptor,
-    getIconfileType,
-    addTag,
-    removeTag} from "../../services/icon";
+	IconDescriptor,
+	createIconfileList,
+	preferredIconfileType,
+	IconPathWithUrl,
+	IngestedIconfileDTO,
+	deleteIconfile,
+	IconfileDescriptor,
+	getIconfileType,
+	addTag,
+	removeTag,
+	getTags
+} from "../../services/icon";
 import { TagCollection } from "../tag-collection";
 import { renderMapAsTable } from "../layout-util";
 import getUrl from "../../services/url";
-import { showSuccessMessage, showErrorMessage } from "../../services/toasters";
 import { IconfilePortal } from "./iconfile-portal";
 
 import "./icon-details-dialog.styl";
+import { Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton } from "@mui/material";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import { useDispatch } from "react-redux";
+import { reportError, reportInfo } from "../../state/actions/messages-actions";
+import { isNil } from "lodash";
 
 interface IconDetailsDialogProps {
-    readonly username: string;
-    readonly isOpen: boolean;
-    readonly iconDescriptor: IconDescriptor;
-    readonly handleIconUpdate: (icon: IconDescriptor) => void;
-    readonly handleIconDelete: (iconName: string) => void;
-    readonly requestClose: () => void;
-    readonly editable: boolean;
-    readonly startInEdit: boolean;
-    readonly tags: Set<string>;
+	readonly username: string;
+	readonly isOpen: boolean;
+	readonly iconDescriptor: IconDescriptor;
+	readonly handleIconUpdate: (iconName: string) => void;
+	readonly handleIconDelete: (iconName: string) => void;
+	readonly requestClose: () => void;
+	readonly editable: boolean;
+	readonly startInEdit: boolean;
 }
 
-interface IconDetailsDialogState {
-    readonly iconName: string;
-    readonly modifiedBy: string;
-    readonly iconfileList: List<IconPathWithUrl>;
-    readonly iconTags: List<string>;
-    readonly selectedIconfileIndex: number;
-    readonly previouslySelectedIconFile: number;
-    readonly inEdit: boolean;
-    readonly allTags: Set<string>;
+interface IconDetailsTitleBarControlProps {
+	readonly className: string;
+	readonly children: JSX.Element;
+	readonly toShow: boolean;
+	readonly action: () => void;
 }
-
-const staticDialogOptions = {
-    autoFocus: true,
-    canEscapeKeyClose: true,
-    canOutsideClickClose: false,
-    enforceFocus: true,
-    hasBackdrop: false,
-    usePortal: true,
-    style: {
-        width: "40%",
-        backgroundColor: "white"
-    }
+const IconDetailsTitleBarControl = (props: IconDetailsTitleBarControlProps) => {
+	return props.toShow
+		? <IconButton className={`title-control ${props.className}`} onClick={props.action}>
+			{props.children}
+		</IconButton>
+		: null;
 };
 
-export class IconDetailsDialog extends React.Component<IconDetailsDialogProps, IconDetailsDialogState> {
-    constructor(props: IconDetailsDialogProps) {
-        super(props);
-        console.log("aaaaa props.username", props.username);
-        this.state = {
-            iconName: props.iconDescriptor ? props.iconDescriptor.name : null,
-            iconfileList: props.iconDescriptor ? createIconfileList(props.iconDescriptor.paths) : List.of(),
-            iconTags: props.iconDescriptor ? props.iconDescriptor.tags.toList() : List.of(),
-            selectedIconfileIndex: this.initialIconfileSelection(),
-            modifiedBy: props.iconDescriptor ? props.iconDescriptor.modifiedBy : "<none>",
-            previouslySelectedIconFile: -1,
-            inEdit: props.startInEdit,
-            allTags: props.tags
-        };
-    }
-
-    public render() {
-        return <Dialog
-            {...staticDialogOptions}
-            title={this.createTitleBar()}
-            isOpen={this.props.isOpen}
-            onClose={this.handleClose}>
-            <div className={Classes.DIALOG_BODY}>
-                <div className="icon-details-dialog">
-                    <div className="icon-box-row">
-                        <IconfilePortal
-                            imageUrl={this.pathOfSelectedIconfile()}
-                            iconName={this.state.iconName}
-                            handleFileUpload={uploadedFile => this.handleIconfileUpload(uploadedFile)} />
-                    </div>
-                    <div className="properties-row">
-                        {renderMapAsTable(Map<string, JSX.Element>([
-                            [
-                                "Last modified by",
-                                <TagCollection
-                                            tags={List.of(this.state.modifiedBy)}
-                                            tagsAvailableForAddition={Set.of()}/>,
-                            ],
-                            [
-                                "Available formats",
-                                <TagCollection
-                                    tags={this.iconfileFormats()}
-                                    selectedIndex={this.state.selectedIconfileIndex}
-                                    selectionChangeRequest={i => this.setState({selectedIconfileIndex: i})}
-                                    tagRemovalRequest={
-                                        this.state.inEdit
-                                            ? tagText => this.iconfileDeletionRequest(tagText)
-                                            : undefined
-                                    }
-                                    tagsAvailableForAddition={Set.of()}/>
-                            ],
-                            [
-                                "Tags",
-                                this.createTagList()
-                            ]
-                        ] as [string, JSX.Element][]))}
-                    </div>
-                </div>
-            </div>
-            <div className={Classes.DIALOG_FOOTER}>
-                <div className="dialog-footer-actions">
-                    <AnchorButton
-                            href={this.pathOfSelectedIconfile()}
-                            download={this.downloadName()}
-                            disabled={!this.pathOfSelectedIconfile()}>
-                        Download
-                    </AnchorButton>
-                </div>
-            </div>
-        </Dialog>;
-    }
-
-    private pathOfSelectedIconfile() {
-        return this.state.selectedIconfileIndex >= 0
-        ? this.state.iconfileList.get(this.state.selectedIconfileIndex).url
-        : undefined;
-    }
-
-    private downloadName() {
-        const iconfile = this.state.iconfileList.get(this.state.selectedIconfileIndex);
-        return iconfile
-            ? `${this.state.iconName}@${iconfile.size}.${iconfile.format}`
-            : "";
-    }
-
-    private initialIconfileSelection() {
-        if (!this.props.iconDescriptor) {
-            return -1;
-        }
-        const icon = this.props.iconDescriptor;
-        const preferredType = preferredIconfileType(icon);
-        return indexInIconfileListOfType(createIconfileList(icon.paths), preferredType);
-    }
-
-    private handleIconfileUpload(uploadedFile: IngestedIconfileDTO) {
-        const newIconfileList = this.state.iconfileList.push({...uploadedFile, url: getUrl(uploadedFile.path)});
-        const newState: IconDetailsDialogState = {
-            iconName: uploadedFile.iconName,
-            iconfileList: newIconfileList,
-            iconTags: this.state.iconTags,
-            selectedIconfileIndex: indexInIconfileListOfType(newIconfileList, uploadedFile),
-            previouslySelectedIconFile: this.state.previouslySelectedIconFile,
-            modifiedBy: this.props.username,
-            inEdit: false,
-            allTags: this.state.allTags
-        };
-        this.setState(newState);
-        this.notifyOfUpdate();
-        showSuccessMessage(`Iconfile ${this.getSelectedFormat()} added`);
-    }
-
-    private iconfileFormats() {
-        return this.state.iconfileList.map(iconfile => this.iconfileType(iconfile));
-    }
-
-    private iconfileType(iconfile: IconfileDescriptor) {
-        return `${iconfile.format}@${iconfile.size}`;
-    }
-
-    private getSelectedFormat() {
-        return this.iconfileFormats().get(this.state.selectedIconfileIndex);
-    }
-
-    private viewIcon() {
-        this.setState({
-            selectedIconfileIndex: this.state.previouslySelectedIconFile,
-            inEdit: false
-        });
-    }
-
-    private editIcon() {
-        this.setState({
-            inEdit: true,
-            previouslySelectedIconFile: this.state.selectedIconfileIndex,
-            selectedIconfileIndex: -1
-        });
-    }
-
-    private iconfileDeletionRequest(indexInFileList: number) {
-        const selectedFormat = this.state.iconfileList.get(indexInFileList);
-        deleteIconfile(selectedFormat.path)
-        .then(
-            () => {
-                this.setState({
-                    iconfileList: this.state.iconfileList.filter((file, i) => i !== indexInFileList),
-                    selectedIconfileIndex: 0,
-                    modifiedBy: this.props.username,
-                    inEdit: false
-                });
-                showSuccessMessage(`Iconfile ${getIconfileType(selectedFormat)} removed`);
-                this.notifyOfUpdate();
-            },
-            error => showErrorMessage(error)
-        )
-        .catch(error => showErrorMessage(error));
-    }
-
-    private deleteIcon() {
-        deleteIcon(this.state.iconName)
-        .then(
-            () => {
-                showSuccessMessage(`Icon ${this.state.iconName} removed`);
-                this.props.handleIconDelete(this.state.iconName);
-                this.props.requestClose();
-            },
-            error => showErrorMessage(error)
-        )
-        .catch(error => showErrorMessage(error));
-    }
-
-    private notifyOfUpdate() {
-        this.props.handleIconUpdate({
-            name: this.state.iconName,
-            modifiedBy: this.state.modifiedBy,
-            paths: this.state.iconfileList.toSet(),
-            tags: this.state.iconTags.toSet()
-        });
-    }
-
-    private createTitleBar() {
-        return <div className="title-bar">
-                    <span>{this.state.iconName}</span>
-                    {this.createTitleBarControl("view-icon-button", "eye-open",
-                                                this.state.inEdit, () => this.viewIcon())}
-                    {this.createTitleBarControl("edit-icon-button", "edit",
-                                                !this.state.inEdit, () => this.editIcon())}
-                    {this.createTitleBarControl("delete-icon-button", "trash", true, () => this.deleteIcon())}
-                </div>;
-    }
-
-    private createTitleBarControl(className: string, iconName: IconName, toShow: boolean, action: () => void) {
-        return this.props.editable && toShow
-            ? <Icon className={`title-control ${className}`} icon={iconName} onClick={action}/>
-            : null;
-    }
-
-    private createTagList() {
-        if (this.state.inEdit) {
-            return <TagCollection
-                    tags={this.state.iconTags}
-                    selectedIndex={0}
-                    tagAdditionRequest={tagToAdd => this.addTagToIcon(tagToAdd)}
-                    tagRemovalRequest={index => this.removeTag(index)}
-                    tagsAvailableForAddition={this.state.allTags}/>;
-        } else {
-            return <TagCollection
-                tags={this.state.iconTags}
-                selectedIndex={0}
-                tagsAvailableForAddition={Set.of()}/>;
-        }
-    }
-
-    private addTagToIcon(tagToAdd: string) {
-        addTag(this.state.iconName, tagToAdd)
-        .then(
-            () => {
-                this.setState({
-                    allTags: this.state.allTags.add(tagToAdd),
-                    iconTags: this.state.iconTags.push(tagToAdd)
-                });
-                this.notifyOfUpdate();
-            },
-            error => showErrorMessage(error)
-        )
-        .catch(error => showErrorMessage(error));
-    }
-
-    private removeTag(index: number) {
-        const tagText: string = this.state.iconTags.get(index);
-        removeTag(this.state.iconName, tagText)
-        .then(
-            () => {
-                this.setState({iconTags: this.state.iconTags.remove(index)});
-                this.notifyOfUpdate();
-            }
-        );
-    }
-
-    private handleClose = () => this.props.requestClose();
-
+interface Action {
+	readonly view: () => void;
+	readonly edit: () => void;
+	readonly delete: () => void;
 }
+interface IconDetailsTitleBarProps {
+	readonly iconName: string;
+	readonly inEdit: boolean;
+	readonly editable: boolean;
+	readonly action: Action;
+}
+
+const IconDetailsTitleBar = (props: IconDetailsTitleBarProps) => {
+	return <div className="title-bar">
+		<span>{props.iconName}</span>
+		<IconDetailsTitleBarControl className="view-icon-button" toShow={props.editable && props.inEdit} action={props.action.view}>
+			<VisibilityIcon />
+		</IconDetailsTitleBarControl>
+		<IconDetailsTitleBarControl className="edit-icon-button" toShow={props.editable && !props.inEdit} action={props.action.edit}>
+			<EditIcon />
+		</IconDetailsTitleBarControl>
+		<IconDetailsTitleBarControl className="delete-icon-button" toShow={props.editable && true} action={props.action.delete}>
+			<DeleteIcon />
+		</IconDetailsTitleBarControl>
+	</div>;
+};
+
+const iconfileType = (iconfile: IconfileDescriptor) => {
+	return `${iconfile.format}@${iconfile.size}`;
+};
+
+export const IconDetailsDialog = (props: IconDetailsDialogProps) => {
+
+	const initialIconfileSelection = (): IconfileDescriptor => {
+		if (!props.iconDescriptor) {
+			return null;
+		}
+		const icon = props.iconDescriptor;
+		return preferredIconfileType(icon);
+	};
+
+
+	const dispatch = useDispatch();
+
+	const [allTags, setAllTags] = useState<string[]>(null);
+
+	const [iconName, setIconName] = useState<string>(props.iconDescriptor ? props.iconDescriptor.name : null);
+	const [iconTags, setIconTags] = useState<string[]>(props.iconDescriptor ? props.iconDescriptor.tags : []);
+	const [modifiedBy, setModifiedBy] = useState<string>(props.iconDescriptor ? props.iconDescriptor.modifiedBy : "<none>");
+	const [inEdit, setInEdit] = useState(props.startInEdit);
+	const [selectedIconfile, setSelectedIconfile] = useState<IconfileDescriptor>(initialIconfileSelection());
+	const [previouslySelectedIconFile, setPreviouslySelectedIconFile] = useState<IconfileDescriptor>(null);
+
+	const [iconfileList, setIconfileList] = useState<IconPathWithUrl[]>(props.iconDescriptor ? createIconfileList(props.iconDescriptor.paths) : []);
+
+	useEffect(() => {
+		getTags()
+		.then(
+			tags => setAllTags(tags)
+		);
+	}, []);
+
+	const iconfileFormats = () => iconfileList.map(iconfile => iconfileType(iconfile));
+
+	const findByDescriptorIn = (descriptor: IconfileDescriptor, fileList: IconPathWithUrl[]) =>
+		fileList.find(iconfile => iconfile.format === descriptor.format && iconfile.size == descriptor.size);
+
+	const pathOfSelectedIconfile = React.useMemo(() => {
+		return isNil(selectedIconfile)
+			? undefined
+			: findByDescriptorIn(selectedIconfile, iconfileList)?.url;
+	}, [iconfileList, selectedIconfile]);
+
+	const addTagToIcon = (tagToAdd: string) => {
+		addTag(iconName, tagToAdd)
+			.then(
+				() => {
+					setAllTags(allTags.concat([tagToAdd]));
+					setIconTags(iconTags.concat([tagToAdd]));
+					props.handleIconUpdate(iconName);
+				},
+				error => dispatch(reportError(error))
+			);
+	};
+
+	const removeIconTag = (tag: string) => {
+		removeTag(iconName, tag)
+			.then(
+				() => {
+					setIconTags(iconTags.filter(iconTag => iconTag !== tag));
+					props.handleIconUpdate(null);
+				}
+			);
+	};
+
+	const createTagList = () => {
+		if (inEdit) {
+			return <TagCollection
+				selectedTags={iconTags}
+				tagAdditionRequest={tagToAdd => addTagToIcon(tagToAdd)}
+				tagRemovalRequest={index => removeIconTag(index)}
+				allTags={allTags} />;
+		} else {
+			return <TagCollection
+				selectedTags={iconTags}
+				allTags={[]} />;
+		}
+	};
+
+	const iconfileDeletionRequest = (fileType: string) => {
+		const selectedFormat = iconfileList.find(iconfile => iconfileType(iconfile) === fileType);
+		const newIconfileList = iconfileList.filter(iconfile => iconfileType(iconfile) !== fileType);
+		deleteIconfile(selectedFormat.path)
+			.then(
+				() => {
+					setIconfileList(newIconfileList);
+					setSelectedIconfile(newIconfileList?.[0]);
+					setModifiedBy(props.username);
+					setInEdit(false);
+					dispatch(reportInfo(`Iconfile ${getIconfileType(selectedFormat)} removed`));
+					props.handleIconUpdate(newIconfileList.length ? iconName : null);
+					if (newIconfileList.length === 0) {
+						props.requestClose();
+					}
+				},
+				error => dispatch(reportError(error))
+			);
+	};
+
+	const propertiesRow = () => {
+		return <div className="properties-row">
+			{
+				renderMapAsTable({
+					"Last modified by":
+						<TagCollection
+							key={1}
+							selectedTags={[modifiedBy]}
+							allTags={[]}
+						/>,
+					"Available formats":
+						<TagCollection
+							key={2}
+							selectedTags={iconfileFormats()}
+							selectionChangeRequest={type => setSelectedIconfile(iconfileList.find(iconfile => iconfileType(iconfile) === type))}
+							tagRemovalRequest={
+								inEdit
+									? fileFormat => iconfileDeletionRequest(fileFormat)
+									: undefined
+							}
+							allTags={[]}
+						/>,
+					"Tags":
+						createTagList()
+				})
+			}
+		</div>;
+	};
+
+	const viewIcon: () => void = () => {
+		setSelectedIconfile(previouslySelectedIconFile);
+		setInEdit(false);
+	};
+
+	const editIcon: () => void = () => {
+		setInEdit(true);
+		setPreviouslySelectedIconFile(selectedIconfile);
+		setSelectedIconfile(null);
+	};
+
+	const deleteIcon: () => void = () => props.handleIconDelete(iconName);
+
+	const handleIconfileUpload = (uploadedFile: IngestedIconfileDTO) => {
+		const newIconfileList = iconfileList.concat([{ ...uploadedFile, url: getUrl(uploadedFile.path) }]);
+		setIconName(uploadedFile.iconName);
+		setIconfileList(newIconfileList);
+		setSelectedIconfile(findByDescriptorIn(uploadedFile, newIconfileList));
+		setModifiedBy(props.username);
+		setInEdit(false);
+		props.handleIconUpdate(uploadedFile.iconName);
+		dispatch(reportInfo(`Iconfile ${uploadedFile.iconName}@${uploadedFile.size}.${uploadedFile.format} added`));
+		props.requestClose();
+	};
+
+	const downloadName = () => {
+		return selectedIconfile
+			? `${iconName}@${selectedIconfile.size}.${selectedIconfile.format}`
+			: "";
+	};
+
+	return !isNil(allTags) && <Dialog className="icon-details-dialog" open={props.isOpen} >
+		<DialogTitle>
+			<IconDetailsTitleBar iconName={props.iconDescriptor?.name} editable={props.editable} inEdit={inEdit} action={{
+				view: viewIcon,
+				edit: editIcon,
+				delete: deleteIcon
+			}} />
+		</DialogTitle>
+		<DialogContent>
+			<div className="icon-box-row">
+				<IconfilePortal
+					imageUrl={pathOfSelectedIconfile}
+					iconName={iconName}
+					handleFileUpload={uploadedFile => handleIconfileUpload(uploadedFile)}
+					handleError={error => dispatch(reportError(error))}
+				/>
+				{propertiesRow()}
+			</div>
+		</DialogContent>
+		<DialogActions>
+			<Button
+				href={pathOfSelectedIconfile}
+				download={downloadName()}
+				disabled={!pathOfSelectedIconfile}
+			>
+				Download
+			</Button>
+			<Button onClick={props.requestClose}>Close</Button>
+		</DialogActions>
+	</Dialog>;
+};

@@ -5,17 +5,14 @@ import (
 	"io"
 
 	"igo-repo/internal/app/security/authr"
-	"igo-repo/internal/logging"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 )
 
-func HandlePutIntoBackdoorRequest(log zerolog.Logger) func(c *gin.Context) {
+func HandlePutIntoBackdoorRequest(logger zerolog.Logger) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		logger := logging.CreateMethodLogger(log, "PUT /backdoor/authentication")
-
 		requestBody, errReadRequest := io.ReadAll(c.Request.Body)
 		if errReadRequest != nil {
 			logger.Error().Msgf("failed to read request body %T: %v", c.Request.Body, errReadRequest)
@@ -46,10 +43,8 @@ func HandlePutIntoBackdoorRequest(log zerolog.Logger) func(c *gin.Context) {
 	}
 }
 
-func HandleGetIntoBackdoorRequest(log zerolog.Logger) func(c *gin.Context) {
+func HandleGetIntoBackdoorRequest(logger zerolog.Logger) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		logger := logging.CreateMethodLogger(log, "GET /backdoor/authentication")
-
 		session := sessions.Default(c)
 		user := session.Get(UserKey)
 		sessionData, ok := user.(SessionData)

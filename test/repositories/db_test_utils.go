@@ -10,7 +10,6 @@ import (
 	"igo-repo/internal/repositories"
 	"igo-repo/test/common"
 
-	"github.com/jackc/pgx"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
@@ -37,7 +36,7 @@ func DeleteDBData(db *sql.DB) error {
 	for _, table := range tables {
 		_, err = tx.Exec("DELETE FROM " + table)
 		if err != nil {
-			if pgErr, ok := err.(*pgx.PgError); !ok || pgErr.Code != "42P01" {
+			if repositories.IsDBError(err, repositories.ErrMissingDBTable) {
 				continue
 			}
 			return fmt.Errorf("failed to delete test data from table %s: %w", table, err)
@@ -108,7 +107,7 @@ func (s DBTestSuite) getIconCount() (int, error) {
 }
 
 func (s *DBTestSuite) getIconfile(iconName string, iconfile domain.Iconfile) ([]byte, error) {
-	return s.dbRepo.GetIconFile(iconName, iconfile.IconfileDescriptor)
+	return s.dbRepo.GetIconfile(iconName, iconfile.IconfileDescriptor)
 }
 
 func (s *DBTestSuite) getIconfileChecked(iconName string, iconfile domain.Iconfile) {

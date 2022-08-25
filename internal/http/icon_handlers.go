@@ -10,6 +10,7 @@ import (
 
 	"igo-repo/internal/app/domain"
 	"igo-repo/internal/app/security/authr"
+	"igo-repo/internal/app/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
@@ -113,6 +114,7 @@ func describeIconHandler(describeIcon func(iconName string) (domain.IconDescript
 
 func createIconHandler(
 	createIcon func(iconName string, initialIconfileContent []byte, modifiedBy authr.UserInfo) (domain.Icon, error),
+	ns *services.Notification,
 	logger zerolog.Logger,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
@@ -153,29 +155,41 @@ func createIconHandler(
 			if errors.Is(errCreate, authr.ErrPermission) {
 				c.AbortWithStatus(403)
 				return
+			} else if errors.Is(errCreate, domain.ErrIconAlreadyExists) {
+				c.AbortWithStatus(409)
+				return
 			} else {
 				c.AbortWithStatus(500)
 				return
 			}
 		}
 		c.JSON(201, iconToResponseIcon(icon))
+		ns.Publish(services.NotifMsgIconCreated)
 	}
 }
 
-func getIconfileHandler(getIconFile func(iconName string, iconfile domain.IconfileDescriptor) ([]byte, error), logger zerolog.Logger) func(c *gin.Context) {
+func getIconfileHandler(getIconfile func(iconName string, iconfile domain.IconfileDescriptor) ([]byte, error), logger zerolog.Logger) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		iconName := c.Param("name")
 		format := c.Param("format")
 		size := c.Param("size")
-		iconFile, err := getIconFile(iconName, domain.IconfileDescriptor{
+		iconfile, err := getIconfile(iconName, domain.IconfileDescriptor{
 			Format: format,
 			Size:   size,
 		})
 		if err != nil {
+			if errors.Is(err, domain.ErrIconfileNotFound) {
+				c.AbortWithStatus(404)
+				return
+			}
 			logger.Error().Msgf("failed to retrieve %s:%scontents for icon %s: %v", iconName, size, format, err)
 			c.AbortWithStatus(500)
 		}
-		c.Data(200, "application/octet-stream", iconFile)
+		if format == "svg" {
+			c.Data(200, "image/svg+xml", iconfile)
+			return
+		}
+		c.Data(200, "application/octet-stream", iconfile)
 	}
 }
 
@@ -183,8 +197,8 @@ func addIconfileHandler(
 	addIconfile func(iconName string, initialIconfileContent []byte, modifiedBy authr.UserInfo) (domain.IconfileDescriptor, error),
 	logger zerolog.Logger,
 ) func(c *gin.Context) {
-	return func(c *gin.Context) {
 
+	return func(c *gin.Context) {
 		session := mustGetUserSession(c)
 		authrErr := authr.HasRequiredPermissions(
 			session.UserInfo.UserId,
@@ -332,6 +346,11 @@ func addTagHandler(
 		tagRequestData := AddServiceRequestData{}
 		json.Unmarshal(jsonData, &tagRequestData)
 		tag := tagRequestData.Tag
+		if len(tag) == 0 {
+			logger.Error().Msg("Tags must be at last one character long")
+			c.AbortWithStatus(400)
+			return
+		}
 
 		serviceError := addTag(iconName, tag, session.UserInfo)
 		if serviceError != nil {

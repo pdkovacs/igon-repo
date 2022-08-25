@@ -4,7 +4,6 @@ import (
 	"igo-repo/internal/app/security/authn"
 	"igo-repo/internal/app/security/authr"
 	"igo-repo/internal/app/services"
-	"igo-repo/internal/logging"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -18,10 +17,9 @@ type userInfoDTO struct {
 	DisplayName string               `json:"displayName"`
 }
 
-func userInfoHandler(userService services.UserService, log zerolog.Logger) func(c *gin.Context) {
+func userInfoHandler(userService services.UserService, logger zerolog.Logger) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		userId := c.Query("userId")
-		logger := logging.CreateMethodLogger(log, "UserInfoHandler")
 		session := sessions.Default(c)
 		user := session.Get(UserKey)
 

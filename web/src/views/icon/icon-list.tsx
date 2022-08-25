@@ -1,188 +1,151 @@
-import * as React from "react";
+import React, { useEffect } from "react";
+import { useState } from "react";
 import { IconCell } from "./icon-cell";
-import { describeAllIcons, IconDescriptor, getTags } from "../../services/icon";
-import { Set } from "immutable";
-import { fetchConfig, AppInfo } from "../../services/config";
+import { describeAllIcons, IconDescriptor, deleteIcon } from "../../services/icon";
 import { AppSettgins } from "../app-settings";
 import { UserSettings } from "../user-settings";
-import { UserInfo, fetchUserInfo, hasAddIconPrivilege, hasUpdateIconPrivilege } from "../../services/user";
+import { hasAddIconPrivilege, hasUpdateIconPrivilege } from "../../services/user";
+import AddIcon from "@mui/icons-material/Add";
+import SearchIcon from "@mui/icons-material/Search";
 
 import "./icon-list.styl";
-import { Icon, Button, Intent } from "@blueprintjs/core";
 import { IconDetailsDialog } from "./icon-details-dialog";
+import { IconButton } from "@mui/material";
+import { useDispatch, useSelector } from "react-redux";
+import { IconRepoState } from "../../state/reducers/root-reducer";
+import { reportInfo, reportError } from "../../state/actions/messages-actions";
 
-interface Settings {
-    readonly appInfo: AppInfo;
-    readonly userInfo: UserInfo;
-}
+const detailsDialogForCreate = false;
 
-const initialSettings: Settings = {
-    appInfo: {
-        versionInfo: {
-            version: "No data",
-            commit: "No data"
-        },
-        appDescription: "No data"
-     },
-     userInfo: {
-         permissions: Set([]),
-         username: "John Doe",
-         authenticated: false
-     }
+export const IconList = () => {
+
+	const settings = useSelector((state: IconRepoState) => state.app);
+
+	const dispatch = useDispatch();
+
+	const [icons, setIcons] = useState<IconDescriptor[]>([]);
+	const [searchQuery, setSearchQuery] = useState("");
+	const [selectedIcon, setSelectedIcon] = useState(null);
+	const [iconDetailDialogVisible, setIconDetailDialogVisible] = useState(false);
+
+	const getIcons = () => {
+		return describeAllIcons()
+		.then(
+			icons => setIcons(icons),
+			error => { throw error; }
+		);
+	};
+
+	
+	useEffect(() => {
+		getIcons();
+	}, []);
+
+	if (!settings?.appInfo || !settings?.userInfo) {
+		return null;
+	}
+
+	const filteredIcons = () => {
+		if (searchQuery === "") {
+			return icons;
+		} else {
+			return icons.filter(icon => {
+				return icon.name.toLowerCase().indexOf(searchQuery.toLowerCase()) !== -1;
+			});
+		}
+	};
+		
+	const handleIconUpdate = async (iconName: string) => {
+		await getIcons();
+		if (iconName) {
+			setSelectedIcon(icons.find(icon => icon.name === iconName));
+		} else {
+			setSelectedIcon(icons?.[0]);
+		}
+	};
+	
+	const handleIconDelete = (iconName: string) =>
+		deleteIcon(iconName)
+		.then(
+			() => {
+				dispatch(reportInfo(`Icon ${iconName} removed`));
+				setIcons(icons.filter(i => i.name !== selectedIcon.name));
+				setSelectedIcon(null);
+				setIconDetailDialogVisible(false);
+			},
+			err => dispatch(reportError(err))
+		);
+
+	return <div>
+		<header className="top-header">
+		<div className="inner-wrapper">
+			<div className="branding">
+					<AppSettgins versionInfo = {settings.appInfo.versionInfo} />
+					<div className="app-description">
+						<span>{settings.appInfo.appDescription}</span>
+					</div>
+			</div>
+			<div className="right-control-group">
+				<div className="search">
+					<div className="search-input-wrapper">
+						<IconButton className="search-button"><SearchIcon/></IconButton>
+						<input type="text" className="search-input"
+							value={searchQuery}
+							onChange={
+								event => {
+									const newValue = event.target.value;
+									setSearchQuery(newValue);
+								}
+							}
+						/>
+					</div>
+				</div>
+				<UserSettings username={settings.userInfo.username}/>
+			</div>
+		</div>
+		</header>
+
+		<div className="action-bar">
+		{
+			hasAddIconPrivilege(settings.userInfo)
+			? <div className="add-icon">
+					<IconButton onClick={() => {
+						setSelectedIcon(undefined);
+						setIconDetailDialogVisible(true);
+					}}><AddIcon/></IconButton>
+				</div>
+			: null
+		}
+		</div>
+
+		{
+			iconDetailDialogVisible
+			? 
+			<IconDetailsDialog
+				username={settings.userInfo.username}
+				isOpen={iconDetailDialogVisible}
+				iconDescriptor={selectedIcon}
+				handleIconUpdate={iconName => handleIconUpdate(iconName)}
+				handleIconDelete={iconName => handleIconDelete(iconName)}
+				requestClose={() => setIconDetailDialogVisible(false)}
+				editable={hasUpdateIconPrivilege(settings.userInfo)}
+				startInEdit={detailsDialogForCreate}
+			/>
+			: null
+		}
+
+		<section className="inner-wrapper icon-grid">
+			{filteredIcons().map((icon, key) =>
+				<div key = {key} className="grid-cell">
+					<IconCell icon={icon} reqestDetails = {
+						() => {
+							setSelectedIcon(icon);
+							setIconDetailDialogVisible(true);
+						}
+					}/>
+				</div>
+			)}
+		</section>
+
+	</div>;
 };
-
-interface IconListState {
-    readonly settings: Settings;
-    readonly icons: Set<IconDescriptor>;
-    readonly searchQuery: string;
-    readonly selectedIcon: IconDescriptor;
-    readonly iconDetailDialogVisible: boolean;
-    readonly allTags: Set<string>;
-}
-
-export class IconList extends React.Component<{}, IconListState> {
-
-    private detailsDialogForCreate: boolean = false;
-
-    constructor(props: {}) {
-        super(props);
-        this.state = {
-            settings: { ...initialSettings },
-            icons: Set([]),
-            searchQuery: "",
-            selectedIcon: null,
-            iconDetailDialogVisible: false,
-            allTags: Set([])
-        };
-    }
-
-    public componentDidMount() {
-        fetchConfig()
-        .then(
-            appInfo => this.setState(prevState => ({ ...prevState, settings: { ...prevState.settings, appInfo } }))
-        );
-        fetchUserInfo()
-        .then(
-            userInfo => this.setState(prevState => ({ ...prevState, settings: { ...prevState.settings, userInfo } } ))
-        );
-        describeAllIcons()
-        .then(
-            icons => this.setState(prevState => ({ ...prevState, icons })),
-            error => { throw error; }
-        );
-        getTags()
-        .then(
-            tags => this.setState({allTags: Set(tags)})
-        );
-    }
-
-    public render() {
-        return <div>
-            <header className="top-header">
-            <div className="inner-wrapper">
-                <div className="branding">
-                    <AppSettgins versionInfo = {this.state.settings.appInfo.versionInfo} />
-                    <div className="app-description">
-                        <span>{this.state.settings.appInfo.appDescription}</span>
-                    </div>
-                </div>
-                <div className="right-control-group">
-                    <div className="search">
-                        <div className="search-input-wrapper">
-                            <Icon className="search-icon" icon="search" iconSize={24}/>
-                            <input type="text" className="search-input"
-                                value={this.state.searchQuery}
-                                onChange={
-                                    event => {
-                                        const newValue = event.target.value;
-                                        this.setState(
-                                            prevState => ({...prevState, searchQuery: newValue})
-                                        );
-                                    }
-                                }
-                            />
-                        </div>
-                    </div>
-                    <UserSettings username={this.state.settings.userInfo.username}/>
-                </div>
-            </div>
-            </header>
-
-            <div className="action-bar">
-                {this.actionBarContent()}
-            </div>
-
-            {this.iconDetailsDialog()}
-
-            <section className="inner-wrapper icon-grid">
-                {this.filteredIcons().toList().map((icon, key) =>
-                    <div key = {key} className="grid-cell">
-                        <IconCell icon = {icon} reqestDetails = {
-                            () => this.setState({selectedIcon: icon, iconDetailDialogVisible: true})
-                        }/>
-                    </div>
-                )}
-            </section>
-
-        </div>;
-    }
-
-    private filteredIcons() {
-        if (this.state.searchQuery === "") {
-            return this.state.icons;
-        } else {
-            return this.state.icons.filter(icon => {
-                return icon.name.toLowerCase().indexOf(this.state.searchQuery.toLowerCase()) !== -1;
-            });
-        }
-    }
-
-    private actionBarContent() {
-        if (hasAddIconPrivilege(this.state.settings.userInfo)) {
-            return <div className="add-icon">
-                <Button intent={Intent.PRIMARY} icon="plus" onClick={() => this.openCreateIconDialog()}>ADD NEW</Button>
-            </div>;
-        } else {
-            return null;
-        }
-    }
-
-    private openCreateIconDialog() {
-        this.setState({selectedIcon: undefined, iconDetailDialogVisible: true});
-    }
-
-    private iconDetailsDialog() {
-        if (this.state.iconDetailDialogVisible) {
-            return <IconDetailsDialog
-                username={this.state.settings.userInfo.username}
-                isOpen={this.state.iconDetailDialogVisible}
-                iconDescriptor={this.state.selectedIcon}
-                handleIconUpdate={icon => this.handleIconUpdate(icon)}
-                handleIconDelete={() => this.handleIconDelete()}
-                requestClose={() => this.setState({iconDetailDialogVisible: false})}
-                editable={hasUpdateIconPrivilege(this.state.settings.userInfo)}
-                startInEdit={this.detailsDialogForCreate}
-                tags={this.state.allTags}/>;
-        } else {
-            return null;
-        }
-    }
-
-    private handleIconUpdate(icon: IconDescriptor) {
-        const tmp: Set<IconDescriptor> = this.state.selectedIcon // update or creation
-            ? this.state.icons.filter(i => i.name !== this.state.selectedIcon.name)
-            : this.state.icons;
-        this.setState({
-            icons: tmp.add(icon),
-            selectedIcon: icon,
-            allTags: this.state.allTags.union(icon.tags)
-        });
-    }
-
-    private handleIconDelete() {
-        this.setState({
-            icons: this.state.icons.filter(i => i.name !== this.state.selectedIcon.name),
-            selectedIcon: null
-        });
-    }
-}

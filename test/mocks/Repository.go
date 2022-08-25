@@ -128,8 +128,8 @@ func (_m *Repository) DescribeIcon(iconName string) (domain.IconDescriptor, erro
 	return r0, r1
 }
 
-// GetIconFile provides a mock function with given fields: iconName, iconfile
-func (_m *Repository) GetIconFile(iconName string, iconfile domain.IconfileDescriptor) ([]byte, error) {
+// GetIconfile provides a mock function with given fields: iconName, iconfile
+func (_m *Repository) GetIconfile(iconName string, iconfile domain.IconfileDescriptor) ([]byte, error) {
 	ret := _m.Called(iconName, iconfile)
 
 	var r0 []byte

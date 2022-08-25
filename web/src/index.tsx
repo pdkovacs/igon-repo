@@ -1,12 +1,32 @@
 import "normalize.css";
-import "./global.styl";
 
-import * as React from "react";
+import { useEffect } from "react";
 import * as ReactDOM from "react-dom";
+import { Provider as Redux, useDispatch } from "react-redux";
+import { ErrorBoundary } from "react-error-boundary";
+import store from "./state/store";
+import { reportError } from "./state/actions/messages-actions";
+import * as React from "react";
+import { App } from "./app";
 
-import { IconList } from "./views/icon/icon-list";
+const ErrorFallback = ({ error }: { error: Error; }): JSX.Element|null => {
+	const dispatch = useDispatch();
+
+	useEffect(() => {
+		dispatch(reportError(error));
+	}, [error]);
+
+  return null;
+};
 
 ReactDOM.render(
-    <IconList/>,
-    document.getElementById("app")
+	<Redux store={store}>
+		<ErrorBoundary
+			FallbackComponent={ErrorFallback}
+			onReset={() => undefined}
+		>
+			<App/>
+		</ErrorBoundary>
+	</Redux>,
+	document.getElementById("app")
 );

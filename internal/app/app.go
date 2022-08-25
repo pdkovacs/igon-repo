@@ -7,7 +7,7 @@ import (
 	"igo-repo/internal/repositories"
 )
 
-func Start(conf config.Options, ready func(port int, server httpadapter.Stoppable)) error {
+func Start(conf config.Options, ready func(port int, stop func())) error {
 
 	rootLogger := logging.CreateRootLogger(conf.LogLevel)
 
@@ -16,15 +16,14 @@ func Start(conf config.Options, ready func(port int, server httpadapter.Stoppabl
 		return dbErr
 	}
 
-	_, schemaErr := repositories.OpenDBSchema(conf, connection, logging.CreateUnitLogger(rootLogger, "db-schema"))
+	dbSchemaAlreadyThere, schemaErr := repositories.OpenDBSchema(conf, connection, logging.CreateUnitLogger(rootLogger, "db-schema"))
 	if schemaErr != nil {
 		return schemaErr
 	}
 
 	db := repositories.NewDBRepository(connection, logging.CreateUnitLogger(rootLogger, "db-repository"))
 
-	git := repositories.NewGitRepository(conf.IconDataLocationGit, logging.CreateUnitLogger(rootLogger, "git-repository"))
-	gitErr := git.InitMaybe()
+	git, gitErr := repositories.NewGitRepository(conf.IconDataLocationGit, !dbSchemaAlreadyThere, logging.CreateUnitLogger(rootLogger, "git-repository"))
 	if gitErr != nil {
 		return gitErr
 	}
@@ -39,8 +38,11 @@ func Start(conf config.Options, ready func(port int, server httpadapter.Stoppabl
 		logging.CreateUnitLogger(rootLogger, "server"),
 	)
 
-	server.SetupAndStart(conf, func(port int, app httpadapter.Stoppable) {
-		ready(port, app)
+	server.SetupAndStart(conf, func(port int, stop func()) {
+		ready(port, func() {
+			stop()
+			connection.Pool.Close()
+		})
 	})
 
 	return nil

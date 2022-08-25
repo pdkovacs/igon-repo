@@ -18,7 +18,7 @@ type Repository interface {
 	CreateIcon(iconName string, iconfile domain.Iconfile, modifiedBy authr.UserInfo) error
 	DeleteIcon(iconName string, modifiedBy authr.UserInfo) error
 
-	GetIconFile(iconName string, iconfile domain.IconfileDescriptor) ([]byte, error)
+	GetIconfile(iconName string, iconfile domain.IconfileDescriptor) ([]byte, error)
 	AddIconfile(iconName string, iconfile domain.Iconfile, modifiedBy authr.UserInfo) error
 	DeleteIconfile(iconName string, iconfile domain.IconfileDescriptor, modifiedBy authr.UserInfo) error
 
@@ -99,7 +99,7 @@ func (service *iconService) CreateIcon(iconName string, initialIconfileContent [
 }
 
 func (service *iconService) GetIconfile(iconName string, iconfile domain.IconfileDescriptor) ([]byte, error) {
-	content, err := service.Repository.GetIconFile(iconName, iconfile)
+	content, err := service.Repository.GetIconfile(iconName, iconfile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve iconfile %v: %w", iconfile, err)
 	}

@@ -38,7 +38,7 @@ func (s *iconTestSuite) assertAllFilesInDBAreInGitAsWell() []string {
 
 	for _, iconDesc := range allIconDesc {
 		for _, iconfileDesc := range iconDesc.Iconfiles {
-			fileContentInDB, contentReadError := db.GetIconFile(iconDesc.Name, iconfileDesc)
+			fileContentInDB, contentReadError := db.GetIconfile(iconDesc.Name, iconfileDesc)
 			if contentReadError != nil {
 				panic(contentReadError)
 			}

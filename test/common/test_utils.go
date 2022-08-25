@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"igo-repo/internal/config"
 	"os"
+	"path/filepath"
+	"strconv"
 )
 
 func CloneConfig(conf config.Options) config.Options {
@@ -31,5 +33,12 @@ func GetTestConfig() config.Options {
 	}
 	config := CloneConfig(config.GetDefaultConfiguration())
 	os.Setenv("DB_HOST", oldDBHostEnvVar)
+
+	homeTmpDir := filepath.Join(os.Getenv("HOME"), "tmp")
+	testTmpDir := filepath.Join(homeTmpDir, "tmp-icon-repo-test")
+	repoBaseDir := filepath.Join(testTmpDir, strconv.Itoa(os.Getpid()))
+
+	config.IconDataLocationGit = repoBaseDir
+
 	return config
 }

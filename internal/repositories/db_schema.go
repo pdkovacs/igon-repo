@@ -157,7 +157,7 @@ func (schema *dbSchema) doesExist() (bool, error) {
 	row := db.QueryRow("SELECT schema_name FROM information_schema.schemata WHERE schema_name = $1", schemaName)
 	errQuery := row.Err()
 	if errQuery != nil {
-		return false, fmt.Errorf("failed to query whether AIR schema '%s' exists or not: %w", schemaName, errQuery)
+		return false, fmt.Errorf("failed to query whether schema '%s' exists or not: %w", schemaName, errQuery)
 	}
 
 	var scheName sql.NullString
@@ -167,7 +167,7 @@ func (schema *dbSchema) doesExist() (bool, error) {
 	}
 
 	if scheName.Valid && scheName.String == schemaName {
-		logger.Info().Msgf("AIR schema '%s' exists", schemaName)
+		logger.Info().Msgf("schema '%s' exists", schemaName)
 		return true, nil
 	}
 
@@ -179,7 +179,7 @@ func (schema *dbSchema) create() error {
 	schemaName := schema.conn.schemaName
 	_, errCreate := db.Exec("create schema " + schemaName)
 	if errCreate != nil {
-		return fmt.Errorf("failed to create AIR schema '%s': %w", schemaName, errCreate)
+		return fmt.Errorf("failed to create schema '%s': %w", schemaName, errCreate)
 	}
 	return nil
 }

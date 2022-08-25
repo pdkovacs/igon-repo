@@ -18,11 +18,18 @@ type GitRepository struct {
 	Logger   zerolog.Logger
 }
 
-func NewGitRepository(location string, logger zerolog.Logger) *GitRepository {
-	return &GitRepository{
+func NewGitRepository(location string, doInit bool, logger zerolog.Logger) (*GitRepository, error) {
+	git := &GitRepository{
 		Location: location,
 		Logger:   logger,
 	}
+	if doInit {
+		initErr := git.initMaybe()
+		if initErr != nil {
+			return nil, initErr
+		}
+	}
+	return git, nil
 }
 
 var IntrusiveGitTestEnvvarName = "GIT_COMMIT_FAIL_INTRUSIVE_TEST"
@@ -141,7 +148,7 @@ func (g GitRepository) createIconfileJob(iconfileOperation func() ([]string, err
 
 	defer func() {
 		if err != nil {
-			logger.Error().Msgf("failed to create iconfile: %v", err)
+			logger.Error().Msgf("failed GIT operation on iconfile: %v", err)
 			g.rollback()
 		} else {
 			logger.Debug().Msg("Success")
@@ -309,7 +316,7 @@ func (s *GitRepository) test() bool {
 }
 
 // Init initializes the Git repository if it already doesn't exist
-func (s *GitRepository) InitMaybe() error {
+func (s *GitRepository) initMaybe() error {
 	if !s.test() {
 		return s.createInitializeGitRepo()
 	}

@@ -43,8 +43,8 @@ func (combo *RepoCombo) AddIconfile(iconName string, iconfile domain.Iconfile, m
 	})
 }
 
-func (combo *RepoCombo) GetIconFile(iconName string, iconfile domain.IconfileDescriptor) ([]byte, error) {
-	return combo.DB.GetIconFile(iconName, iconfile)
+func (combo *RepoCombo) GetIconfile(iconName string, iconfile domain.IconfileDescriptor) ([]byte, error) {
+	return combo.DB.GetIconfile(iconName, iconfile)
 }
 
 func (combo *RepoCombo) DeleteIconfile(iconName string, iconfile domain.IconfileDescriptor, modifiedBy authr.UserInfo) error {

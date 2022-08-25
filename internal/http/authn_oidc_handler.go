@@ -19,14 +19,14 @@ import (
 )
 
 func checkOIDCAuthentication(log zerolog.Logger) func(c *gin.Context) {
+	logger := logging.CreateMethodLogger(log, "checkOIDCAuthentication")
+
 	return func(c *gin.Context) {
-		logger := logging.CreateMethodLogger(log, "checkOIDCAuthentication")
 		session := sessions.Default(c)
 		user := session.Get(UserKey)
 		if user == nil {
-			logger.Debug().Msg("No user session redirecting to /login...")
-			c.Redirect(http.StatusFound, "/login")
-			c.Abort()
+			logger.Debug().Msgf("Request not authenticated: %v", c.Request.URL)
+			c.AbortWithStatus(401)
 			return
 		}
 		logger.Debug().Msgf("User session: %v", user)

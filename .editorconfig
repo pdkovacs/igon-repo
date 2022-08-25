@@ -7,6 +7,21 @@ indent_size = 4
 [*.tf]
 indent_size = 2
 
+[*.sh]
+indent_size = 2
+
+[{**.ts,**.tsx}]
+indent_style = tab
+indent_size = 2
+
+[*.styl]
+indent_style = tab
+indent_size = 2
+
 [{Makefile,**.mk}]
 indent_style = tab
+indent_size = 2
+
+[{**.yml, **.yaml}]
+indent_style = space
 indent_size = 2

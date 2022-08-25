@@ -1,37 +1,36 @@
 import * as React from "react";
-import { Icon, MenuItem } from "@blueprintjs/core";
-import { Select, ItemRenderer } from "@blueprintjs/select";
 
-import "./user-settings.styl";
 import { logout } from "../services/user";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
+import { IconButton, Menu, MenuItem } from "@mui/material";
+import PopupState, { bindMenu, bindTrigger } from "material-ui-popup-state";
 
 interface UserSettingsProps {
     username: string;
 }
 
-const ActionSelect = Select.ofType<string>();
-const actionItemRenderer: ItemRenderer<string>
-    = (item, {handleClick, index}) => <MenuItem key={index} text={item} onClick={handleClick}/>;
-
-export class UserSettings extends React.Component<UserSettingsProps, {}> {
+export class UserSettings extends React.Component<UserSettingsProps, never> {
     constructor(props: UserSettingsProps) {
         super(props);
     }
 
     public render() {
-        return <div className="user-area">
-            <div className="account-settings-head">
-                <div className="account-button">
-                    <Icon className="account-button-element" icon="user"/>
-                    <ActionSelect className="account-button-element"
-                            filterable={false}
-                            items={["Logout"]}
-                            itemRenderer={actionItemRenderer}
-                            onItemSelect={logout}>
-                        {this.props.username}
-                    </ActionSelect>
-                </div>
-            </div>
-        </div>;
-    }
+			return <div className="user-area">
+				<PopupState variant="popover" popupId="demo-popup-menu">
+					{(popupState) => (
+						<React.Fragment>
+							<IconButton color="secondary" {...bindTrigger(popupState)}>
+								<AccountCircleIcon/>
+							</IconButton>
+							<Menu {...bindMenu(popupState)}>
+								<MenuItem onClick={() => {
+									logout();
+									popupState.close();
+								}}>Logout</MenuItem>
+							</Menu>
+						</React.Fragment>
+					)}
+				</PopupState>
+		</div>;
+	}
 }

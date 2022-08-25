@@ -14,5 +14,5 @@ export const IconCell = (props: IconCellProps) =>
         <div className="icon-preview">
             <img src={preferredIconfileUrl(props.icon)} height="30"/>
         </div>
-        <div className="icon-name">{props.icon.name}</div>
+        <span className="icon-name">{props.icon.name}</span>
     </div>;

@@ -13,3 +13,4 @@
 .terraform/
 .terraform.lock*
 terraform.tfstate*
+fswatch.pid

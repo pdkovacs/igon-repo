@@ -24,7 +24,7 @@ func CreateRootLogger(levelArg LogLevel) zerolog.Logger {
 		level = zerolog.DebugLevel
 	}
 	fmt.Printf("Log level: %v\n", level)
-	return logger.Level(level)
+	return logger.Level(level).With().Timestamp().Logger()
 }
 
 func CreateUnitLogger(logger zerolog.Logger, unitName string) zerolog.Logger {

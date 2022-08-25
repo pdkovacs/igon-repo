@@ -1,9 +1,0 @@
-services:
-  - postgresql
-language: node_js
-node_js: lts/*
-before_script:
-  - psql -c "create role iconrepo with login password 'iconrepo';" -U postgres
-  - psql -c 'create database iconrepo with owner = iconrepo;' -U postgres
-script:
-  - bash deploy/make-dist.sh

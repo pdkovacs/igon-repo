@@ -12,7 +12,6 @@ import (
 
 	"igo-repo/internal/app"
 	"igo-repo/internal/config"
-	httpadapter "igo-repo/internal/http"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
 )
@@ -37,7 +36,7 @@ func main() {
 			panic(confErr)
 		}
 
-		var server httpadapter.Stoppable
+		var stopServer func()
 		exitc := make(chan struct{})
 
 		sigc := make(chan os.Signal, 1)
@@ -49,13 +48,13 @@ func main() {
 		go func() {
 			s := <-sigc
 			fmt.Fprintf(os.Stderr, "Caught %v, stopping server...\n", s)
-			server.Stop()
+			stopServer()
 			fmt.Fprintln(os.Stderr, "Server stopped")
 			exitc <- struct{}{}
 		}()
 
-		errAppStart := app.Start(conf, func(port int, stoppable httpadapter.Stoppable) {
-			server = stoppable
+		errAppStart := app.Start(conf, func(port int, stop func()) {
+			stopServer = stop
 		})
 		if errAppStart != nil {
 			panic(errAppStart)
