@@ -7,10 +7,11 @@ import (
 	"igo-repo/internal/app/security/authn"
 	"igo-repo/internal/app/services"
 	"igo-repo/internal/config"
+	"igo-repo/internal/logging"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 )
 
 // BasicConfig holds the configuration for the Basic authentication scheme
@@ -37,8 +38,8 @@ func decodeBasicAuthnHeaderValue(headerValue string) (userid string, password st
 	return pair[0], pair[1], true
 }
 
-func checkBasicAuthentication(options BasicConfig, userService services.UserService) func(c *gin.Context) {
-	logger := log.With().Str("method", "basic-authn").Logger()
+func checkBasicAuthentication(options BasicConfig, userService services.UserService, log zerolog.Logger) func(c *gin.Context) {
+	logger := logging.CreateMethodLogger(log, "basic-authn")
 	logger.Debug().Msgf("options.PasswordCredentials size: %d", len(options.PasswordCredentialsList))
 
 	return func(c *gin.Context) {

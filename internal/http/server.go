@@ -64,7 +64,7 @@ type Stoppable interface {
 
 // Start starts the service
 func (s *server) Start(portRequested int, r http.Handler, ready func(port int, server Stoppable)) {
-	logger := s.logger.With().Str("prefix", "StartServer").Logger()
+	logger := logging.CreateMethodLogger(s.logger, "StartServer")
 	logger.Info().Msg("Starting server on ephemeral....")
 	var err error
 
@@ -98,7 +98,7 @@ func (s *server) SetupAndStart(options config.Options, ready func(port int, serv
 }
 
 func (s *server) initEndpoints(options config.Options) *gin.Engine {
-	logger := s.logger.With().Str("prefix", "server:initEndpoints").Logger()
+	logger := logging.CreateMethodLogger(s.logger, "server:initEndpoints")
 	authorizationService := services.NewAuthorizationService(options)
 	userService := services.NewUserService(&authorizationService)
 
@@ -110,10 +110,10 @@ func (s *server) initEndpoints(options config.Options) *gin.Engine {
 	store.Options(sessions.Options{MaxAge: 60 * 60 * 24})
 	rootEngine.Use(sessions.Sessions("mysession", store))
 
-	rootEngine.NoRoute(Authentication(options, &userService), gin.WrapH(web.AssetHandler("/", "dist")))
+	rootEngine.NoRoute(Authentication(options, &userService, s.logger.With().Logger()), gin.WrapH(web.AssetHandler("/", "dist", logger)))
 
 	logger.Debug().Msgf("Creating login end-point with authentication type: %v...", options.AuthenticationType)
-	rootEngine.GET("/login", Authentication(options, &userService))
+	rootEngine.GET("/login", Authentication(options, &userService, s.logger.With().Logger()))
 
 	rootEngine.GET("/app-info", func(c *gin.Context) {
 		c.JSON(200, config.GetBuildInfo())
@@ -124,13 +124,13 @@ func (s *server) initEndpoints(options config.Options) *gin.Engine {
 	authorizedGroup := rootEngine.Group("/")
 	{
 		logger.Debug().Msgf("Setting up authorized group with authentication type: %v...", options.AuthenticationType)
-		authorizedGroup.Use(AuthenticationCheck(options, &userService))
+		authorizedGroup.Use(AuthenticationCheck(options, &userService, s.logger.With().Logger()))
 
-		authorizedGroup.GET("/user", UserInfoHandler(userService))
+		authorizedGroup.GET("/user", UserInfoHandler(userService, s.logger.With().Logger()))
 
 		if options.EnableBackdoors {
-			authorizedGroup.PUT("/backdoor/authentication", HandlePutIntoBackdoorRequest)
-			authorizedGroup.GET("/backdoor/authentication", HandleGetIntoBackdoorRequest)
+			authorizedGroup.PUT("/backdoor/authentication", HandlePutIntoBackdoorRequest(s.logger.With().Logger()))
+			authorizedGroup.GET("/backdoor/authentication", HandleGetIntoBackdoorRequest(s.logger.With().Logger()))
 		}
 
 		authorizedGroup.GET("/icon", describeAllIconsHanler(s.api.iconService.DescribeAllIcons, logging.CreateMethodLogger(s.logger, "describeAllIconsHanler")))
@@ -152,7 +152,7 @@ func (s *server) initEndpoints(options config.Options) *gin.Engine {
 
 // Stop kills the listener
 func (s *server) Stop() {
-	logger := s.logger.With().Str("prefix", "ListenerKiller").Logger()
+	logger := logging.CreateMethodLogger(s.logger, "ListenerKiller")
 	logger.Info().Msgf("listener: %v", s.listener)
 	error := s.listener.Close()
 	if error != nil {

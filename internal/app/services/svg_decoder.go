@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"igo-repo/internal/logging"
 	"image"
 	"io"
 	"strconv"
@@ -31,7 +32,7 @@ type SVG struct {
 
 func decodeSVGConfig(log zerolog.Logger) func(reader io.Reader) (image.Config, error) {
 	return func(reader io.Reader) (image.Config, error) {
-		logger := log.With().Str("method", "SVG decoder::decodeSVGConfig").Logger()
+		logger := logging.CreateMethodLogger(log, "SVG decoder::decodeSVGConfig")
 
 		byteValue, readError := io.ReadAll(reader)
 		if readError != nil {

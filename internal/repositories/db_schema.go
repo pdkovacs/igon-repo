@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"igo-repo/internal/config"
+	"igo-repo/internal/logging"
 	"sort"
 	"strings"
 
@@ -118,7 +119,7 @@ func applyUpgrade(tx *sql.Tx, upgrStep upgradeStep) error {
 
 func (schema *dbSchema) executeUpgrade() error {
 	var err error
-	logger := schema.logger.With().Str("method", "executeUpgrade").Logger()
+	logger := logging.CreateMethodLogger(schema.logger, "executeUpgrade")
 
 	sort.Slice(upgradeSteps, func(i int, j int) bool { return compareVersions(upgradeSteps[i], upgradeSteps[j]) < 0 })
 
@@ -150,7 +151,7 @@ func (schema *dbSchema) executeUpgrade() error {
 }
 
 func (schema *dbSchema) doesExist() (bool, error) {
-	logger := schema.logger.With().Str("method", "createMaybe").Logger()
+	logger := logging.CreateMethodLogger(schema.logger, "createMaybe")
 	db := schema.conn.Pool
 	schemaName := schema.conn.schemaName
 	row := db.QueryRow("SELECT schema_name FROM information_schema.schemata WHERE schema_name = $1", schemaName)

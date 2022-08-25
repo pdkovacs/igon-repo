@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"igo-repo/internal/logging"
 	"os/exec"
 
 	"github.com/rs/zerolog"
@@ -30,7 +31,7 @@ func (e ExecCmdParams) String() string {
 }
 
 func ExecuteCommand(params ExecCmdParams, logger zerolog.Logger) (string, error) {
-	execCmdLogger := logger.With().Str("prefix", "config.ExecuteCommand").Logger()
+	execCmdLogger := logging.CreateMethodLogger(logger, "config.ExecuteCommand")
 	execCmdLogger.Info().Msgf("Starting: %v...", params)
 
 	cmd := exec.Command(params.Name, params.Args...)

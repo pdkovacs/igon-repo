@@ -2,12 +2,13 @@ package web
 
 import (
 	"embed"
+	"igo-repo/internal/logging"
 	"io/fs"
 	"net/http"
 	"os"
 	"path"
 
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 )
 
 //go:embed dist/*
@@ -21,10 +22,10 @@ func (f fsFunc) Open(name string) (fs.File, error) {
 	return f(name)
 }
 
-func AssetHandler(prefix, root string) http.Handler {
+func AssetHandler(prefix, root string, log zerolog.Logger) http.Handler {
 	handler := fsFunc(func(name string) (fs.File, error) {
 
-		logger := log.With().Str("prefix", "AssetHandler").Logger()
+		logger := logging.CreateMethodLogger(log, "AssetHandler")
 
 		logger.Debug().Msgf("%v requested...", name)
 

@@ -13,7 +13,6 @@ import (
 	"github.com/jackc/pgx"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -64,7 +63,7 @@ func (s *DBTestSuite) NewTestDBRepo() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to delete test data: %v", err))
 	}
-	s.dbRepo = repositories.NewDBRepository(connection, log.With().Str("unit", "test-db-repo").Logger())
+	s.dbRepo = repositories.NewDBRepository(connection, logging.CreateUnitLogger(s.logger, "test-db-repo"))
 	if err != nil {
 		panic(err)
 	}

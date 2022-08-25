@@ -9,25 +9,28 @@ import (
 	"igo-repo/internal/app/security/authn"
 	"igo-repo/internal/app/security/authr"
 	"igo-repo/internal/app/services"
+	"igo-repo/internal/logging"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
-	log "github.com/sirupsen/logrus"
+	"github.com/rs/zerolog"
 	"golang.org/x/oauth2"
 )
 
-func checkOIDCAuthentication(c *gin.Context) {
-	logger := log.WithField("prefix", "checkOIDCAuthentication")
-	session := sessions.Default(c)
-	user := session.Get(UserKey)
-	if user == nil {
-		logger.Debugf("No user session redirecting to /login...")
-		c.Redirect(http.StatusFound, "/login")
-		c.Abort()
-		return
+func checkOIDCAuthentication(log zerolog.Logger) func(c *gin.Context) {
+	return func(c *gin.Context) {
+		logger := logging.CreateMethodLogger(log, "checkOIDCAuthentication")
+		session := sessions.Default(c)
+		user := session.Get(UserKey)
+		if user == nil {
+			logger.Debug().Msg("No user session redirecting to /login...")
+			c.Redirect(http.StatusFound, "/login")
+			c.Abort()
+			return
+		}
+		logger.Debug().Msgf("User session: %v", user)
 	}
-	logger.Debugf("User session: %v", user)
 }
 
 type OIDCConfig struct {
@@ -46,8 +49,24 @@ type claims struct {
 	Groups   []string `json:"groups"`
 }
 
-func oidcScheme(config OIDCConfig, userService *services.UserService) gin.HandlerFunc {
-	logger := log.WithField("prefix", "oidc-authn")
+type OIDCScheme struct {
+	config      OIDCConfig
+	logger      zerolog.Logger
+	userService *services.UserService
+}
+
+func CreateOIDCSCheme(config OIDCConfig, userService *services.UserService, logger zerolog.Logger) gin.HandlerFunc {
+	scheme := OIDCScheme{
+		config:      config,
+		userService: userService,
+		logger:      logger,
+	}
+	return scheme.oidcScheme()
+}
+
+func (oidcScheme *OIDCScheme) oidcScheme() gin.HandlerFunc {
+	logger := logging.CreateMethodLogger(oidcScheme.logger, "oidc-authn")
+	config := oidcScheme.config
 
 	provider, err := oidc.NewProvider(context.TODO(), config.TokenIssuer)
 	if err != nil {
@@ -68,17 +87,17 @@ func oidcScheme(config OIDCConfig, userService *services.UserService) gin.Handle
 		Scopes: []string{oidc.ScopeOpenID, "profile", "email"},
 	}
 
-	handleOAuth2Callback := handleOAuth2Callback(oauth2Config, verifier)
+	handleOAuth2Callback := oidcScheme.handleOAuth2Callback(oauth2Config, verifier)
 
-	logger.Debug("Returning oidc-authn handler")
+	logger.Debug().Msg("Returning oidc-authn handler")
 
 	return func(c *gin.Context) {
-		logger := log.WithField("prefix", "oidc-authn")
-		logger.Debugf("Incoming request %v...", c.Request.URL)
+		logging.CreateMethodLogger(logger, "oidc-authn")
+		logger.Debug().Msgf("Incoming request %v...", c.Request.URL)
 
 		queryError := c.Query("error")
 		if queryError != "" {
-			logger.Errorf("callback error: %s", queryError)
+			logger.Error().Msgf("callback error: %s", queryError)
 			c.Writer.WriteString("callback error")
 			c.AbortWithStatus(401)
 			return
@@ -88,33 +107,33 @@ func oidcScheme(config OIDCConfig, userService *services.UserService) gin.Handle
 		user := session.Get(UserKey)
 		if userSession, ok := user.(SessionData); ok {
 			if len(userSession.UserInfo.UserId.IDInDomain) > 0 {
-				logger.Debugf("session already authenticated")
+				logger.Debug().Msg("session already authenticated")
 				return
 			}
-			logger.Errorf("has user-session, but no user-id")
+			logger.Error().Msg("has user-session, but no user-id")
 			c.AbortWithStatus(401)
 			return
 		}
 
 		authrCode := c.Query("code")
 		if authrCode != "" {
-			logger.Debugf("incoming user approval with autherization code %v", authrCode)
+			logger.Debug().Msgf("incoming user approval with autherization code %v", authrCode)
 			state := session.Get(oidcTokenRequestStateKey)
 			storedState, ok := state.(string)
 			if !ok {
-				logger.Error("no suitable auth2-state stored for session")
+				logger.Error().Msg("no suitable auth2-state stored for session")
 				c.AbortWithStatus(401)
 				return
 			}
 			claims, handleCallbackErr := handleOAuth2Callback(c, storedState)
 			if handleCallbackErr == nil && claims != nil {
-				logger.Infof("claims collected: %+v", claims)
+				logger.Info().Msgf("claims collected: %+v", claims)
 				// FIXME: Use other than local-domain
 				userId := authn.LocalDomain.CreateUserID(claims.Email)
 				if claims.Groups != nil {
-					userService.UpdateUserInfo(userId, authr.GroupNamesToGroupIDs(claims.Groups))
+					oidcScheme.userService.UpdateUserInfo(userId, authr.GroupNamesToGroupIDs(claims.Groups))
 				}
-				userInfo := userService.GetUserInfo(userId)
+				userInfo := oidcScheme.userService.GetUserInfo(userId)
 				session.Set(UserKey, SessionData{userInfo})
 				session.Save()
 				c.Abort()
@@ -122,11 +141,11 @@ func oidcScheme(config OIDCConfig, userService *services.UserService) gin.Handle
 				return
 			}
 			if handleCallbackErr != nil {
-				logger.Errorf("error while processing authorization code: %v", handleCallbackErr)
+				logger.Error().Msgf("error while processing authorization code: %v", handleCallbackErr)
 				c.AbortWithStatus(401)
 				return
 			}
-			logger.Errorf("No claims found")
+			logger.Error().Msg("No claims found")
 			c.AbortWithStatus(401)
 			return
 		}
@@ -135,16 +154,16 @@ func oidcScheme(config OIDCConfig, userService *services.UserService) gin.Handle
 		session.Set(oidcTokenRequestStateKey, state)
 		session.Save()
 
-		logger.Debugf("new authn round started, state %v saved to session", state)
+		logger.Debug().Msgf("new authn round started, state %v saved to session", state)
 
 		c.Abort()
 		c.Redirect(http.StatusFound, oauth2Config.AuthCodeURL(state))
 	}
 }
 
-func handleOAuth2Callback(oauth2Config oauth2.Config, verifier *oidc.IDTokenVerifier) func(c *gin.Context, storedState string) (*claims, error) {
+func (oidcScheme *OIDCScheme) handleOAuth2Callback(oauth2Config oauth2.Config, verifier *oidc.IDTokenVerifier) func(c *gin.Context, storedState string) (*claims, error) {
 
-	logger := log.WithField("prefix", "handleOAuth2Callback")
+	logger := logging.CreateMethodLogger(oidcScheme.logger, "handleOAuth2Callback")
 
 	return func(c *gin.Context, storedState string) (*claims, error) {
 		r := c.Request
@@ -156,28 +175,28 @@ func handleOAuth2Callback(oauth2Config oauth2.Config, verifier *oidc.IDTokenVeri
 
 		oauth2Token, err := oauth2Config.Exchange(context.TODO(), r.URL.Query().Get("code"))
 		if err != nil {
-			logger.Errorf("failed to obtain OAuth2 token: %v", err)
+			logger.Error().Msgf("failed to obtain OAuth2 token: %v", err)
 			return nil, fmt.Errorf("failed to obtain OAuth2 token: %w", err)
 		}
 
 		// Extract the ID Token from OAuth2 token.
 		rawIDToken, ok := oauth2Token.Extra("id_token").(string)
 		if !ok {
-			logger.Errorf("failed to extract ID token: %v", err)
+			logger.Error().Msgf("failed to extract ID token: %v", err)
 			return nil, fmt.Errorf("failed to extract ID token: %w", err)
 		}
 
 		// Parse and verify ID Token payload.
 		idToken, err := verifier.Verify(context.TODO(), rawIDToken)
 		if err != nil {
-			logger.Errorf("failed to verify ID token: %v", err)
+			logger.Error().Msgf("failed to verify ID token: %v", err)
 			return nil, fmt.Errorf("failed to verify ID token: %w", err)
 		}
 
 		// Extract custom claims
 		var claims claims
 		if err := idToken.Claims(&claims); err != nil {
-			logger.Errorf("failed to extract claims from ID token: %v", err)
+			logger.Error().Msgf("failed to extract claims from ID token: %v", err)
 			return nil, fmt.Errorf("failed to extract claims from ID token: %w", err)
 		}
 

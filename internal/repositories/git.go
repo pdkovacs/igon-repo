@@ -11,7 +11,6 @@ import (
 	"igo-repo/internal/config"
 
 	"github.com/rs/zerolog"
-	log "github.com/sirupsen/logrus"
 )
 
 type GitRepository struct {
@@ -135,17 +134,17 @@ func (g GitRepository) rollback() {
 }
 
 func (g GitRepository) createIconfileJob(iconfileOperation func() ([]string, error), messages gitJobTextProvider, userName string) error {
-	logger := log.WithField("prefix", fmt.Sprintf("git: %s", messages.logContext))
+	logger := g.Logger.With().Str("prefix", fmt.Sprintf("git: %s", messages.logContext)).Logger()
 
 	var err error
 	var iconfilePathsInRepo []string
 
 	defer func() {
 		if err != nil {
-			logger.Errorf("failed to create iconfile: %v", err)
+			logger.Error().Msgf("failed to create iconfile: %v", err)
 			g.rollback()
 		} else {
-			logger.Debug("Success")
+			logger.Debug().Msg("Success")
 		}
 	}()
 

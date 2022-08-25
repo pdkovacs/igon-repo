@@ -57,7 +57,7 @@ func (service *iconService) DescribeIcon(iconName string) (domain.IconDescriptor
 }
 
 func (service *iconService) CreateIcon(iconName string, initialIconfileContent []byte, modifiedBy authr.UserInfo) (domain.Icon, error) {
-	logger := service.logger.With().Str("method", "CreateIcon").Logger()
+	logger := logging.CreateMethodLogger(service.logger, "CreateIcon")
 	err := authr.HasRequiredPermissions(modifiedBy.UserId, modifiedBy.Permissions, []authr.PermissionID{
 		authr.CREATE_ICON,
 	})
@@ -107,7 +107,7 @@ func (service *iconService) GetIconfile(iconName string, iconfile domain.Iconfil
 }
 
 func (service *iconService) AddIconfile(iconName string, initialIconfileContent []byte, modifiedBy authr.UserInfo) (domain.IconfileDescriptor, error) {
-	logger := service.logger.With().Str("method", "AddIconfile").Logger()
+	logger := logging.CreateMethodLogger(service.logger, "AddIconfile")
 	err := authr.HasRequiredPermissions(modifiedBy.UserId, modifiedBy.Permissions, []authr.PermissionID{
 		authr.UPDATE_ICON,
 		authr.ADD_ICONFILE,
