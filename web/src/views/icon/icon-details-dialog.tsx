@@ -23,9 +23,8 @@ import { Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton }
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { useDispatch } from "react-redux";
-import { reportError, reportInfo } from "../../state/actions/messages-actions";
 import { isNil } from "lodash";
+import { useReporter } from "../../services/app-messages";
 
 interface IconDetailsDialogProps {
 	readonly username: string;
@@ -93,9 +92,6 @@ export const IconDetailsDialog = (props: IconDetailsDialogProps) => {
 		return preferredIconfileType(icon);
 	};
 
-
-	const dispatch = useDispatch();
-
 	const [allTags, setAllTags] = useState<string[]>(null);
 
 	const [iconName, setIconName] = useState<string>(props.iconDescriptor ? props.iconDescriptor.name : null);
@@ -106,6 +102,8 @@ export const IconDetailsDialog = (props: IconDetailsDialogProps) => {
 	const [previouslySelectedIconFile, setPreviouslySelectedIconFile] = useState<IconfileDescriptor>(null);
 
 	const [iconfileList, setIconfileList] = useState<IconPathWithUrl[]>(props.iconDescriptor ? createIconfileList(props.iconDescriptor.paths) : []);
+
+	const { reportError, reportInfo } = useReporter();
 
 	useEffect(() => {
 		getTags()
@@ -133,7 +131,7 @@ export const IconDetailsDialog = (props: IconDetailsDialogProps) => {
 					setIconTags(iconTags.concat([tagToAdd]));
 					props.handleIconUpdate(iconName);
 				},
-				error => dispatch(reportError(error))
+				error => reportError(error)
 			);
 	};
 
@@ -171,13 +169,13 @@ export const IconDetailsDialog = (props: IconDetailsDialogProps) => {
 					setSelectedIconfile(newIconfileList?.[0]);
 					setModifiedBy(props.username);
 					setInEdit(false);
-					dispatch(reportInfo(`Iconfile ${getIconfileType(selectedFormat)} removed`));
+					reportInfo(`Iconfile ${getIconfileType(selectedFormat)} removed`);
 					props.handleIconUpdate(newIconfileList.length ? iconName : null);
 					if (newIconfileList.length === 0) {
 						props.requestClose();
 					}
 				},
-				error => dispatch(reportError(error))
+				error => reportError(error.toString())
 			);
 	};
 
@@ -231,7 +229,7 @@ export const IconDetailsDialog = (props: IconDetailsDialogProps) => {
 		setModifiedBy(props.username);
 		setInEdit(false);
 		props.handleIconUpdate(uploadedFile.iconName);
-		dispatch(reportInfo(`Iconfile ${uploadedFile.iconName}@${uploadedFile.size}.${uploadedFile.format} added`));
+		reportInfo(`Iconfile ${uploadedFile.iconName}@${uploadedFile.size}.${uploadedFile.format} added`);
 		props.requestClose();
 	};
 
@@ -255,7 +253,7 @@ export const IconDetailsDialog = (props: IconDetailsDialogProps) => {
 					imageUrl={pathOfSelectedIconfile}
 					iconName={iconName}
 					handleFileUpload={uploadedFile => handleIconfileUpload(uploadedFile)}
-					handleError={error => dispatch(reportError(error))}
+					handleError={error => reportError(error.toString())}
 				/>
 				{propertiesRow()}
 			</div>

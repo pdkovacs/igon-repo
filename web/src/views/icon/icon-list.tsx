@@ -9,19 +9,19 @@ import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
 
 import "./icon-list.styl";
-import { IconDetailsDialog } from "./icon-details-dialog";
-import { IconButton } from "@mui/material";
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import { IconRepoState } from "../../state/reducers/root-reducer";
-import { reportInfo, reportError } from "../../state/actions/messages-actions";
+import { IconButton } from "@mui/material";
+import { IconDetailsDialog } from "./icon-details-dialog";
+import { useReporter } from "../../services/app-messages";
 
-const detailsDialogForCreate = false;
-
-export const IconList = () => {
+export const IconList = (): JSX.Element => {
 
 	const settings = useSelector((state: IconRepoState) => state.app);
 
-	const dispatch = useDispatch();
+	const { reportError, reportInfo } = useReporter();
+
+	const detailsDialogForCreate = false;
 
 	const [icons, setIcons] = useState<IconDescriptor[]>([]);
 	const [searchQuery, setSearchQuery] = useState("");
@@ -68,12 +68,12 @@ export const IconList = () => {
 		deleteIcon(iconName)
 		.then(
 			() => {
-				dispatch(reportInfo(`Icon ${iconName} removed`));
+				reportInfo(`Icon ${iconName} removed`);
 				setIcons(icons.filter(i => i.name !== selectedIcon.name));
 				setSelectedIcon(null);
 				setIconDetailDialogVisible(false);
 			},
-			err => dispatch(reportError(err))
+			err => reportError(err.message)
 		);
 
 	return <div>
