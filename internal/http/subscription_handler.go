@@ -38,8 +38,10 @@ func subscriptionHandler(ns *services.Notification, logger zerolog.Logger) gin.H
 
 		defer wsConn.Close(websocket.StatusInternalError, "")
 
-		curriedContext := wsConn.CloseRead(g.Request.Context())                   // Clients wan't write to the WS.(?)
-		subscriptionError := ns.Subscribe(curriedContext, &socketAdapter{wsConn}) // we block here until Error or Done
+		session := mustGetUserSession(g)
+
+		curriedContext := wsConn.CloseRead(g.Request.Context())                                            // Clients wan't write to the WS.(?)
+		subscriptionError := ns.Subscribe(curriedContext, &socketAdapter{wsConn}, session.UserInfo.UserId) // we block here until Error or Done
 
 		if errors.Is(subscriptionError, context.Canceled) {
 			return // Done

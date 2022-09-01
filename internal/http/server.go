@@ -140,11 +140,11 @@ func (s *server) initEndpoints(options config.Options) *gin.Engine {
 		authorizedGroup.GET("/icon", describeAllIconsHanler(s.api.iconService.DescribeAllIcons, logging.CreateMethodLogger(s.logger, "describeAllIconsHanler")))
 		authorizedGroup.GET("/icon/:name", describeIconHandler(s.api.iconService.DescribeIcon, logging.CreateMethodLogger(s.logger, "describeIconHandler")))
 		authorizedGroup.POST("/icon", createIconHandler(s.api.iconService.CreateIcon, notifService, logging.CreateMethodLogger(s.logger, "createIconHandler")))
-		authorizedGroup.DELETE("/icon/:name", deleteIconHandler(s.api.iconService.DeleteIcon, logging.CreateMethodLogger(s.logger, "deleteIconHandler")))
+		authorizedGroup.DELETE("/icon/:name", deleteIconHandler(s.api.iconService.DeleteIcon, notifService, logging.CreateMethodLogger(s.logger, "deleteIconHandler")))
 
-		authorizedGroup.POST("/icon/:name", addIconfileHandler(s.api.iconService.AddIconfile, logging.CreateMethodLogger(s.logger, "addIconfileHandler")))
+		authorizedGroup.POST("/icon/:name", addIconfileHandler(s.api.iconService.AddIconfile, notifService, logging.CreateMethodLogger(s.logger, "addIconfileHandler")))
 		authorizedGroup.GET("/icon/:name/format/:format/size/:size", getIconfileHandler(s.api.iconService.GetIconfile, logging.CreateMethodLogger(s.logger, "getIconfileHandler")))
-		authorizedGroup.DELETE("/icon/:name/format/:format/size/:size", deleteIconfileHandler(s.api.iconService.DeleteIconfile, logging.CreateMethodLogger(s.logger, "deleteIconfileHandler")))
+		authorizedGroup.DELETE("/icon/:name/format/:format/size/:size", deleteIconfileHandler(s.api.iconService.DeleteIconfile, notifService, logging.CreateMethodLogger(s.logger, "deleteIconfileHandler")))
 
 		authorizedGroup.GET("/tag", getTagsHandler(s.api.iconService.GetTags, logging.CreateMethodLogger(s.logger, "getTagsHandler")))
 		authorizedGroup.POST("/icon/:name/tag", addTagHandler(s.api.iconService.AddTag, logging.CreateMethodLogger(s.logger, "addTagHandler")))

@@ -8,11 +8,11 @@ import store from "./state/store";
 import * as React from "react";
 import { App } from "./app";
 import { SnackbarProvider } from "notistack";
-import { useReporter } from "./services/app-messages";
+import { useReporters } from "./utils/use-reporters";
 
 const ErrorFallback = ({ error }: { error: Error; }): JSX.Element|null => {
 
-	const { reportError } = useReporter();
+	const { reportError } = useReporters();
 
 	useEffect(() => {
 		reportError(error.message);

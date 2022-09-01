@@ -148,8 +148,9 @@ func createIconHandler(
 		defer buf.Reset()
 		logger.Info().Msgf("received %d bytes for icon %s", buf.Len(), iconName)
 
+		authorInfo := mustGetUserSession(c).UserInfo
 		// do something with the contents...
-		icon, errCreate := createIcon(iconName, buf.Bytes(), mustGetUserSession(c).UserInfo)
+		icon, errCreate := createIcon(iconName, buf.Bytes(), authorInfo)
 		if errCreate != nil {
 			logger.Error().Msgf("failed to create icon %v", errCreate)
 			if errors.Is(errCreate, authr.ErrPermission) {
@@ -164,7 +165,7 @@ func createIconHandler(
 			}
 		}
 		c.JSON(201, iconToResponseIcon(icon))
-		ns.Publish(services.NotifMsgIconCreated)
+		ns.Publish(services.NotifMsgIconCreated, authorInfo.UserId)
 	}
 }
 
@@ -195,6 +196,7 @@ func getIconfileHandler(getIconfile func(iconName string, iconfile domain.Iconfi
 
 func addIconfileHandler(
 	addIconfile func(iconName string, initialIconfileContent []byte, modifiedBy authr.UserInfo) (domain.IconfileDescriptor, error),
+	ns *services.Notification,
 	logger zerolog.Logger,
 ) func(c *gin.Context) {
 
@@ -242,7 +244,8 @@ func addIconfileHandler(
 		logger.Info().Msgf("received %d bytes as iconfile content for icon %s", buf.Len(), iconName)
 
 		// do something with the contents...
-		iconfileDescriptor, errCreate := addIconfile(iconName, buf.Bytes(), mustGetUserSession(c).UserInfo)
+		authorInfo := mustGetUserSession(c).UserInfo
+		iconfileDescriptor, errCreate := addIconfile(iconName, buf.Bytes(), authorInfo)
 		if errCreate != nil {
 			logger.Error().Msgf("failed to add iconfile %v", errCreate)
 			if errors.Is(errCreate, authr.ErrPermission) {
@@ -256,16 +259,16 @@ func addIconfileHandler(
 			}
 		}
 		c.JSON(200, CreateIconPath(iconRootPath, iconName, iconfileDescriptor))
-
+		ns.Publish(services.NotifMsgIconfileAdded, authorInfo.UserId)
 		buf.Reset()
 	}
 }
 
-func deleteIconHandler(deleteIcon func(iconName string, modifiedBy authr.UserInfo) error, logger zerolog.Logger) func(c *gin.Context) {
+func deleteIconHandler(deleteIcon func(iconName string, modifiedBy authr.UserInfo) error, ns *services.Notification, logger zerolog.Logger) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		session := mustGetUserSession(c)
+		authorInfo := mustGetUserSession(c).UserInfo
 		iconName := c.Param("name")
-		deleteError := deleteIcon(iconName, session.UserInfo)
+		deleteError := deleteIcon(iconName, authorInfo)
 		if deleteError != nil {
 			if errors.Is(deleteError, authr.ErrPermission) {
 				c.AbortWithStatus(403)
@@ -276,20 +279,22 @@ func deleteIconHandler(deleteIcon func(iconName string, modifiedBy authr.UserInf
 			return
 		}
 		c.Status(204)
+		ns.Publish(services.NotifMsgIconDeleted, authorInfo.UserId)
 	}
 }
 
 func deleteIconfileHandler(
 	deleteIconfile func(iconName string, iconfile domain.IconfileDescriptor, modifiedBy authr.UserInfo) error,
+	ns *services.Notification,
 	logger zerolog.Logger,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		session := mustGetUserSession(c)
+		authorInfo := mustGetUserSession(c).UserInfo
 		iconName := c.Param("name")
 		format := c.Param("format")
 		size := c.Param("size")
 		iconfileDescriptor := domain.IconfileDescriptor{Format: format, Size: size}
-		deleteError := deleteIconfile(iconName, iconfileDescriptor, session.UserInfo)
+		deleteError := deleteIconfile(iconName, iconfileDescriptor, authorInfo)
 		if deleteError != nil {
 			if errors.Is(deleteError, authr.ErrPermission) {
 				c.AbortWithStatus(403)
@@ -310,6 +315,7 @@ func deleteIconfileHandler(
 			return
 		}
 		c.Status(204)
+		ns.Publish(services.NotifMsgIconfileDeleted, authorInfo.UserId)
 	}
 }
 

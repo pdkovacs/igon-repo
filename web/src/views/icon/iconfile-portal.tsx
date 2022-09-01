@@ -21,6 +21,7 @@ const uploadIconfile = async (file: File, props: IconfilePortalProps) => {
 		if (props.iconName) {
 			formData.append("iconName", props.iconName);
 			iconfileDTO = await ingestIconfile(props.iconName, formData);
+			iconfileDTO.iconName = props.iconName;
 		} else {
 			formData.append("iconName", fileName.replace(/(.*)\.[^.]*$/, "$1"));
 			const response = await createIcon(formData);

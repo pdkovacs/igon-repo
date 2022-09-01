@@ -11,7 +11,7 @@ export const fetchConfigAction: () => AppThunk = ()  => {
 	return dispatch => {
 		return fetchConfig()
 		.then(
-			appinfo => dispatch(fetchConfigSuccess(JSON.parse(JSON.stringify(appinfo)))),
+			appinfo => dispatch(fetchConfigSuccess(appinfo)),
 			error => dispatch(fetchConfigFailure(error))
 		);
 	};

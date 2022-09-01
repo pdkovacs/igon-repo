@@ -7,15 +7,18 @@ import type {} from "redux-thunk/extend-redux";
 import "./app.styl";
 import { IconRepoState } from "./state/reducers/root-reducer";
 import { LoginDialog } from "./views/login";
-import { useReporter } from "./services/app-messages";
+import { useReporters } from "./utils/use-reporters";
+
+import "./services/notification";
+import { useNotifications } from "./utils/use-notifications";
 
 export const App = () => {
 
 	const authenticated = useSelector((state: IconRepoState) => state.app.userInfo.authenticated);
-
+	
 	const dispatch = useDispatch();
 
-	const { reportInfo } = useReporter();
+	const { reportInfo } = useReporters();
 
 	useEffect(() => {
 		dispatch(fetchConfigAction());
@@ -27,6 +30,9 @@ export const App = () => {
 			reportInfo("You are logged in (again)!");
 		}
 	}, [authenticated]);
+
+	useNotifications();
+
 
 	return <div className="iconrepo-app">
 		<LoginDialog open={!authenticated} loginUrl="some URL"/>

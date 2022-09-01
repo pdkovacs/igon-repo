@@ -24,7 +24,7 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { isNil } from "lodash";
-import { useReporter } from "../../services/app-messages";
+import { useReporters } from "../../utils/use-reporters";
 
 interface IconDetailsDialogProps {
 	readonly username: string;
@@ -103,7 +103,7 @@ export const IconDetailsDialog = (props: IconDetailsDialogProps) => {
 
 	const [iconfileList, setIconfileList] = useState<IconPathWithUrl[]>(props.iconDescriptor ? createIconfileList(props.iconDescriptor.paths) : []);
 
-	const { reportError, reportInfo } = useReporter();
+	const { reportError, reportInfo } = useReporters();
 
 	useEffect(() => {
 		getTags()

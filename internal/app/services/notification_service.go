@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"igo-repo/internal/app/security/authn"
 	"igo-repo/internal/logging"
 	"sync"
 	"time"
@@ -13,13 +14,17 @@ import (
 type notificationMessage string
 
 const (
-	NotifMsgIconCreated notificationMessage = "iconCreated"
+	NotifMsgIconCreated     notificationMessage = "iconCreated"
+	NotifMsgIconDeleted     notificationMessage = "iconDeleted"
+	NotifMsgIconfileAdded   notificationMessage = "iconfileAdded"
+	NotifMsgIconfileDeleted notificationMessage = "iconfileDeleted"
 )
 
 // subscriber represents a subscriber.
 // Messages are sent on the msgs channel and if the client
 // cannot keep up with the messages, closeSlow is called.
 type subscriber struct {
+	userId    authn.UserID
 	msgs      chan string
 	closeSlow func()
 }
@@ -59,9 +64,10 @@ type socketIO interface {
 	Write(ctx context.Context, msg string) error
 }
 
-func (ns *Notification) Subscribe(ctx context.Context, sIo socketIO) error {
+func (ns *Notification) Subscribe(ctx context.Context, sIo socketIO, userid authn.UserID) error {
 	subs := &subscriber{
-		msgs: make(chan string, ns.subscriberMessageBuffer),
+		userId: userid,
+		msgs:   make(chan string, ns.subscriberMessageBuffer),
 		closeSlow: func() {
 			sIo.Close()
 		},
@@ -100,13 +106,16 @@ func (ns *Notification) deleteSubscriber(s *subscriber) {
 // publish publishes the msg to all subscribers.
 // It never blocks and so messages to slow subscribers
 // are dropped.
-func (cs *Notification) Publish(msg notificationMessage) {
+func (cs *Notification) Publish(msg notificationMessage, initiator authn.UserID) {
 	cs.subscribersMu.Lock()
 	defer cs.subscribersMu.Unlock()
 
 	cs.publishLimiter.Wait(context.Background())
 
 	for s := range cs.subscribers {
+		if s.userId == initiator {
+			continue
+		}
 		select {
 		case s.msgs <- string(msg):
 		default:

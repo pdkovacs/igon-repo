@@ -1,5 +1,5 @@
 import { receiveNotification } from "../state/actions/notification-actions";
-import store from "./../state/store";
+import store from "../state/store";
 
 function dial() {
 	const conn = new WebSocket(`ws://${location.host}/subscribe`);

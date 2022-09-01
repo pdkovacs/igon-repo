@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { useState } from "react";
 import { IconCell } from "./icon-cell";
-import { describeAllIcons, IconDescriptor, deleteIcon } from "../../services/icon";
+import { deleteIcon } from "../../services/icon";
 import { AppSettgins } from "../app-settings";
 import { UserSettings } from "../user-settings";
 import { hasAddIconPrivilege, hasUpdateIconPrivilege } from "../../services/user";
@@ -9,36 +9,31 @@ import AddIcon from "@mui/icons-material/Add";
 import SearchIcon from "@mui/icons-material/Search";
 
 import "./icon-list.styl";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { IconRepoState } from "../../state/reducers/root-reducer";
 import { IconButton } from "@mui/material";
 import { IconDetailsDialog } from "./icon-details-dialog";
-import { useReporter } from "../../services/app-messages";
+import { useReporters } from "../../utils/use-reporters";
+import { fetchIconsAction } from "../../state/actions/icons-actions";
 
 export const IconList = (): JSX.Element => {
 
 	const settings = useSelector((state: IconRepoState) => state.app);
 
-	const { reportError, reportInfo } = useReporter();
+	const { reportError, reportInfo } = useReporters();
 
 	const detailsDialogForCreate = false;
 
-	const [icons, setIcons] = useState<IconDescriptor[]>([]);
+	const icons = useSelector((state: IconRepoState) => state.icons.allIcons);
+
 	const [searchQuery, setSearchQuery] = useState("");
 	const [selectedIcon, setSelectedIcon] = useState(null);
 	const [iconDetailDialogVisible, setIconDetailDialogVisible] = useState(false);
 
-	const getIcons = () => {
-		return describeAllIcons()
-		.then(
-			icons => setIcons(icons),
-			error => { throw error; }
-		);
-	};
+	const dispatch = useDispatch();
 
-	
 	useEffect(() => {
-		getIcons();
+		dispatch(fetchIconsAction());
 	}, []);
 
 	if (!settings?.appInfo || !settings?.userInfo) {
@@ -56,7 +51,7 @@ export const IconList = (): JSX.Element => {
 	};
 		
 	const handleIconUpdate = async (iconName: string) => {
-		await getIcons();
+		dispatch(fetchIconsAction());
 		if (iconName) {
 			setSelectedIcon(icons.find(icon => icon.name === iconName));
 		} else {
@@ -68,8 +63,8 @@ export const IconList = (): JSX.Element => {
 		deleteIcon(iconName)
 		.then(
 			() => {
+				dispatch(fetchIconsAction());
 				reportInfo(`Icon ${iconName} removed`);
-				setIcons(icons.filter(i => i.name !== selectedIcon.name));
 				setSelectedIcon(null);
 				setIconDetailDialogVisible(false);
 			},
