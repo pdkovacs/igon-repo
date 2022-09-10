@@ -3,6 +3,7 @@ package http
 import (
 	"context"
 	"errors"
+	"igo-repo/internal/app/security/authr"
 	"igo-repo/internal/app/services"
 
 	"github.com/gin-gonic/gin"
@@ -26,7 +27,7 @@ func (sa *socketAdapter) Write(ctx context.Context, msg string) error {
 	return sa.wsConn.Write(ctx, websocket.MessageText, []byte(msg))
 }
 
-func subscriptionHandler(ns *services.Notification, logger zerolog.Logger) gin.HandlerFunc {
+func subscriptionHandler(getUserInfo func(c *gin.Context) authr.UserInfo, ns *services.Notification, logger zerolog.Logger) gin.HandlerFunc {
 	return func(g *gin.Context) {
 		wsConn, subsErr := websocket.Accept(g.Writer, g.Request, nil)
 		if subsErr != nil {
@@ -38,10 +39,10 @@ func subscriptionHandler(ns *services.Notification, logger zerolog.Logger) gin.H
 
 		defer wsConn.Close(websocket.StatusInternalError, "")
 
-		session := mustGetUserSession(g)
+		userInfo := getUserInfo(g)
 
-		curriedContext := wsConn.CloseRead(g.Request.Context())                                            // Clients wan't write to the WS.(?)
-		subscriptionError := ns.Subscribe(curriedContext, &socketAdapter{wsConn}, session.UserInfo.UserId) // we block here until Error or Done
+		curriedContext := wsConn.CloseRead(g.Request.Context())                                    // Clients wan't write to the WS.(?)
+		subscriptionError := ns.Subscribe(curriedContext, &socketAdapter{wsConn}, userInfo.UserId) // we block here until Error or Done
 
 		if errors.Is(subscriptionError, context.Canceled) {
 			return // Done

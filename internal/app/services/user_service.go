@@ -7,18 +7,18 @@ import (
 
 func NewUserService(authorizationService AuthorizationService) UserService {
 	return UserService{
-		authorizationService: authorizationService,
+		AuthorizationService: authorizationService,
 	}
 }
 
 type UserService struct {
-	authorizationService AuthorizationService
+	AuthorizationService AuthorizationService
 }
 
 func (us *UserService) getPermissionsForUser(userId authn.UserID) []authr.PermissionID {
 	userPermissions := []authr.PermissionID{}
 
-	memberIn := us.authorizationService.GetGroupsForUser(userId)
+	memberIn := us.AuthorizationService.GetGroupsForUser(userId)
 	for _, group := range memberIn {
 		userPermissions = append(userPermissions, authr.GetPermissionsForGroup(group)...)
 	}
@@ -31,7 +31,7 @@ func (us *UserService) getDisplayName(userId authn.UserID) string {
 }
 
 func (us *UserService) GetUserInfo(userId authn.UserID) authr.UserInfo {
-	memberIn := us.authorizationService.GetGroupsForUser(userId)
+	memberIn := us.AuthorizationService.GetGroupsForUser(userId)
 	return authr.UserInfo{
 		UserId:      userId,
 		Groups:      memberIn,
@@ -41,5 +41,5 @@ func (us *UserService) GetUserInfo(userId authn.UserID) authr.UserInfo {
 }
 
 func (us *UserService) UpdateUserInfo(userId authn.UserID, memberIn []authr.GroupID) {
-	us.authorizationService.UpdateUser(userId, memberIn)
+	us.AuthorizationService.UpdateUser(userId, memberIn)
 }

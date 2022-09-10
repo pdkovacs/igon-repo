@@ -3,7 +3,7 @@ package api
 import (
 	"testing"
 
-	"igo-repo/internal/config"
+	"igo-repo/internal/app/security/authn"
 	"igo-repo/test/testdata"
 
 	"github.com/stretchr/testify/suite"
@@ -32,7 +32,7 @@ func (s *basicAuthnTestSuite) TestShouldFailWith401WithoutCredentials() {
 }
 
 func (s *basicAuthnTestSuite) TestShouldFailWith401WithWrongCredentials() {
-	reqCreds, makeReqCredErr := makeRequestCredentials(config.BasicAuthentication, "ux", "definitely-wrong-password....!~")
+	reqCreds, makeReqCredErr := makeRequestCredentials(authn.SchemeBasic, "ux", "definitely-wrong-password....!~")
 	s.Require().NoError(makeReqCredErr)
 	req := testRequest{
 		path:          "/icon",
@@ -48,7 +48,7 @@ func (s *basicAuthnTestSuite) TestShouldFailWith401WithWrongCredentials() {
 }
 
 func (s *basicAuthnTestSuite) TestShouldPasssWithCorrectCredentials() {
-	reqCreds, makeReqCredErr := makeRequestCredentials(config.BasicAuthentication, testdata.DefaultCredentials.Username, testdata.DefaultCredentials.Password)
+	reqCreds, makeReqCredErr := makeRequestCredentials(authn.SchemeBasic, testdata.DefaultCredentials.Username, testdata.DefaultCredentials.Password)
 	s.Require().NoError(makeReqCredErr)
 	req := testRequest{
 		path:          "/icon",

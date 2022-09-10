@@ -1,0 +1,7 @@
+{
+    "serverHostname": "0.0.0.0",
+    "serverPort": 8091,
+    "serverUrlContext": "",
+    "authenticationType": "oidc-proxy",
+    "logLevel": "debug"
+}

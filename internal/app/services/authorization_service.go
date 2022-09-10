@@ -13,6 +13,7 @@ type UsersByGroups map[authr.GroupID][]authn.UserID
 type AuthorizationService interface {
 	GetGroupsForUser(userID authn.UserID) []authr.GroupID
 	GetPermissionsForGroup(group authr.GroupID) []authr.PermissionID
+	GetPermissionsForGroups(group []authr.GroupID) []authr.PermissionID
 	UpdateUser(userId authn.UserID, groups []authr.GroupID)
 }
 
@@ -32,6 +33,14 @@ func (as *authRService) GetGroupsForUser(userID authn.UserID) []authr.GroupID {
 
 func (as *authRService) GetPermissionsForGroup(group authr.GroupID) []authr.PermissionID {
 	return authr.GetPermissionsForGroup(group)
+}
+
+func (as *authRService) GetPermissionsForGroups(groups []authr.GroupID) []authr.PermissionID {
+	permissions := []authr.PermissionID{}
+	for _, group := range groups {
+		permissions = append(permissions, authr.GetPermissionsForGroup(group)...)
+	}
+	return permissions
 }
 
 func (as *authRService) UpdateUser(userId authn.UserID, groups []authr.GroupID) {

@@ -3,8 +3,6 @@ package authr
 import (
 	"errors"
 	"fmt"
-
-	"igo-repo/internal/app/security/authn"
 )
 
 type PermissionID string
@@ -47,17 +45,17 @@ func GetPermissionsForGroup(group GroupID) []PermissionID {
 
 var ErrPermission = errors.New("permission error")
 
-func HasRequiredPermissions(userId authn.UserID, userPermissions []PermissionID, requiredPermissions []PermissionID) error {
+func HasRequiredPermissions(userInfo UserInfo, requiredPermissions []PermissionID) error {
 	for _, reqPerm := range requiredPermissions {
 		found := false
-		for _, uPerm := range userPermissions {
+		for _, uPerm := range userInfo.Permissions {
 			if reqPerm == uPerm {
 				found = true
 				break
 			}
 		}
 		if !found {
-			return fmt.Errorf("not all of %v is included in %v granted to %v, %w", requiredPermissions, userPermissions, userId, ErrPermission)
+			return fmt.Errorf("not all of %v is included in %v granted to %v, %w", requiredPermissions, userInfo.Permissions, userInfo.UserId, ErrPermission)
 		}
 	}
 	return nil

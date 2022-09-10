@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	app "igo-repo/internal/app"
+	"igo-repo/internal/app/security/authn"
 	"igo-repo/internal/config"
 	"igo-repo/internal/logging"
 	"igo-repo/internal/repositories"
@@ -35,7 +36,7 @@ func (s *apiTestSuite) SetupSuite() {
 	s.defaultConfig.PasswordCredentials = []config.PasswordCredentials{
 		testdata.DefaultCredentials,
 	}
-	s.defaultConfig.AuthenticationType = config.BasicAuthentication
+	s.defaultConfig.AuthenticationType = authn.SchemeBasic
 	s.defaultConfig.ServerPort = 0
 
 	s.defaultConfig.DBSchemaName = "itest_api"

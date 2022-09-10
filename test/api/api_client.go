@@ -11,6 +11,7 @@ import (
 	"os"
 
 	"igo-repo/internal/app/domain"
+	"igo-repo/internal/app/security/authn"
 	"igo-repo/internal/config"
 	"igo-repo/test/testdata"
 )
@@ -55,7 +56,7 @@ func (c *apiTestClient) makeRequestCredentials(pwCreds config.PasswordCredential
 		password = pwCreds.Password
 	}
 
-	reqCr, err := makeRequestCredentials(config.BasicAuthentication, username, password)
+	reqCr, err := makeRequestCredentials(authn.SchemeBasic, username, password)
 	if err != nil {
 		panic(err)
 	}

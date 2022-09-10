@@ -11,13 +11,13 @@ import (
 	"golang.org/x/time/rate"
 )
 
-type notificationMessage string
+type NotificationMessage string
 
 const (
-	NotifMsgIconCreated     notificationMessage = "iconCreated"
-	NotifMsgIconDeleted     notificationMessage = "iconDeleted"
-	NotifMsgIconfileAdded   notificationMessage = "iconfileAdded"
-	NotifMsgIconfileDeleted notificationMessage = "iconfileDeleted"
+	NotifMsgIconCreated     NotificationMessage = "iconCreated"
+	NotifMsgIconDeleted     NotificationMessage = "iconDeleted"
+	NotifMsgIconfileAdded   NotificationMessage = "iconfileAdded"
+	NotifMsgIconfileDeleted NotificationMessage = "iconfileDeleted"
 )
 
 // subscriber represents a subscriber.
@@ -106,7 +106,7 @@ func (ns *Notification) deleteSubscriber(s *subscriber) {
 // publish publishes the msg to all subscribers.
 // It never blocks and so messages to slow subscribers
 // are dropped.
-func (cs *Notification) Publish(msg notificationMessage, initiator authn.UserID) {
+func (cs *Notification) Publish(msg NotificationMessage, initiator authn.UserID) {
 	cs.subscribersMu.Lock()
 	defer cs.subscribersMu.Unlock()
 

@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"igo-repo/internal/app/domain"
+	"igo-repo/internal/app/security/authn"
 	"igo-repo/internal/app/security/authr"
-	"igo-repo/internal/config"
 	httpadapter "igo-repo/internal/http"
 	"igo-repo/test/testdata"
 )
@@ -23,7 +23,7 @@ type apiTestSession struct {
 
 func (client *apiTestClient) login(credentials *requestCredentials) (*apiTestSession, error) {
 	if credentials == nil {
-		calculatedCredentials, credError := makeRequestCredentials(config.BasicAuthentication, testdata.DefaultCredentials.Username, testdata.DefaultCredentials.Password)
+		calculatedCredentials, credError := makeRequestCredentials(authn.SchemeBasic, testdata.DefaultCredentials.Username, testdata.DefaultCredentials.Password)
 		if credError != nil {
 			return &apiTestSession{}, fmt.Errorf("failed to create default request credentials: %w", credError)
 		}

@@ -17,15 +17,37 @@ type userInfoDTO struct {
 	DisplayName string               `json:"displayName"`
 }
 
-func userInfoHandler(userService services.UserService, logger zerolog.Logger) func(c *gin.Context) {
+func userInfoHandler(authType authn.AuthenticationScheme, userService services.UserService, logger zerolog.Logger) func(c *gin.Context) {
 	return func(c *gin.Context) {
 		userId := c.Query("userId")
+
+		if authType == authn.SchemeOIDCProxy {
+			userInfo, getUserInfoErr := getUserInfo(authType)(c)
+			if getUserInfoErr != nil {
+				logger.Error().Msgf("failed to find user-info")
+				c.AbortWithStatus(401)
+				return
+			}
+
+			responseUserInfo := userInfoDTO{
+				Username:    userInfo.UserId.IDInDomain,
+				Groups:      userInfo.Groups,
+				Permissions: userInfo.Permissions,
+				DisplayName: userInfo.DisplayName,
+			}
+
+			c.JSON(200, responseUserInfo)
+			return
+		}
+
 		session := sessions.Default(c)
 		user := session.Get(UserKey)
 
 		usession, ok := user.(SessionData)
 		if !ok {
 			logger.Error().Msgf("failed to cast user session of type %T", user)
+			c.AbortWithStatus(500)
+			return
 		}
 
 		var userInfo authr.UserInfo

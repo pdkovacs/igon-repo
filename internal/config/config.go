@@ -3,6 +3,7 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"igo-repo/internal/app/security/authn"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -10,9 +11,6 @@ import (
 
 	"github.com/rs/zerolog/log"
 )
-
-const BasicAuthentication = "basic"
-const OIDCAuthentication = "oidc"
 
 // PasswordCredentials holds password-credentials
 type PasswordCredentials struct {
@@ -25,34 +23,34 @@ type UsersByRoles map[string][]string
 
 // Options holds the available command-line options
 type Options struct {
-	ServerHostname              string                `json:"serverHostname" env:"SERVER_HOSTNAME" long:"server-hostname" short:"h" default:"localhost" description:"Server hostname"`
-	ServerPort                  int                   `json:"serverPort" env:"SERVER_PORT" long:"server-port" short:"p" default:"8080" description:"Server port"`
-	ServerURLContext            string                `json:"serverUrlContext" env:"SERVER_URL_CONTEXT" long:"server-url-context" short:"c" default:"" description:"Server url context"`
-	SessionMaxAge               int                   `json:"sessionMaxAge" env:"SESSION_MAX_AGE" long:"session-max-age" short:"s" default:"86400" description:"The maximum age in secods of a user's session"`
-	AppDescription              string                `json:"appDescription" env:"APP_DESCRIPTION" long:"app-description" short:"" default:"" description:"Application description"`
-	IconDataLocationGit         string                `json:"iconDataLocationGit" env:"ICON_DATA_LOCATION_GIT" long:"icon-data-location-git" short:"g" default:"" description:"Icon data location git"`
-	IconDataCreateNew           string                `json:"iconDataCreateNew" env:"ICON_DATA_CREATE_NEW" long:"icon-data-create-new" short:"n" default:"never" description:"Icon data create new"`
-	AuthenticationType          string                `json:"authenticationType" env:"AUTHENTICATION_TYPE" long:"authentication-type" short:"a" default:"oidc" description:"Authentication type"`
-	PasswordCredentials         []PasswordCredentials `json:"passwordCredentials" env:"PASSWORD_CREDENTIALS" long:"password-credentials"`
-	OIDCClientID                string                `json:"oidcClientId" env:"OIDC_CLIENT_ID" long:"oidc-client-id" short:"" default:"" description:"OIDC client id"`
-	OIDCClientSecret            string                `json:"oidcClientSecret" env:"OIDC_CLIENT_SECRET" long:"oidc-client-secret" short:"" default:"" description:"OIDC client secret"`
-	OIDCAccessTokenURL          string                `json:"oidcAccessTokenUrl" env:"OIDC_ACCESS_TOKEN_URL" long:"oidc-access-token-url" short:"" default:"" description:"OIDC access token url"`
-	OIDCUserAuthorizationURL    string                `json:"oidcUserAuthorizationUrl" env:"OIDC_USER_AUTHORIZATION_URL" long:"oidc-user-authorization-url" short:"" default:"" description:"OIDC user authorization url"`
-	OIDCClientRedirectBackURL   string                `json:"oidcClientRedirectBackUrl" env:"OIDC_CLIENT_REDIRECT_BACK_URL" long:"oidc-client-redirect-back-url" short:"" default:"" description:"OIDC client redirect back url"`
-	OIDCTokenIssuer             string                `json:"oidcTokenIssuer" env:"OIDC_TOKEN_ISSUER" long:"oidc-token-issuer" short:"" default:"" description:"OIDC token issuer"`
-	OIDCIpJwtPublicKeyURL       string                `json:"oidcIpJwtPublicKeyUrl" env:"OIDC_IP_JWT_PUBLIC_KEY_URL" long:"oidc-ip-jwt-public-key-url" short:"" default:"" description:"OIDC ip jwt public key url"`
-	OIDCIpJwtPublicKeyPemBase64 string                `json:"oidcIpJwtPublicKeyPemBase64" env:"OIDC_IP_JWT_PUBLIC_KEY_PEM_BASE64" long:"oidc-ip-jwt-public-key-pem-base64" short:"" default:"" description:"OIDC ip jwt public key pem base64"`
-	OIDCIpLogoutURL             string                `json:"oidcIpLogoutUrl" env:"OIDC_IP_LOGOUT_URL" long:"oidc-ip-logout-url" short:"" default:"" description:"OIDC ip logout url"`
-	UsersByRoles                UsersByRoles          `json:"usersByRoles" env:"USERS_BY_ROLES" long:"users-by-roles" short:"" default:"" description:"Users by roles"`
-	DBHost                      string                `json:"dbHost" env:"DB_HOST" long:"db-host" short:"" default:"localhost" description:"DB host"`
-	DBPort                      int                   `json:"dbPort" env:"DB_PORT" long:"db-port" short:"" default:"5432" description:"DB port"`
-	DBUser                      string                `json:"dbUser" env:"DB_USER" long:"db-user" short:"" default:"iconrepo" description:"DB user"`
-	DBPassword                  string                `json:"dbPassword" env:"DB_PASSWORD" long:"db-password" short:"" default:"iconrepo" description:"DB password"`
-	DBName                      string                `json:"dbName" env:"DB_NAME" long:"db-name" short:"" default:"iconrepo" description:"Name of the database"`
-	DBSchemaName                string                `json:"dbSchemaName" env:"DB_SCHEMA_NAME" long:"db-schema-name" short:"" default:"icon_repo" description:"Name of the database schemma"`
-	EnableBackdoors             bool                  `json:"enableBackdoors" env:"ENABLE_BACKDOORS" long:"enable-backdoors" short:"" description:"Enable backdoors"`
-	PackageRootDir              string                `json:"packageRootDir" env:"PACKAGE_ROOT_DIR" long:"package-root-dir" short:"" default:"" description:"Package root dir"`
-	LogLevel                    string                `json:"logLevel" env:"IGOREPO_LOG_LEVEL" long:"log-level" short:"l" default:"info"`
+	ServerHostname              string                     `json:"serverHostname" env:"SERVER_HOSTNAME" long:"server-hostname" short:"h" default:"localhost" description:"Server hostname"`
+	ServerPort                  int                        `json:"serverPort" env:"SERVER_PORT" long:"server-port" short:"p" default:"8080" description:"Server port"`
+	ServerURLContext            string                     `json:"serverUrlContext" env:"SERVER_URL_CONTEXT" long:"server-url-context" short:"c" default:"" description:"Server url context"`
+	SessionMaxAge               int                        `json:"sessionMaxAge" env:"SESSION_MAX_AGE" long:"session-max-age" short:"s" default:"86400" description:"The maximum age in secods of a user's session"`
+	AppDescription              string                     `json:"appDescription" env:"APP_DESCRIPTION" long:"app-description" short:"" default:"" description:"Application description"`
+	IconDataLocationGit         string                     `json:"iconDataLocationGit" env:"ICON_DATA_LOCATION_GIT" long:"icon-data-location-git" short:"g" default:"" description:"Icon data location git"`
+	IconDataCreateNew           string                     `json:"iconDataCreateNew" env:"ICON_DATA_CREATE_NEW" long:"icon-data-create-new" short:"n" default:"never" description:"Icon data create new"`
+	AuthenticationType          authn.AuthenticationScheme `json:"authenticationType" env:"AUTHENTICATION_TYPE" long:"authentication-type" short:"a" default:"oidc" description:"Authentication type"`
+	PasswordCredentials         []PasswordCredentials      `json:"passwordCredentials" env:"PASSWORD_CREDENTIALS" long:"password-credentials"`
+	OIDCClientID                string                     `json:"oidcClientId" env:"OIDC_CLIENT_ID" long:"oidc-client-id" short:"" default:"" description:"OIDC client id"`
+	OIDCClientSecret            string                     `json:"oidcClientSecret" env:"OIDC_CLIENT_SECRET" long:"oidc-client-secret" short:"" default:"" description:"OIDC client secret"`
+	OIDCAccessTokenURL          string                     `json:"oidcAccessTokenUrl" env:"OIDC_ACCESS_TOKEN_URL" long:"oidc-access-token-url" short:"" default:"" description:"OIDC access token url"`
+	OIDCUserAuthorizationURL    string                     `json:"oidcUserAuthorizationUrl" env:"OIDC_USER_AUTHORIZATION_URL" long:"oidc-user-authorization-url" short:"" default:"" description:"OIDC user authorization url"`
+	OIDCClientRedirectBackURL   string                     `json:"oidcClientRedirectBackUrl" env:"OIDC_CLIENT_REDIRECT_BACK_URL" long:"oidc-client-redirect-back-url" short:"" default:"" description:"OIDC client redirect back url"`
+	OIDCTokenIssuer             string                     `json:"oidcTokenIssuer" env:"OIDC_TOKEN_ISSUER" long:"oidc-token-issuer" short:"" default:"" description:"OIDC token issuer"`
+	OIDCIpJwtPublicKeyURL       string                     `json:"oidcIpJwtPublicKeyUrl" env:"OIDC_IP_JWT_PUBLIC_KEY_URL" long:"oidc-ip-jwt-public-key-url" short:"" default:"" description:"OIDC ip jwt public key url"`
+	OIDCIpJwtPublicKeyPemBase64 string                     `json:"oidcIpJwtPublicKeyPemBase64" env:"OIDC_IP_JWT_PUBLIC_KEY_PEM_BASE64" long:"oidc-ip-jwt-public-key-pem-base64" short:"" default:"" description:"OIDC ip jwt public key pem base64"`
+	OIDCIpLogoutURL             string                     `json:"oidcIpLogoutUrl" env:"OIDC_IP_LOGOUT_URL" long:"oidc-ip-logout-url" short:"" default:"" description:"OIDC ip logout url"`
+	UsersByRoles                UsersByRoles               `json:"usersByRoles" env:"USERS_BY_ROLES" long:"users-by-roles" short:"" default:"" description:"Users by roles"`
+	DBHost                      string                     `json:"dbHost" env:"DB_HOST" long:"db-host" short:"" default:"localhost" description:"DB host"`
+	DBPort                      int                        `json:"dbPort" env:"DB_PORT" long:"db-port" short:"" default:"5432" description:"DB port"`
+	DBUser                      string                     `json:"dbUser" env:"DB_USER" long:"db-user" short:"" default:"iconrepo" description:"DB user"`
+	DBPassword                  string                     `json:"dbPassword" env:"DB_PASSWORD" long:"db-password" short:"" default:"iconrepo" description:"DB password"`
+	DBName                      string                     `json:"dbName" env:"DB_NAME" long:"db-name" short:"" default:"iconrepo" description:"Name of the database"`
+	DBSchemaName                string                     `json:"dbSchemaName" env:"DB_SCHEMA_NAME" long:"db-schema-name" short:"" default:"icon_repo" description:"Name of the database schemma"`
+	EnableBackdoors             bool                       `json:"enableBackdoors" env:"ENABLE_BACKDOORS" long:"enable-backdoors" short:"" description:"Enable backdoors"`
+	PackageRootDir              string                     `json:"packageRootDir" env:"PACKAGE_ROOT_DIR" long:"package-root-dir" short:"" default:"" description:"Package root dir"`
+	LogLevel                    string                     `json:"logLevel" env:"IGOREPO_LOG_LEVEL" long:"log-level" short:"l" default:"info"`
 }
 
 var DefaultIconRepoHome = filepath.Join(os.Getenv("HOME"), ".ui-toolbox/icon-repo")

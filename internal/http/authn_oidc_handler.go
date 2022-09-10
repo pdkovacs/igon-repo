@@ -47,6 +47,7 @@ type claims struct {
 	Email    string   `json:"email"`
 	Verified bool     `json:"email_verified"`
 	Groups   []string `json:"groups"`
+	Name     string   `json:"name"`
 }
 
 type oidcScheme struct {

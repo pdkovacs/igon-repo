@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"igo-repo/internal/app/domain"
+	"igo-repo/internal/app/security/authn"
 	"igo-repo/internal/app/security/authr"
 	"igo-repo/internal/app/services"
 	"igo-repo/internal/config"
@@ -62,8 +63,8 @@ type Stoppable interface {
 	Stop()
 }
 
-// Start starts the service
-func (s *server) Start(portRequested int, r http.Handler, ready func(port int, stop func())) {
+// start starts the service
+func (s *server) start(portRequested int, r http.Handler, ready func(port int, stop func())) {
 	logger := logging.CreateMethodLogger(s.logger, "StartServer")
 	logger.Info().Msg("Starting server on ephemeral....")
 	var err error
@@ -94,7 +95,7 @@ func (s *server) Start(portRequested int, r http.Handler, ready func(port int, s
 // SetupAndStart sets up and starts server.
 func (s *server) SetupAndStart(options config.Options, ready func(port int, stop func())) {
 	r := s.initEndpoints(options)
-	s.Start(options.ServerPort, r, ready)
+	s.start(options.ServerPort, r, ready)
 }
 
 func (s *server) initEndpoints(options config.Options) *gin.Engine {
@@ -102,13 +103,14 @@ func (s *server) initEndpoints(options config.Options) *gin.Engine {
 	authorizationService := services.NewAuthorizationService(options)
 	userService := services.NewUserService(&authorizationService)
 
-	gob.Register(SessionData{})
-
 	rootEngine := gin.Default()
 
-	store := memstore.NewStore([]byte("secret"))
-	store.Options(sessions.Options{MaxAge: options.SessionMaxAge})
-	rootEngine.Use(sessions.Sessions("mysession", store))
+	if options.AuthenticationType != authn.SchemeOIDCProxy {
+		gob.Register(SessionData{})
+		store := memstore.NewStore([]byte("secret"))
+		store.Options(sessions.Options{MaxAge: options.SessionMaxAge})
+		rootEngine.Use(sessions.Sessions("mysession", store))
+	}
 
 	rootEngine.NoRoute(authentication(options, &userService, s.logger.With().Logger()), gin.WrapH(web.AssetHandler("/", "dist", logger)))
 
@@ -121,6 +123,14 @@ func (s *server) initEndpoints(options config.Options) *gin.Engine {
 
 	logger.Debug().Msg("Creating authorized group....")
 
+	mustGetUserInfo := func(c *gin.Context) authr.UserInfo {
+		userInfo, getUserInfoErr := getUserInfo(options.AuthenticationType)(c)
+		if getUserInfoErr != nil {
+			panic(fmt.Sprintf("failed to get user-info %s", c.Request.URL))
+		}
+		return userInfo
+	}
+
 	authorizedGroup := rootEngine.Group("/")
 	{
 		notifService := services.CreateNotificationService(logger)
@@ -128,9 +138,9 @@ func (s *server) initEndpoints(options config.Options) *gin.Engine {
 		logger.Debug().Msgf("Setting up authorized group with authentication type: %v...", options.AuthenticationType)
 		authorizedGroup.Use(authenticationCheck(options, &userService, s.logger.With().Logger()))
 
-		authorizedGroup.GET("/subscribe", subscriptionHandler(notifService, logging.CreateMethodLogger(s.logger, "subscriptionHandler")))
+		authorizedGroup.GET("/subscribe", subscriptionHandler(mustGetUserInfo, notifService, logging.CreateMethodLogger(s.logger, "subscriptionHandler")))
 
-		authorizedGroup.GET("/user", userInfoHandler(userService, logging.CreateMethodLogger(s.logger, "UserInfoHandler")))
+		authorizedGroup.GET("/user", userInfoHandler(options.AuthenticationType, userService, logging.CreateMethodLogger(s.logger, "UserInfoHandler")))
 
 		if options.EnableBackdoors {
 			authorizedGroup.PUT("/backdoor/authentication", HandlePutIntoBackdoorRequest(logging.CreateMethodLogger(s.logger, "PUT /backdoor/authentication")))
@@ -139,16 +149,16 @@ func (s *server) initEndpoints(options config.Options) *gin.Engine {
 
 		authorizedGroup.GET("/icon", describeAllIconsHanler(s.api.iconService.DescribeAllIcons, logging.CreateMethodLogger(s.logger, "describeAllIconsHanler")))
 		authorizedGroup.GET("/icon/:name", describeIconHandler(s.api.iconService.DescribeIcon, logging.CreateMethodLogger(s.logger, "describeIconHandler")))
-		authorizedGroup.POST("/icon", createIconHandler(s.api.iconService.CreateIcon, notifService, logging.CreateMethodLogger(s.logger, "createIconHandler")))
-		authorizedGroup.DELETE("/icon/:name", deleteIconHandler(s.api.iconService.DeleteIcon, notifService, logging.CreateMethodLogger(s.logger, "deleteIconHandler")))
+		authorizedGroup.POST("/icon", createIconHandler(mustGetUserInfo, s.api.iconService.CreateIcon, notifService.Publish, logging.CreateMethodLogger(s.logger, "createIconHandler")))
+		authorizedGroup.DELETE("/icon/:name", deleteIconHandler(mustGetUserInfo, s.api.iconService.DeleteIcon, notifService.Publish, logging.CreateMethodLogger(s.logger, "deleteIconHandler")))
 
-		authorizedGroup.POST("/icon/:name", addIconfileHandler(s.api.iconService.AddIconfile, notifService, logging.CreateMethodLogger(s.logger, "addIconfileHandler")))
+		authorizedGroup.POST("/icon/:name", addIconfileHandler(mustGetUserInfo, s.api.iconService.AddIconfile, notifService.Publish, logging.CreateMethodLogger(s.logger, "addIconfileHandler")))
 		authorizedGroup.GET("/icon/:name/format/:format/size/:size", getIconfileHandler(s.api.iconService.GetIconfile, logging.CreateMethodLogger(s.logger, "getIconfileHandler")))
-		authorizedGroup.DELETE("/icon/:name/format/:format/size/:size", deleteIconfileHandler(s.api.iconService.DeleteIconfile, notifService, logging.CreateMethodLogger(s.logger, "deleteIconfileHandler")))
+		authorizedGroup.DELETE("/icon/:name/format/:format/size/:size", deleteIconfileHandler(mustGetUserInfo, s.api.iconService.DeleteIconfile, notifService.Publish, logging.CreateMethodLogger(s.logger, "deleteIconfileHandler")))
 
 		authorizedGroup.GET("/tag", getTagsHandler(s.api.iconService.GetTags, logging.CreateMethodLogger(s.logger, "getTagsHandler")))
-		authorizedGroup.POST("/icon/:name/tag", addTagHandler(s.api.iconService.AddTag, logging.CreateMethodLogger(s.logger, "addTagHandler")))
-		authorizedGroup.DELETE("/icon/:name/tag/:tag", removeTagHandler(s.api.iconService.RemoveTag, logging.CreateMethodLogger(s.logger, "removeTagHandler")))
+		authorizedGroup.POST("/icon/:name/tag", addTagHandler(mustGetUserInfo, s.api.iconService.AddTag, logging.CreateMethodLogger(s.logger, "addTagHandler")))
+		authorizedGroup.DELETE("/icon/:name/tag/:tag", removeTagHandler(mustGetUserInfo, s.api.iconService.RemoveTag, logging.CreateMethodLogger(s.logger, "removeTagHandler")))
 	}
 
 	return rootEngine

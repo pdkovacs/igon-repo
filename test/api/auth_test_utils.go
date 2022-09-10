@@ -3,12 +3,12 @@ package api
 import (
 	"encoding/base64"
 	"fmt"
-	"igo-repo/internal/config"
+	"igo-repo/internal/app/security/authn"
 )
 
-func makeRequestCredentials(authnScheme string, usernameOrToken string, password string) (requestCredentials, error) {
+func makeRequestCredentials(authnScheme authn.AuthenticationScheme, usernameOrToken string, password string) (requestCredentials, error) {
 	switch authnScheme {
-	case config.BasicAuthentication:
+	case authn.SchemeBasic:
 		{
 			username := usernameOrToken
 			auth := username + ":" + password
@@ -17,9 +17,9 @@ func makeRequestCredentials(authnScheme string, usernameOrToken string, password
 				headerValue: "Basic " + base64.StdEncoding.EncodeToString([]byte(auth)),
 			}, nil
 		}
-	case config.OIDCAuthentication:
-		return requestCredentials{}, fmt.Errorf("Unsupported authorization scheme: OIDC")
+	case authn.SchemeOIDC:
+		return requestCredentials{}, fmt.Errorf("unsupported authorization scheme: OIDC")
 	default:
-		return requestCredentials{}, fmt.Errorf("Unexpected authorization scheme: %v", authnScheme)
+		return requestCredentials{}, fmt.Errorf("unexpected authorization scheme: %v", authnScheme)
 	}
 }

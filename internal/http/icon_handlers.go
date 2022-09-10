@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"igo-repo/internal/app/domain"
+	"igo-repo/internal/app/security/authn"
 	"igo-repo/internal/app/security/authr"
 	"igo-repo/internal/app/services"
 
@@ -113,8 +114,9 @@ func describeIconHandler(describeIcon func(iconName string) (domain.IconDescript
 }
 
 func createIconHandler(
+	getUserInfo func(c *gin.Context) authr.UserInfo,
 	createIcon func(iconName string, initialIconfileContent []byte, modifiedBy authr.UserInfo) (domain.Icon, error),
-	ns *services.Notification,
+	publish func(msg services.NotificationMessage, initiator authn.UserID),
 	logger zerolog.Logger,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
@@ -148,7 +150,7 @@ func createIconHandler(
 		defer buf.Reset()
 		logger.Info().Msgf("received %d bytes for icon %s", buf.Len(), iconName)
 
-		authorInfo := mustGetUserSession(c).UserInfo
+		authorInfo := getUserInfo(c)
 		// do something with the contents...
 		icon, errCreate := createIcon(iconName, buf.Bytes(), authorInfo)
 		if errCreate != nil {
@@ -165,7 +167,7 @@ func createIconHandler(
 			}
 		}
 		c.JSON(201, iconToResponseIcon(icon))
-		ns.Publish(services.NotifMsgIconCreated, authorInfo.UserId)
+		publish(services.NotifMsgIconCreated, authorInfo.UserId)
 	}
 }
 
@@ -195,16 +197,17 @@ func getIconfileHandler(getIconfile func(iconName string, iconfile domain.Iconfi
 }
 
 func addIconfileHandler(
+	getUserInfo func(c *gin.Context) authr.UserInfo,
 	addIconfile func(iconName string, initialIconfileContent []byte, modifiedBy authr.UserInfo) (domain.IconfileDescriptor, error),
-	ns *services.Notification,
+	publish func(msg services.NotificationMessage, initiator authn.UserID),
 	logger zerolog.Logger,
 ) func(c *gin.Context) {
 
 	return func(c *gin.Context) {
-		session := mustGetUserSession(c)
+		authorInfo := getUserInfo(c)
+
 		authrErr := authr.HasRequiredPermissions(
-			session.UserInfo.UserId,
-			session.UserInfo.Permissions,
+			authorInfo,
 			[]authr.PermissionID{
 				authr.UPDATE_ICON,
 				authr.ADD_ICONFILE,
@@ -244,7 +247,6 @@ func addIconfileHandler(
 		logger.Info().Msgf("received %d bytes as iconfile content for icon %s", buf.Len(), iconName)
 
 		// do something with the contents...
-		authorInfo := mustGetUserSession(c).UserInfo
 		iconfileDescriptor, errCreate := addIconfile(iconName, buf.Bytes(), authorInfo)
 		if errCreate != nil {
 			logger.Error().Msgf("failed to add iconfile %v", errCreate)
@@ -259,14 +261,19 @@ func addIconfileHandler(
 			}
 		}
 		c.JSON(200, CreateIconPath(iconRootPath, iconName, iconfileDescriptor))
-		ns.Publish(services.NotifMsgIconfileAdded, authorInfo.UserId)
+		publish(services.NotifMsgIconfileAdded, authorInfo.UserId)
 		buf.Reset()
 	}
 }
 
-func deleteIconHandler(deleteIcon func(iconName string, modifiedBy authr.UserInfo) error, ns *services.Notification, logger zerolog.Logger) func(c *gin.Context) {
+func deleteIconHandler(
+	getUserInfo func(c *gin.Context) authr.UserInfo,
+	deleteIcon func(iconName string, modifiedBy authr.UserInfo) error,
+	publish func(msg services.NotificationMessage, initiator authn.UserID),
+	logger zerolog.Logger,
+) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		authorInfo := mustGetUserSession(c).UserInfo
+		authorInfo := getUserInfo(c)
 		iconName := c.Param("name")
 		deleteError := deleteIcon(iconName, authorInfo)
 		if deleteError != nil {
@@ -279,17 +286,18 @@ func deleteIconHandler(deleteIcon func(iconName string, modifiedBy authr.UserInf
 			return
 		}
 		c.Status(204)
-		ns.Publish(services.NotifMsgIconDeleted, authorInfo.UserId)
+		publish(services.NotifMsgIconDeleted, authorInfo.UserId)
 	}
 }
 
 func deleteIconfileHandler(
+	getUserInfo func(c *gin.Context) authr.UserInfo,
 	deleteIconfile func(iconName string, iconfile domain.IconfileDescriptor, modifiedBy authr.UserInfo) error,
-	ns *services.Notification,
+	publish func(msg services.NotificationMessage, initiator authn.UserID),
 	logger zerolog.Logger,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		authorInfo := mustGetUserSession(c).UserInfo
+		authorInfo := getUserInfo(c)
 		iconName := c.Param("name")
 		format := c.Param("format")
 		size := c.Param("size")
@@ -315,7 +323,7 @@ func deleteIconfileHandler(
 			return
 		}
 		c.Status(204)
-		ns.Publish(services.NotifMsgIconfileDeleted, authorInfo.UserId)
+		publish(services.NotifMsgIconfileDeleted, authorInfo.UserId)
 	}
 }
 
@@ -336,11 +344,12 @@ type AddServiceRequestData struct {
 }
 
 func addTagHandler(
+	getUserInfo func(c *gin.Context) authr.UserInfo,
 	addTag func(iconName string, tag string, modifiedBy authr.UserInfo) error,
 	logger zerolog.Logger,
 ) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		session := mustGetUserSession(c)
+		userInfo := getUserInfo(c)
 		iconName := c.Param("name")
 
 		jsonData, readBodyErr := io.ReadAll(c.Request.Body)
@@ -358,7 +367,7 @@ func addTagHandler(
 			return
 		}
 
-		serviceError := addTag(iconName, tag, session.UserInfo)
+		serviceError := addTag(iconName, tag, userInfo)
 		if serviceError != nil {
 			if errors.Is(serviceError, authr.ErrPermission) {
 				logger.Info().Msgf("Icon %s not found to add/remove tag %s to/from: %v", iconName, tag, serviceError)
@@ -378,12 +387,16 @@ func addTagHandler(
 	}
 }
 
-func removeTagHandler(removeTag func(iconName string, tag string, modifiedBy authr.UserInfo) error, logger zerolog.Logger) func(c *gin.Context) {
+func removeTagHandler(
+	getUserInfo func(c *gin.Context) authr.UserInfo,
+	removeTag func(iconName string, tag string, modifiedBy authr.UserInfo) error,
+	logger zerolog.Logger,
+) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		session := mustGetUserSession(c)
+		userInfo := getUserInfo(c)
 		iconName := c.Param("name")
 		tag := c.Param("tag")
-		serviceError := removeTag(iconName, tag, session.UserInfo)
+		serviceError := removeTag(iconName, tag, userInfo)
 		if serviceError != nil {
 			if errors.Is(serviceError, authr.ErrPermission) {
 				logger.Info().Msgf("Icon %s not found to add/remove tag %s to/from: %v", iconName, tag, serviceError)

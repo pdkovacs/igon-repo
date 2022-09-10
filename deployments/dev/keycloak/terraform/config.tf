@@ -85,7 +85,8 @@ resource "keycloak_openid_client" "iconrepo" {
 
   access_type         = "CONFIDENTIAL"
   valid_redirect_uris = [
-    "http://localhost:8091/openid-callback"
+    # "http://localhost:8091/openid-callback"
+    "http://${var.app_hostname}:4180/oauth2/callback"
   ]
   standard_flow_enabled = true
 
@@ -99,4 +100,9 @@ resource "keycloak_openid_group_membership_protocol_mapper" "group_membership_ma
 
   claim_name = "groups"
   full_path = false
+}
+
+variable "app_hostname" {
+  type = string
+  default = "localhost"
 }
