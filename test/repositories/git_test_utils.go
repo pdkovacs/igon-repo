@@ -1,4 +1,4 @@
-package repositories
+package repositories_tests
 
 import (
 	"fmt"
@@ -10,7 +10,7 @@ import (
 	"igo-repo/internal/config"
 	"igo-repo/internal/logging"
 	"igo-repo/internal/repositories"
-	"igo-repo/test/common"
+	common_test "igo-repo/test/common"
 
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
@@ -75,7 +75,7 @@ type GitTestSuite struct {
 }
 
 func (s *GitTestSuite) BeforeTest(suiteName, testName string) {
-	s.repo = NewGitTestRepo(common.GetTestConfig().IconDataLocationGit, logging.CreateRootLogger(logging.DebugLevel))
+	s.repo = NewGitTestRepo(common_test.GetTestConfig().IconDataLocationGit, logging.CreateRootLogger(logging.DebugLevel))
 	os.Unsetenv(repositories.IntrusiveGitTestEnvvarName)
 }
 

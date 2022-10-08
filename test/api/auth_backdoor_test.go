@@ -1,11 +1,11 @@
-package api
+package api_tests
 
 import (
 	"testing"
 
 	"igo-repo/internal/app/security/authn"
 	"igo-repo/internal/app/security/authr"
-	"igo-repo/test/common"
+	common_test "igo-repo/test/common"
 	"igo-repo/test/testdata"
 
 	"github.com/stretchr/testify/suite"
@@ -20,7 +20,7 @@ func TestAuthBackDoorTestSuite(t *testing.T) {
 }
 
 func (s *authBackDoorTestSuite) BeforeTest(suiteName string, testName string) {
-	serverConfig := common.CloneConfig(s.defaultConfig)
+	serverConfig := common_test.CloneConfig(s.defaultConfig)
 	if suiteName != "authBackDoorTestSuite" {
 		return
 	}

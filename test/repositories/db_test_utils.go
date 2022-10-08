@@ -1,4 +1,4 @@
-package repositories
+package repositories_tests
 
 import (
 	"database/sql"
@@ -8,7 +8,7 @@ import (
 	"igo-repo/internal/config"
 	"igo-repo/internal/logging"
 	"igo-repo/internal/repositories"
-	"igo-repo/test/common"
+	common_test "igo-repo/test/common"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/rs/zerolog"
@@ -49,7 +49,7 @@ func DeleteDBData(db *sql.DB) error {
 
 func (s *DBTestSuite) NewTestDBRepo() {
 	var err error
-	config := common.GetTestConfig()
+	config := common_test.GetTestConfig()
 	connection, err := repositories.NewDBConnection(config, logging.CreateUnitLogger(s.logger, "test-db-connection"))
 	if err != nil {
 		panic(fmt.Sprintf("failed to create test connection: %v", err))

@@ -1,4 +1,4 @@
-package common
+package common_tests
 
 import (
 	"crypto/rand"
