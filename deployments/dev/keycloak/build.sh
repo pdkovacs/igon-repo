@@ -6,13 +6,18 @@ which docker-compose >/dev/null 2>&1 || DOCKER_COMPOSE="docker compose"
 cd deployments/dev/keycloak;
 
 dcompose_project_in_list() {
-	awk '
+	gawk '
 BEGIN { projectNotFound = 1; }
 /^NAME[[:blank:]]+STATUS[[:blank:]]+CONFIG FILES$/ { next; }
 /^keycloak.*[/]deployments[/]dev[/]keycloak[/]docker-compose.yaml$/ { projectNotFound = 0; }
 END { exit projectNotFound }
 '
 }
+
+oldstate="$(shopt -po xtrace noglob errexit)"
+set -e
+which gawk > /dev/null 2>&1 || (echo "gawk is need for this" && exit 1);
+set +vx; eval "$oldstate"
 
 if $DOCKER_COMPOSE ls -a | dcompose_project_in_list;
 then

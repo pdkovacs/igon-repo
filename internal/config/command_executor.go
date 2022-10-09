@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"igo-repo/internal/logging"
+	"io"
 	"os/exec"
 
 	"github.com/rs/zerolog"
@@ -38,13 +39,30 @@ func ExecuteCommand(params ExecCmdParams, logger zerolog.Logger) (string, error)
 	if params.Opts != nil {
 		cmd.Dir = params.Opts.Cwd
 	}
-	out, err := cmd.Output()
-	if err != nil {
-		exitError, ok := err.(*exec.ExitError)
-		if ok {
-			return string(exitError.Stderr), exitError
-		}
+	stderr, errStderr := cmd.StderrPipe()
+	if errStderr != nil {
+		return "", errStderr
+	}
+	stdout, errStdout := cmd.StdoutPipe()
+	if errStdout != nil {
+		return "", errStdout
+	}
+
+	if err := cmd.Start(); err != nil {
 		return "", err
 	}
-	return string(out), nil
+
+	slurpErr, _ := io.ReadAll(stderr)
+	slurpOut, _ := io.ReadAll(stdout)
+
+	err := cmd.Wait()
+
+	if err != nil {
+		errMsg := slurpErr
+		if len(errMsg) == 0 {
+			errMsg = slurpOut
+		}
+		return string(errMsg), err
+	}
+	return string(slurpOut), nil
 }

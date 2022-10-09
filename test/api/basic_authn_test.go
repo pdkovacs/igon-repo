@@ -4,17 +4,19 @@ import (
 	"testing"
 
 	"igo-repo/internal/app/security/authn"
+	"igo-repo/internal/repositories/gitrepo"
+	"igo-repo/test/repositories/git_tests"
 	"igo-repo/test/testdata"
 
 	"github.com/stretchr/testify/suite"
 )
 
 type basicAuthnTestSuite struct {
-	apiTestSuite
+	ApiTestSuite
 }
 
 func TestBasicAuthnTestSuite(t *testing.T) {
-	suite.Run(t, &basicAuthnTestSuite{})
+	suite.Run(t, &basicAuthnTestSuite{ApiTestSuite: apiTestSuites("apitests_basicauthn", []git_tests.GitTestRepo{gitrepo.Local{}})[0]})
 }
 
 func (s *basicAuthnTestSuite) TestShouldFailWith401WithoutCredentials() {
@@ -23,7 +25,7 @@ func (s *basicAuthnTestSuite) TestShouldFailWith401WithoutCredentials() {
 		credentials:   &requestCredentials{"", ""},
 		respBodyProto: nil,
 	}
-	resp, requestError := s.client.get(&req)
+	resp, requestError := s.Client.get(&req)
 	s.NoError(requestError)
 	s.Equal(401, resp.statusCode)
 	challenge, hasChallange := resp.headers["Www-Authenticate"]
@@ -39,7 +41,7 @@ func (s *basicAuthnTestSuite) TestShouldFailWith401WithWrongCredentials() {
 		credentials:   &reqCreds,
 		respBodyProto: nil,
 	}
-	resp, requestError := s.client.get(&req)
+	resp, requestError := s.Client.get(&req)
 	s.NoError(requestError)
 	s.Equal(401, resp.statusCode)
 	challenge, hasChallange := resp.headers["Www-Authenticate"]
@@ -55,7 +57,7 @@ func (s *basicAuthnTestSuite) TestShouldPasssWithCorrectCredentials() {
 		credentials:   &reqCreds,
 		respBodyProto: nil,
 	}
-	resp, requestError := s.client.get(&req)
+	resp, requestError := s.Client.get(&req)
 	s.NoError(requestError)
 	s.Equal(200, resp.statusCode)
 	_, hasChallange := resp.headers["Www-Authenticate"]

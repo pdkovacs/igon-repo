@@ -4,16 +4,21 @@ export BACKEND_SOURCE_HOME = $(dir $(mkfile_path))
 ui-bundle = web/dist/bundle.js
 app = igo-repo
 
-.PHONY: clean test run
+.PHONY: clean test run app
 clean:
 	go clean -testcache
 	rm -f igo-repo
-test: $(app)
-	go test ./...
-test-verbose: $(app)
-	go test -v -timeout 40s ./... 
+test: test-app test-api test-repos test-seq
+test-app: $(app)
+	go test -parallel 10 -v -timeout 60s ./test/app/...
+test-api: $(app)
+	go test -parallel 10 -v -timeout 120s ./test/api/...
+test-repos: $(app)
+	go test -parallel 10 -v -timeout 60s ./test/repositories/...
+test-seq: $(app)
+	go test -parallel 10 -v -timeout 60s ./test/seq/...
 test-single: $(app)
-	go test -v ./test/api -run '^TestIconCreateTestSuite$$' -testify.m TestRollbackToLastConsistentStateOnError
+	go test -parallel 10 -v -timeout 60s ./... -run '^TestIconCreateTestSuite$$' -testify.m TestFailsWith403WithoutPrivilege#01
 run:
 	go run cmd/main.go
 $(ui-bundle): 
@@ -26,8 +31,10 @@ $(app): $(ui-bundle) $(shell find internal/ cmd/ -type f)
 		-X 'igo-repo/build.time=$$(date)' \
 		-X 'igo-repo/build.commit=$$(git rev-parse HEAD)' \
 	" -o igo-repo cmd/main.go
+backend: $(app)
 keycloak:
 	deployments/dev/keycloak/build.sh
+app: $(app)
 docker: GOOS=linux
 docker: GOARCH=amd64
 docker: $(app)

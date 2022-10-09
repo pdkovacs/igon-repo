@@ -1,10 +1,15 @@
 package repositories
 
+import (
+	"igo-repo/internal/repositories/gitrepo"
+	"igo-repo/internal/repositories/icondb"
+)
+
 type Repositories struct {
-	DB  *DBRepository
-	Git *GitRepository
+	DB  *icondb.Repository
+	Git *gitrepo.Local
 }
 
-func NewRepositories(DB *DBRepository, Git *GitRepository) Repositories {
+func NewRepositories(DB *icondb.Repository, Git *gitrepo.Local) Repositories {
 	return Repositories{DB, Git}
 }

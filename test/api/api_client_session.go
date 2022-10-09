@@ -12,7 +12,7 @@ import (
 	"igo-repo/internal/app/domain"
 	"igo-repo/internal/app/security/authn"
 	"igo-repo/internal/app/security/authr"
-	httpadapter "igo-repo/internal/http"
+	"igo-repo/internal/httpadapter"
 	"igo-repo/test/testdata"
 )
 
@@ -65,7 +65,7 @@ func (client *apiTestClient) mustLogin(credentials *requestCredentials) *apiTest
 	return session
 }
 
-func (client *apiTestClient) mustLoginSetAllPerms() *apiTestSession {
+func (client *apiTestClient) MustLoginSetAllPerms() *apiTestSession {
 	session := client.mustLogin(nil)
 	session.mustSetAuthorization(authr.GetPermissionsForGroup(authr.ICON_EDITOR))
 	return session
@@ -126,11 +126,11 @@ func (session *apiTestSession) mustSetAuthorization(requestedPermissions []authr
 	}
 }
 
-func (session *apiTestSession) mustAddTestData(testData []domain.Icon) {
+func (session *apiTestSession) MustAddTestData(testData []domain.Icon) {
 	var err error
 	var statusCode int
 	for _, testIcon := range testData {
-		statusCode, _, err = session.createIcon(testIcon.Name, testIcon.Iconfiles[0].Content)
+		statusCode, _, err = session.CreateIcon(testIcon.Name, testIcon.Iconfiles[0].Content)
 		if err != nil {
 			panic(err)
 		}
@@ -146,7 +146,7 @@ func (session *apiTestSession) mustAddTestData(testData []domain.Icon) {
 	}
 }
 
-func (session *apiTestSession) describeAllIcons() ([]httpadapter.IconDTO, error) {
+func (session *apiTestSession) DescribeAllIcons() ([]httpadapter.IconDTO, error) {
 	resp, err := session.get(&testRequest{
 		path:          "/icon",
 		jar:           session.cjar,
@@ -166,7 +166,7 @@ func (session *apiTestSession) describeAllIcons() ([]httpadapter.IconDTO, error)
 }
 
 func (session *apiTestSession) mustDescribeAllIcons() []httpadapter.IconDTO {
-	respIcons, err := session.describeAllIcons()
+	respIcons, err := session.DescribeAllIcons()
 	if err != nil {
 		panic(err)
 	}
@@ -190,7 +190,7 @@ func (session *apiTestSession) describeIcon(iconName string) (int, httpadapter.I
 }
 
 // https://stackoverflow.com/questions/20205796/post-data-using-the-content-type-multipart-form-data
-func (session *apiTestSession) createIcon(iconName string, initialIconfile []byte) (int, httpadapter.IconDTO, error) {
+func (session *apiTestSession) CreateIcon(iconName string, initialIconfile []byte) (int, httpadapter.IconDTO, error) {
 	var err error
 	var resp testResponse
 

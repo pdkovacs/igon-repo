@@ -4,46 +4,49 @@ import (
 	"testing"
 
 	"igo-repo/internal/app/security/authr"
-	httpadapter "igo-repo/internal/http"
+	"igo-repo/internal/httpadapter"
 	"igo-repo/test/testdata"
 
 	"github.com/stretchr/testify/suite"
 )
 
 type deleteIconTestSuite struct {
-	iconTestSuite
+	IconTestSuite
 }
 
 func TestDeleteIconTestSuite(t *testing.T) {
-	suite.Run(t, &deleteIconTestSuite{})
+	t.Parallel()
+	for _, iconSuite := range IconTestSuites("api_deleteicon") {
+		suite.Run(t, &deleteIconTestSuite{IconTestSuite: iconSuite})
+	}
 }
 
 func (s *deleteIconTestSuite) TestFailWith403WithoutPrivilege() {
 	dataIn, dataOut := testdata.Get()
-	session := s.client.mustLoginSetAllPerms()
-	session.mustAddTestData(dataIn)
+	session := s.Client.MustLoginSetAllPerms()
+	session.MustAddTestData(dataIn)
 	session.setAuthorization([]authr.PermissionID{})
 	statusCode, deleteError := session.deleteIcon(dataIn[0].Name)
 	s.NoError(deleteError)
 	s.Equal(403, statusCode)
-	respIcons, listError := session.describeAllIcons()
+	respIcons, listError := session.DescribeAllIcons()
 	s.NoError((listError))
-	s.assertResponseIconSetsEqual(dataOut, respIcons)
+	s.AssertResponseIconSetsEqual(dataOut, respIcons)
 
-	s.assertEndState()
+	s.AssertEndState()
 }
 
 func (s *deleteIconTestSuite) TestSucceedsWithPrivilege() {
 	dataIn, dataOut := testdata.Get()
-	session := s.client.mustLoginSetAllPerms()
-	session.mustAddTestData(dataIn)
+	session := s.Client.MustLoginSetAllPerms()
+	session.MustAddTestData(dataIn)
 	session.setAuthorization([]authr.PermissionID{authr.REMOVE_ICON})
 	statusCode, deleteError := session.deleteIcon(dataIn[0].Name)
 	s.NoError(deleteError)
 	s.Equal(204, statusCode)
-	respIcons, listError := session.describeAllIcons()
+	respIcons, listError := session.DescribeAllIcons()
 	s.NoError((listError))
-	s.assertResponseIconSetsEqual([]httpadapter.IconDTO{dataOut[1]}, respIcons)
+	s.AssertResponseIconSetsEqual([]httpadapter.IconDTO{dataOut[1]}, respIcons)
 
-	s.assertEndState()
+	s.AssertEndState()
 }

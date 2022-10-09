@@ -43,3 +43,21 @@ Enabling consumer-developers (users of the applicatioin) to give effective feed-
 1. Start the frontend in the `client` subdirectory by executing:
 
     `npm install && npm run dev`
+
+1. For testing with the GitLab as a git provider have a file with an appropriate GitLab authentication token:
+
+   ```bash
+   $ cat ~/.icon-repo.secrets 
+   export GITLAB_ACCESS_TOKEN="XXXXXXXXXXXXXXXXXXXXXXXXXX"
+   $ 
+   ```
+# Testing
+
+## GitLab
+
+In case you end up having remnants of a largish number of test icon-repositories, you can use a command similar to the following to remove them:
+
+```bash
+$ . ~/.icon-repo.secrets 
+$ curl --silent --request GET --url https://gitlab.com/api/v4/projects?owned=true --header "private-token: $GITLAB_ACCESS_TOKEN" | jq '.[] | select(.path_with_namespace | startswith("testing-with-repositories/icon-repo-gitrepo-test")) | .id' | while read id; do echo $id; curl --request DELETE   --url https://gitlab.com/api/v4/projects/$id   --header "private-token: $GITLAB_ACCESS_TOKEN"; done
+```

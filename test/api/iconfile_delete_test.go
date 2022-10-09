@@ -11,18 +11,21 @@ import (
 )
 
 type iconfileDeleteTestSuite struct {
-	iconTestSuite
+	IconTestSuite
 }
 
 func TestIconfileDeleteTestSuite(t *testing.T) {
-	suite.Run(t, &iconfileDeleteTestSuite{})
+	t.Parallel()
+	for _, iconSuite := range IconTestSuites("api_iconfiledelete") {
+		suite.Run(t, &iconfileDeleteTestSuite{IconTestSuite: iconSuite})
+	}
 }
 
-func (s *iconTestSuite) TestDeletingIconfileFailsWith403WithoutPermission() {
+func (s *iconfileDeleteTestSuite) TestDeletingIconfileFailsWith403WithoutPermission() {
 	dataIn, dataOut := testdata.Get()
 
-	session := s.client.mustLoginSetAllPerms()
-	session.mustAddTestData(dataIn)
+	session := s.Client.MustLoginSetAllPerms()
+	session.MustAddTestData(dataIn)
 
 	session.mustSetAllPermsExcept([]authr.PermissionID{authr.REMOVE_ICONFILE})
 
@@ -31,18 +34,18 @@ func (s *iconTestSuite) TestDeletingIconfileFailsWith403WithoutPermission() {
 	s.NoError(errDelete)
 	s.Equal(403, statusCode)
 
-	resp, descError := session.describeAllIcons()
+	resp, descError := session.DescribeAllIcons()
 	s.NoError(descError)
-	s.assertResponseIconSetsEqual(dataOut, resp)
+	s.AssertResponseIconSetsEqual(dataOut, resp)
 
-	s.assertEndState()
+	s.AssertEndState()
 }
 
-func (s *iconTestSuite) TestDeletingIconfileSucceedsWithRequiredPermission() {
+func (s *iconfileDeleteTestSuite) TestDeletingIconfileSucceedsWithRequiredPermission() {
 	dataIn, dataOut := testdata.Get()
 
-	session := s.client.mustLoginSetAllPerms()
-	session.mustAddTestData(dataIn)
+	session := s.Client.MustLoginSetAllPerms()
+	session.MustAddTestData(dataIn)
 
 	session.mustSetAuthorization([]authr.PermissionID{authr.REMOVE_ICONFILE})
 
@@ -52,18 +55,18 @@ func (s *iconTestSuite) TestDeletingIconfileSucceedsWithRequiredPermission() {
 	s.NoError(errDelete)
 	s.Equal(204, statusCode)
 
-	resp, descError := session.describeAllIcons()
+	resp, descError := session.DescribeAllIcons()
 	s.NoError(descError)
-	s.assertResponseIconSetsEqual(dataOut, resp)
+	s.AssertResponseIconSetsEqual(dataOut, resp)
 
-	s.assertEndState()
+	s.AssertEndState()
 }
 
-func (s *iconTestSuite) TestDeletingIconfileFailsWith404ForNonexistentIcon() {
+func (s *iconfileDeleteTestSuite) TestDeletingIconfileFailsWith404ForNonexistentIcon() {
 	dataIn, dataOut := testdata.Get()
 
-	session := s.client.mustLoginSetAllPerms()
-	session.mustAddTestData(dataIn)
+	session := s.Client.MustLoginSetAllPerms()
+	session.MustAddTestData(dataIn)
 
 	session.mustSetAuthorization([]authr.PermissionID{authr.REMOVE_ICONFILE})
 
@@ -72,18 +75,18 @@ func (s *iconTestSuite) TestDeletingIconfileFailsWith404ForNonexistentIcon() {
 	s.NoError(errDelete)
 	s.Equal(404, statusCode)
 
-	resp, descError := session.describeAllIcons()
+	resp, descError := session.DescribeAllIcons()
 	s.NoError(descError)
-	s.assertResponseIconSetsEqual(dataOut, resp)
+	s.AssertResponseIconSetsEqual(dataOut, resp)
 
-	s.assertEndState()
+	s.AssertEndState()
 }
 
-func (s *iconTestSuite) TestDeletingIconfileFailsWith404ForNonexistentIconfile() {
+func (s *iconfileDeleteTestSuite) TestDeletingIconfileFailsWith404ForNonexistentIconfile() {
 	dataIn, dataOut := testdata.Get()
 
-	session := s.client.mustLoginSetAllPerms()
-	session.mustAddTestData(dataIn)
+	session := s.Client.MustLoginSetAllPerms()
+	session.MustAddTestData(dataIn)
 
 	session.mustSetAuthorization([]authr.PermissionID{authr.REMOVE_ICONFILE})
 
@@ -92,18 +95,18 @@ func (s *iconTestSuite) TestDeletingIconfileFailsWith404ForNonexistentIconfile()
 	s.NoError(errDelete)
 	s.Equal(404, statusCode)
 
-	resp, descError := session.describeAllIcons()
+	resp, descError := session.DescribeAllIcons()
 	s.NoError(descError)
-	s.assertResponseIconSetsEqual(dataOut, resp)
+	s.AssertResponseIconSetsEqual(dataOut, resp)
 
-	s.assertEndState()
+	s.AssertEndState()
 }
 
-func (s *iconTestSuite) TestDeleteIconIfLastIconfileDeleted() {
+func (s *iconfileDeleteTestSuite) TestDeleteIconIfLastIconfileDeleted() {
 	dataIn, dataOut := testdata.Get()
 
-	session := s.client.mustLoginSetAllPerms()
-	session.mustAddTestData(dataIn)
+	session := s.Client.MustLoginSetAllPerms()
+	session.MustAddTestData(dataIn)
 
 	session.mustSetAuthorization([]authr.PermissionID{authr.REMOVE_ICONFILE})
 
@@ -115,9 +118,9 @@ func (s *iconTestSuite) TestDeleteIconIfLastIconfileDeleted() {
 
 	newDataOut := append(dataOut[:0], dataOut[1:]...)
 
-	resp, descError := session.describeAllIcons()
+	resp, descError := session.DescribeAllIcons()
 	s.NoError(descError)
-	s.assertResponseIconSetsEqual(newDataOut, resp)
+	s.AssertResponseIconSetsEqual(newDataOut, resp)
 
-	s.assertEndState()
+	s.AssertEndState()
 }

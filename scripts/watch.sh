@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export ICON_REPO_CONFIG_FILE=deployments/dev/configurations/dev-oidc-proxy.json
+export ICON_REPO_CONFIG_FILE=deployments/dev/configurations/dev-oidc-proxy-gitlab.json
 cmd="make backend"
 settle_down_secs=1
 

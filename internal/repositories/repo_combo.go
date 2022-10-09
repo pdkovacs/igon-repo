@@ -4,12 +4,22 @@ import (
 	"fmt"
 
 	"igo-repo/internal/app/domain"
+	"igo-repo/internal/app/security/authn"
 	"igo-repo/internal/app/security/authr"
+	"igo-repo/internal/repositories/icondb"
 )
 
+type GitRepository interface {
+	fmt.Stringer
+	Create() error
+	AddIconfile(iconName string, iconfile domain.Iconfile, modifiedBy string) error
+	DeleteIcon(iconDesc domain.IconDescriptor, modifiedBy authn.UserID) error
+	DeleteIconfile(iconName string, iconfileDesc domain.IconfileDescriptor, modifiedBy authn.UserID) error
+}
+
 type RepoCombo struct {
-	DB  *DBRepository
-	Git *GitRepository
+	DB  icondb.Repository
+	Git GitRepository
 }
 
 func (combo *RepoCombo) DescribeAllIcons() ([]domain.IconDescriptor, error) {

@@ -3,33 +3,38 @@ package api_tests
 import (
 	"bytes"
 	"fmt"
-	"os"
 	"sort"
 	"strings"
 
 	"igo-repo/internal/app/domain"
-	httpadapter "igo-repo/internal/http"
+	"igo-repo/internal/httpadapter"
+	"igo-repo/internal/repositories/gitrepo"
+	"igo-repo/test/repositories/git_tests"
 )
 
-type iconTestSuite struct {
-	apiTestSuite
+type IconTestSuite struct {
+	ApiTestSuite
 }
 
-func (s *iconTestSuite) getCheckIconfile(session *apiTestSession, iconName string, iconfile domain.Iconfile) {
+func IconTestSuites(testSequenceId string) []IconTestSuite {
+	all := []IconTestSuite{}
+	for _, apiSuite := range apiTestSuites(testSequenceId, git_tests.GitProvidersToTest()) {
+		all = append(all, IconTestSuite{ApiTestSuite: apiSuite})
+	}
+	return all
+}
+
+func (s *IconTestSuite) getCheckIconfile(session *apiTestSession, iconName string, iconfile domain.Iconfile) {
 	actualIconfile, err := session.GetIconfile(iconName, iconfile.IconfileDescriptor)
 	s.NoError(err)
 	s.Equal(iconfile.Content, actualIconfile)
 }
 
-func (s *iconTestSuite) assertGitCleanStatus() {
-	s.testGitRepo.AssertGitCleanStatus(&s.Suite)
-}
-
-func (s *iconTestSuite) assertAllFilesInDBAreInGitAsWell() []string {
+func (s *IconTestSuite) assertAllFilesInDBAreInGitAsWell() []string {
 	checkedGitFiles := []string{}
 
 	db := s.testDBRepo
-	git := s.testGitRepo
+	git := s.TestGitRepo
 
 	allIconDesc, descAllErr := db.DescribeAllIcons()
 	if descAllErr != nil {
@@ -42,25 +47,28 @@ func (s *iconTestSuite) assertAllFilesInDBAreInGitAsWell() []string {
 			if contentReadError != nil {
 				panic(contentReadError)
 			}
-			pathToFile := git.GetAbsolutePathToIconfile(iconDesc.Name, iconfileDesc)
-			fileContentInGit, readGitFileErr := os.ReadFile(pathToFile)
+			fileContentInGit, readGitFileErr := git.GetIconfile(iconDesc.Name, iconfileDesc)
 			s.NoError(readGitFileErr)
 
+			s.Equal(len(fileContentInDB), len(fileContentInGit))
+			if len(fileContentInDB) != len(fileContentInGit) {
+				s.logger.Error().Msgf("fileContentInDB: %s\n\nfileContentInGit: %s", fileContentInDB, fileContentInGit)
+			}
 			s.True(bytes.Equal(fileContentInDB, fileContentInGit))
 
-			checkedGitFiles = append(checkedGitFiles, s.testGitRepo.GetPathToIconfileInRepos(iconDesc.Name, iconfileDesc))
+			checkedGitFiles = append(checkedGitFiles, gitrepo.NewGitFilePaths("").GetPathToIconfileInRepo(iconDesc.Name, iconfileDesc))
 		}
 	}
 
 	return checkedGitFiles
 }
 
-func (s *iconTestSuite) createIconfilePaths(iconName string, iconfileDescriptor domain.IconfileDescriptor) httpadapter.IconPath {
+func (s *IconTestSuite) createIconfilePaths(iconName string, iconfileDescriptor domain.IconfileDescriptor) httpadapter.IconPath {
 	return httpadapter.CreateIconPath("/icon", iconName, iconfileDescriptor)
 }
 
-func (s *iconTestSuite) assertAllFilesInGitAreInDBAsWell(iconfilesWithPeerInDB []string) {
-	iconfiles, err := s.testGitRepo.GetIconfiles()
+func (s *IconTestSuite) assertAllFilesInGitAreInDBAsWell(iconfilesWithPeerInDB []string) {
+	iconfiles, err := s.TestGitRepo.GetIconfiles()
 	s.NoError(err)
 	for _, gitFile := range iconfiles {
 		found := false
@@ -71,28 +79,30 @@ func (s *iconTestSuite) assertAllFilesInGitAreInDBAsWell(iconfilesWithPeerInDB [
 			}
 		}
 		if !found {
-			s.Fail(fmt.Sprintf("%s doesn't have a peer in DB", gitFile))
+			s.Fail(fmt.Sprintf("%s doesn't have a peer in DB (%#v)", gitFile, iconfilesWithPeerInDB))
 		}
 	}
 }
 
-func (s *iconTestSuite) assertReposInSync() {
+func (s *IconTestSuite) assertReposInSync() {
 	checkedGitFiles := s.assertAllFilesInDBAreInGitAsWell()
 	s.assertAllFilesInGitAreInDBAsWell(checkedGitFiles)
 }
 
-func (s *iconTestSuite) assertEndState() {
-	s.assertGitCleanStatus()
+func (s *IconTestSuite) AssertEndState() {
+	ok, err := s.TestGitRepo.CheckStatus()
+	s.NoError(err)
+	s.True(ok)
 	s.assertReposInSync()
 }
 
-func (s *iconTestSuite) assertResponseIconSetsEqual(expected []httpadapter.IconDTO, actual []httpadapter.IconDTO) {
+func (s *IconTestSuite) AssertResponseIconSetsEqual(expected []httpadapter.IconDTO, actual []httpadapter.IconDTO) {
 	sortResponseIconSlice(expected)
 	sortResponseIconSlice(actual)
 	s.Equal(expected, actual)
 }
 
-func (s *iconTestSuite) assertResponseIconsEqual(expected httpadapter.IconDTO, actual httpadapter.IconDTO) {
+func (s *IconTestSuite) assertResponseIconsEqual(expected httpadapter.IconDTO, actual httpadapter.IconDTO) {
 	sortResponseIconPaths(expected)
 	sortResponseIconPaths(actual)
 	s.Equal(expected, actual)

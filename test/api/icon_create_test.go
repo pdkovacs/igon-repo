@@ -2,25 +2,26 @@ package api_tests
 
 import (
 	"errors"
-	"os"
 	"testing"
 
 	"igo-repo/internal/app/domain"
 	"igo-repo/internal/app/security/authn"
 	"igo-repo/internal/app/security/authr"
-	httpadapter "igo-repo/internal/http"
-	"igo-repo/internal/repositories"
+	"igo-repo/internal/httpadapter"
 	"igo-repo/test/testdata"
 
 	"github.com/stretchr/testify/suite"
 )
 
 type iconCreateTestSuite struct {
-	iconTestSuite
+	IconTestSuite
 }
 
 func TestIconCreateTestSuite(t *testing.T) {
-	suite.Run(t, &iconCreateTestSuite{})
+	t.Parallel()
+	for _, iconSuite := range IconTestSuites("api_iconcreate") {
+		suite.Run(t, &iconCreateTestSuite{IconTestSuite: iconSuite})
+	}
 }
 
 func (s *iconCreateTestSuite) TestFailsWith403WithoutPrivilege() {
@@ -31,13 +32,13 @@ func (s *iconCreateTestSuite) TestFailsWith403WithoutPrivilege() {
 	}
 	iconfileContent := testdata.GetDemoIconfileContent(iconName, iconFile)
 
-	session := s.client.mustLogin(nil)
+	session := s.Client.mustLogin(nil)
 	session.mustSetAllPermsExcept([]authr.PermissionID{authr.CREATE_ICON})
-	statusCode, _, err := session.createIcon(iconName, iconfileContent)
+	statusCode, _, err := session.CreateIcon(iconName, iconfileContent)
 	s.True(errors.Is(err, errJSONUnmarshal))
 	s.Equal(403, statusCode)
 
-	icons, errDesc := session.describeAllIcons()
+	icons, errDesc := session.DescribeAllIcons()
 	s.NoError(errDesc)
 	s.Equal(0, len(icons))
 }
@@ -67,14 +68,14 @@ func (s *iconCreateTestSuite) TestCompletesWithPrivilege() {
 		},
 	}
 
-	session := s.client.mustLogin(nil)
+	session := s.Client.mustLogin(nil)
 	session.mustSetAuthorization([]authr.PermissionID{authr.CREATE_ICON})
-	statusCode, resultIcon, err := session.createIcon(iconName, iconfileContent)
+	statusCode, resultIcon, err := session.CreateIcon(iconName, iconfileContent)
 	s.NoError(err)
 	s.Equal(201, statusCode)
 	s.Equal(expectedResponse, resultIcon)
 
-	icons, errDesc := session.describeAllIcons()
+	icons, errDesc := session.DescribeAllIcons()
 	s.NoError(errDesc)
 	s.Equal(1, len(icons))
 	s.Equal(expectedResponse, icons[0])
@@ -83,7 +84,7 @@ func (s *iconCreateTestSuite) TestCompletesWithPrivilege() {
 	s.NoError(getIconfileError)
 	s.Equal(iconfileContent, iconfile)
 
-	s.assertEndState()
+	s.AssertEndState()
 }
 
 func (s *iconCreateTestSuite) TestAddMultipleIconsInARow() {
@@ -93,42 +94,15 @@ func (s *iconCreateTestSuite) TestAddMultipleIconsInARow() {
 	sampleIconName2 := testInput[1].Name
 	sampleIconfileDesc2 := testInput[1].Iconfiles[1]
 
-	session := s.client.mustLoginSetAllPerms()
+	session := s.Client.MustLoginSetAllPerms()
 
-	session.mustAddTestData(testInput)
+	session.MustAddTestData(testInput)
 	s.getCheckIconfile(session, sampleIconName1, sampleIconfileDesc1)
 	s.getCheckIconfile(session, sampleIconName2, sampleIconfileDesc2)
 
-	iconDescriptors, describeError := session.describeAllIcons()
+	iconDescriptors, describeError := session.DescribeAllIcons()
 	s.NoError(describeError)
-	s.assertResponseIconSetsEqual(testOutput, iconDescriptors)
+	s.AssertResponseIconSetsEqual(testOutput, iconDescriptors)
 
-	s.assertEndState()
-}
-
-func (s *iconCreateTestSuite) TestRollbackToLastConsistentStateOnError() {
-	dataIn, dataOut := testdata.Get()
-	moreDataIn, _ := testdata.Get()
-
-	session := s.client.mustLoginSetAllPerms()
-	session.mustAddTestData(dataIn)
-
-	lastStableSHA1, beforeIncidentGitErr := s.testGitRepo.GetCurrentCommit()
-	s.NoError(beforeIncidentGitErr)
-
-	os.Setenv(repositories.IntrusiveGitTestEnvvarName, "true")
-
-	statusCode, _, _ := session.createIcon(moreDataIn[1].Name, moreDataIn[1].Iconfiles[0].Content)
-	s.Equal(409, statusCode)
-
-	afterIncidentSHA1, afterIncidentGitErr := s.testGitRepo.GetCurrentCommit()
-	s.NoError(afterIncidentGitErr)
-
-	s.Equal(lastStableSHA1, afterIncidentSHA1)
-
-	iconDescriptors, describeError := session.describeAllIcons()
-	s.NoError(describeError)
-	s.assertResponseIconSetsEqual(dataOut, iconDescriptors)
-
-	s.assertEndState()
+	s.AssertEndState()
 }

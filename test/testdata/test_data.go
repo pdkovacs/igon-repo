@@ -8,7 +8,7 @@ import (
 	"igo-repo/internal/app/domain"
 	"igo-repo/internal/app/security/authn"
 	"igo-repo/internal/config"
-	httpadapter "igo-repo/internal/http"
+	"igo-repo/internal/httpadapter"
 )
 
 var backendSourceHome = os.Getenv("BACKEND_SOURCE_HOME")

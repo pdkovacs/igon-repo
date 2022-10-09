@@ -2,30 +2,52 @@ package app
 
 import (
 	"igo-repo/internal/config"
-	httpadapter "igo-repo/internal/http"
+	"igo-repo/internal/httpadapter"
 	"igo-repo/internal/logging"
 	"igo-repo/internal/repositories"
+	"igo-repo/internal/repositories/gitrepo"
+	"igo-repo/internal/repositories/icondb"
 )
 
 func Start(conf config.Options, ready func(port int, stop func())) error {
 
 	rootLogger := logging.CreateRootLogger(conf.LogLevel)
 
-	connection, dbErr := repositories.NewDBConnection(conf, logging.CreateUnitLogger(rootLogger, "db-connection"))
+	connection, dbErr := icondb.NewDBConnection(conf, logging.CreateUnitLogger(rootLogger, "db-connection"))
 	if dbErr != nil {
 		return dbErr
 	}
 
-	dbSchemaAlreadyThere, schemaErr := repositories.OpenDBSchema(conf, connection, logging.CreateUnitLogger(rootLogger, "db-schema"))
+	dbSchemaAlreadyThere, schemaErr := icondb.OpenSchema(conf, connection, logging.CreateUnitLogger(rootLogger, "db-schema"))
 	if schemaErr != nil {
 		return schemaErr
 	}
 
-	db := repositories.NewDBRepository(connection, logging.CreateUnitLogger(rootLogger, "db-repository"))
+	db := icondb.NewDBRepository(connection, logging.CreateUnitLogger(rootLogger, "db-repository"))
 
-	git, gitErr := repositories.NewGitRepository(conf.IconDataLocationGit, !dbSchemaAlreadyThere, logging.CreateUnitLogger(rootLogger, "git-repository"))
-	if gitErr != nil {
-		return gitErr
+	var git repositories.GitRepository
+	if len(conf.LocalGitRepo) > 0 {
+		git = gitrepo.NewLocalGitRepository(conf.LocalGitRepo, logging.CreateUnitLogger(rootLogger, "local-git-repository"))
+	}
+	if len(conf.GitlabNamespacePath) > 0 {
+		var gitlabRepoErr error
+		git, gitlabRepoErr = gitrepo.NewGitlabRepositoryClient(
+			conf.GitlabNamespacePath,
+			conf.GitlabProjectPath,
+			conf.GitlabMainBranch,
+			conf.GitlabAccessToken,
+			logging.CreateUnitLogger(rootLogger, "gitlab-repository"),
+		)
+		if gitlabRepoErr != nil {
+			return gitlabRepoErr
+		}
+	}
+
+	if !dbSchemaAlreadyThere {
+		gitErr := git.Create()
+		if gitErr != nil {
+			return gitErr
+		}
 	}
 
 	combinedRepo := repositories.RepoCombo{DB: db, Git: git}

@@ -10,11 +10,14 @@ import (
 )
 
 type tagsTestSuite struct {
-	iconTestSuite
+	IconTestSuite
 }
 
 func TestTagsTestSuite(t *testing.T) {
-	suite.Run(t, &tagsTestSuite{})
+	t.Parallel()
+	for _, iconSuite := range IconTestSuites("api_tags") {
+		suite.Run(t, &tagsTestSuite{IconTestSuite: iconSuite})
+	}
 }
 
 func (s *tagsTestSuite) TestAddingFailsWithoutPermission() {
@@ -22,8 +25,8 @@ func (s *tagsTestSuite) TestAddingFailsWithoutPermission() {
 	iconIn := dataIn[0]
 	tag := "Ahoj"
 
-	session := s.client.mustLoginSetAllPerms()
-	session.mustAddTestData(dataIn)
+	session := s.Client.MustLoginSetAllPerms()
+	session.MustAddTestData(dataIn)
 
 	session.mustSetAllPermsExcept([]authr.PermissionID{authr.ADD_TAG})
 
@@ -32,7 +35,7 @@ func (s *tagsTestSuite) TestAddingFailsWithoutPermission() {
 	s.Equal(403, statusCode)
 
 	respIcons := session.mustDescribeAllIcons()
-	s.assertResponseIconSetsEqual(dataOut, respIcons)
+	s.AssertResponseIconSetsEqual(dataOut, respIcons)
 }
 
 func (s *tagsTestSuite) TestAddingSucceedssWithRequiredPermission() {
@@ -41,8 +44,8 @@ func (s *tagsTestSuite) TestAddingSucceedssWithRequiredPermission() {
 	iconOut := &dataOut[0]
 	tag := "Ahoj"
 
-	session := s.client.mustLoginSetAllPerms()
-	session.mustAddTestData(dataIn)
+	session := s.Client.MustLoginSetAllPerms()
+	session.MustAddTestData(dataIn)
 
 	session.setAuthorization([]authr.PermissionID{authr.ADD_TAG})
 
@@ -53,7 +56,7 @@ func (s *tagsTestSuite) TestAddingSucceedssWithRequiredPermission() {
 	iconOut.Tags = []string{tag}
 
 	respIcons := session.mustDescribeAllIcons()
-	s.assertResponseIconSetsEqual(dataOut, respIcons)
+	s.AssertResponseIconSetsEqual(dataOut, respIcons)
 }
 
 func (s *tagsTestSuite) TestDeletingFailsWithoutPermission() {
@@ -62,8 +65,8 @@ func (s *tagsTestSuite) TestDeletingFailsWithoutPermission() {
 	iconOut := &dataOut[0]
 	tag := "Ahoj"
 
-	session := s.client.mustLoginSetAllPerms()
-	session.mustAddTestData(dataIn)
+	session := s.Client.MustLoginSetAllPerms()
+	session.MustAddTestData(dataIn)
 	statusCode, err := session.addTag(iconIn.Name, tag)
 	s.NoError(err)
 	s.Equal(201, statusCode)
@@ -76,7 +79,7 @@ func (s *tagsTestSuite) TestDeletingFailsWithoutPermission() {
 	iconOut.Tags = []string{tag}
 
 	respIcons := session.mustDescribeAllIcons()
-	s.assertResponseIconSetsEqual(dataOut, respIcons)
+	s.AssertResponseIconSetsEqual(dataOut, respIcons)
 }
 
 func (s *tagsTestSuite) TestDeletingSucceedssWithRequiredPermission() {
@@ -84,8 +87,8 @@ func (s *tagsTestSuite) TestDeletingSucceedssWithRequiredPermission() {
 	iconIn := dataIn[0]
 	tag := "Ahoj"
 
-	session := s.client.mustLoginSetAllPerms()
-	session.mustAddTestData(dataIn)
+	session := s.Client.MustLoginSetAllPerms()
+	session.MustAddTestData(dataIn)
 	statusCode, err := session.addTag(iconIn.Name, tag)
 	s.NoError(err)
 	s.Equal(201, statusCode)
@@ -96,5 +99,5 @@ func (s *tagsTestSuite) TestDeletingSucceedssWithRequiredPermission() {
 	s.Equal(204, statusCode)
 
 	respIcons := session.mustDescribeAllIcons()
-	s.assertResponseIconSetsEqual(dataOut, respIcons)
+	s.AssertResponseIconSetsEqual(dataOut, respIcons)
 }

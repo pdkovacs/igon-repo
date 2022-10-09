@@ -2,6 +2,8 @@ package api_tests
 
 import (
 	"igo-repo/internal/config"
+	"igo-repo/internal/repositories/gitrepo"
+	"igo-repo/test/repositories/git_tests"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -9,17 +11,17 @@ import (
 
 type buildinfoAPITestSuite struct {
 	suite.Suite
-	apiTestSuite
+	ApiTestSuite
 }
 
 func TestBuildinfoAPITestSuite(t *testing.T) {
-	suite.Run(t, &buildinfoAPITestSuite{})
+	suite.Run(t, &buildinfoAPITestSuite{ApiTestSuite: apiTestSuites("apitests_buildinfo", []git_tests.GitTestRepo{gitrepo.Local{}})[0]})
 }
 
 func (s *buildinfoAPITestSuite) TestMustIncludeVersionInfo() {
 	expected := config.GetBuildInfo()
 
-	session := s.client.mustLogin(nil)
+	session := s.Client.mustLogin(nil)
 	req := testRequest{
 		path:          "/app-info",
 		respBodyProto: &config.BuildInfo{},

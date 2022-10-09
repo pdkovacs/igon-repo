@@ -5,22 +5,23 @@ import (
 
 	"igo-repo/internal/app/security/authn"
 	"igo-repo/internal/app/security/authr"
-	common_test "igo-repo/test/common"
+	"igo-repo/internal/repositories/gitrepo"
+	"igo-repo/test/repositories/git_tests"
 	"igo-repo/test/testdata"
 
 	"github.com/stretchr/testify/suite"
 )
 
 type authBackDoorTestSuite struct {
-	apiTestSuite
+	ApiTestSuite
 }
 
 func TestAuthBackDoorTestSuite(t *testing.T) {
-	suite.Run(t, &authBackDoorTestSuite{})
+	suite.Run(t, &authBackDoorTestSuite{ApiTestSuite: apiTestSuites("apitests_backdoor", []git_tests.GitTestRepo{gitrepo.Local{}})[0]})
 }
 
 func (s *authBackDoorTestSuite) BeforeTest(suiteName string, testName string) {
-	serverConfig := common_test.CloneConfig(s.defaultConfig)
+	s.ApiTestSuite.config = s.ApiTestSuite.initConfig()
 	if suiteName != "authBackDoorTestSuite" {
 		return
 	}
@@ -30,22 +31,25 @@ func (s *authBackDoorTestSuite) BeforeTest(suiteName string, testName string) {
 		}
 	case "TestBackDoorShouldBeAvailableWhenEnabled":
 		{
-			serverConfig.EnableBackdoors = true
+			s.ApiTestSuite.config.EnableBackdoors = true
 		}
 	case "TestBackDoorShouldAllowToSetPrivileges":
 		{
-			serverConfig.EnableBackdoors = true
+			s.ApiTestSuite.config.EnableBackdoors = true
 		}
 	default:
 		{
 			panic("Unexpected testName: " + testName)
 		}
 	}
-	s.apiTestSuite.startApp(serverConfig)
+	startErr := s.startApp(s.ApiTestSuite.config)
+	if startErr != nil {
+		panic(startErr)
+	}
 }
 
 func (s *authBackDoorTestSuite) TestBackDoorMustntBeAvailableByDefault() {
-	session := s.client.mustLogin(nil)
+	session := s.Client.mustLogin(nil)
 	resp, err := session.put(&testRequest{
 		path: authenticationBackdoorPath,
 		json: true,
@@ -56,7 +60,7 @@ func (s *authBackDoorTestSuite) TestBackDoorMustntBeAvailableByDefault() {
 }
 
 func (s *authBackDoorTestSuite) TestBackDoorShouldBeAvailableWhenEnabled() {
-	session := s.client.mustLogin(nil)
+	session := s.Client.mustLogin(nil)
 	resp, err := session.setAuthorization(
 		[]authr.PermissionID{},
 	)
@@ -73,7 +77,7 @@ func (s *authBackDoorTestSuite) TestBackDoorShouldAllowToSetPrivileges() {
 		DisplayName: userID.String(),
 	}
 
-	session := s.client.mustLogin(nil)
+	session := s.Client.mustLogin(nil)
 
 	resp, err := session.setAuthorization(requestedAuthorization)
 	s.NoError(err)

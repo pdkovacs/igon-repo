@@ -28,8 +28,11 @@ type Options struct {
 	ServerURLContext            string                     `json:"serverUrlContext" env:"SERVER_URL_CONTEXT" long:"server-url-context" short:"c" default:"" description:"Server url context"`
 	SessionMaxAge               int                        `json:"sessionMaxAge" env:"SESSION_MAX_AGE" long:"session-max-age" short:"s" default:"86400" description:"The maximum age in secods of a user's session"`
 	AppDescription              string                     `json:"appDescription" env:"APP_DESCRIPTION" long:"app-description" short:"" default:"" description:"Application description"`
-	IconDataLocationGit         string                     `json:"iconDataLocationGit" env:"ICON_DATA_LOCATION_GIT" long:"icon-data-location-git" short:"g" default:"" description:"Icon data location git"`
-	IconDataCreateNew           string                     `json:"iconDataCreateNew" env:"ICON_DATA_CREATE_NEW" long:"icon-data-create-new" short:"n" default:"never" description:"Icon data create new"`
+	LocalGitRepo                string                     `json:"localGitRepo" env:"LOCAL_GIT_REPO" long:"local-git-repo" short:"g" default:"" description:"Path to the local git repository"`
+	GitlabNamespacePath         string                     `json:"gitlabNamespacePath" env:"GITLAB_NAMESPACE_PATH" long:"gitlab-namespace-path" short:"" default:"testing-with-repositories" description:"GitLab namespace path"`
+	GitlabProjectPath           string                     `json:"gitlabProjectPath" env:"GITLAB_PROJECT_PATH" long:"gitlab-project-path" short:"" default:"icon-repo-gitrepo-test" description:"GitLab project path"`
+	GitlabMainBranch            string                     `json:"gitlabMainBranch" env:"GITLAB_MAIN_BRANCH" long:"gitlab-main-branch" short:"" default:"main" description:"The GitLab project's main branch"`
+	GitlabAccessToken           string                     `json:"gitlabAccessToken" env:"GITLAB_ACCESS_TOKEN" long:"gitlab-access-token" short:"" default:"" description:"GitLab API access token"`
 	AuthenticationType          authn.AuthenticationScheme `json:"authenticationType" env:"AUTHENTICATION_TYPE" long:"authentication-type" short:"a" default:"oidc" description:"Authentication type"`
 	PasswordCredentials         []PasswordCredentials      `json:"passwordCredentials" env:"PASSWORD_CREDENTIALS" long:"password-credentials"`
 	OIDCClientID                string                     `json:"oidcClientId" env:"OIDC_CLIENT_ID" long:"oidc-client-id" short:"" default:"" description:"OIDC client id"`
@@ -171,8 +174,8 @@ func parseFlagsMergeSettings(clArgs []string, mapFromConfFile map[string]interfa
 	opts.PasswordCredentials = optsInConfFile.PasswordCredentials
 	opts.UsersByRoles = optsInConfFile.UsersByRoles
 
-	if opts.IconDataLocationGit == "" {
-		opts.IconDataLocationGit = DefaultIconDataLocationGit
+	if opts.LocalGitRepo == "" {
+		opts.LocalGitRepo = DefaultIconDataLocationGit
 	}
 
 	return opts

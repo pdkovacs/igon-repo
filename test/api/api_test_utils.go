@@ -11,72 +11,134 @@ import (
 	"igo-repo/internal/app/security/authn"
 	"igo-repo/internal/config"
 	"igo-repo/internal/logging"
-	"igo-repo/internal/repositories"
-	common_test "igo-repo/test/common"
-	repositories_test "igo-repo/test/repositories"
+	"igo-repo/internal/repositories/gitrepo"
+	"igo-repo/internal/repositories/icondb"
+	"igo-repo/test/repositories/db_tests"
+	"igo-repo/test/repositories/git_tests"
+	"igo-repo/test/test_commons"
 	"igo-repo/test/testdata"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
+	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 )
 
 var rootAPILogger = logging.CreateRootLogger(logging.DebugLevel)
 
-type apiTestSuite struct {
+type ApiTestSuite struct {
 	suite.Suite
-	defaultConfig config.Options
-	stopServer    func()
-	testDBRepo    repositories.DBRepository
-	testGitRepo   repositories_test.GitTestRepo
-	client        apiTestClient
+	config          config.Options
+	stopServer      func()
+	testDBRepo      icondb.Repository
+	TestGitRepo     git_tests.GitTestRepo
+	Client          apiTestClient
+	logger          zerolog.Logger
+	testSequenceId  string
+	testCaseCounter int
 }
 
-func (s *apiTestSuite) SetupSuite() {
-	s.defaultConfig = common_test.GetTestConfig()
-	s.defaultConfig.PasswordCredentials = []config.PasswordCredentials{
-		testdata.DefaultCredentials,
+func apiTestSuites(testSequenceId string, gitProviders []git_tests.GitTestRepo) []ApiTestSuite {
+	all := []ApiTestSuite{}
+	conf := test_commons.CloneConfig(test_commons.GetTestConfig())
+	conf.DBSchemaName = testSequenceId
+	conf.LocalGitRepo = fmt.Sprintf("%s_%s", conf.LocalGitRepo, testSequenceId)
+	for _, repo := range gitProviders {
+		all = append(all, ApiTestSuite{config: conf, TestGitRepo: repo, testSequenceId: testSequenceId})
 	}
-	s.defaultConfig.AuthenticationType = authn.SchemeBasic
-	s.defaultConfig.ServerPort = 0
-
-	s.defaultConfig.DBSchemaName = "itest_api"
-	s.defaultConfig.IconDataCreateNew = "itest-api"
+	return all
 }
 
-func (s *apiTestSuite) BeforeTest(suiteName string, testName string) {
-	serverConfig := common_test.CloneConfig(s.defaultConfig)
+func (s *ApiTestSuite) SetupSuite() {
+	if s.config.DBSchemaName == "" {
+		panic("No config set by the suite extender")
+	}
+	s.config.LogLevel = logging.DebugLevel
 
 	// testDBConn and testDBREpo will be only used to read for verification
-	testDBConn, testDBErr := repositories.NewDBConnection(s.defaultConfig, logging.CreateUnitLogger(rootAPILogger, "test-db-connection"))
+	testDBConn, testDBErr := icondb.NewDBConnection(s.config, logging.CreateUnitLogger(rootAPILogger, "test-db-connection"))
 	if testDBErr != nil {
 		panic(testDBErr)
 	}
-	s.testDBRepo = *repositories.NewDBRepository(testDBConn, logging.CreateUnitLogger(rootAPILogger, "test-db-repository"))
+	s.testDBRepo = icondb.NewDBRepository(testDBConn, logging.CreateUnitLogger(rootAPILogger, "test-db-repository"))
 
-	s.testGitRepo = *repositories_test.NewGitTestRepo(serverConfig.IconDataLocationGit, rootAPILogger)
-	repositories_test.DeleteDBData(s.testDBRepo.Conn.Pool)
-	serverConfig.EnableBackdoors = true
-	s.startApp(serverConfig)
+	s.config.GitlabAccessToken = git_tests.GitTestGitlabAPIToken()
+
+	s.config.PasswordCredentials = []config.PasswordCredentials{
+		testdata.DefaultCredentials,
+	}
+	s.config.AuthenticationType = authn.SchemeBasic
+	s.config.ServerPort = 0
+
+	s.logger = logging.CreateUnitLogger(rootAPILogger, "apiTestSuite")
 }
 
-func (s *apiTestSuite) startApp(serverConfig config.Options) {
+func (s *ApiTestSuite) initConfig() config.Options {
+	s.testCaseCounter++
+	conf := test_commons.CloneConfig(s.config)
+	conf.GitlabProjectPath = fmt.Sprintf("%s_%s_%d", conf.GitlabProjectPath, s.testSequenceId, s.testCaseCounter)
+	switch s.TestGitRepo.(type) {
+	case gitrepo.Local:
+		conf.GitlabNamespacePath = "" // to guide the test app on which git provider to use
+		s.TestGitRepo = git_tests.NewLocalGitTestRepo(conf)
+	case gitrepo.Gitlab:
+		conf.LocalGitRepo = "" // to guide the test app on which git provider to use
+		s.TestGitRepo = git_tests.NewGitlabTestRepoClient(conf)
+	case nil:
+		s.logger.Info().Msg("No testGitRepo set; using default")
+		conf.GitlabNamespacePath = "" // to guide the test app on which git provider to use
+		s.TestGitRepo = git_tests.NewLocalGitTestRepo(conf)
+	}
+
+	git_tests.MustResetTestGitRepo(s.TestGitRepo)
+	db_tests.ResetDBData(s.testDBRepo.Conn.Pool)
+	return conf
+}
+
+func (s *ApiTestSuite) BeforeTest(suiteName string, testName string) {
+	conf := s.initConfig()
+	conf.EnableBackdoors = true
+	startErr := s.startApp(conf)
+	if startErr != nil {
+		panic(startErr)
+	}
+}
+
+func (s *ApiTestSuite) AfterTest(suiteName, testName string) {
+	s.terminateTestServer()
+	os.Unsetenv(gitrepo.SimulateGitCommitFailureEnvvarName)
+
+	deleteRepoErr := s.TestGitRepo.Delete()
+	if deleteRepoErr != nil {
+		s.logger.Error().Msgf("failed to delete testGitRepo %s: %#v", s.TestGitRepo, deleteRepoErr)
+	}
+}
+
+func (s *ApiTestSuite) startApp(serverConfig config.Options) error {
 	var wg sync.WaitGroup
 	wg.Add(1)
-	go app.Start(serverConfig, func(port int, stopServer func()) {
-		s.client.serverPort = port
-		s.stopServer = stopServer
-		wg.Done()
-	})
+	var startFailure error
+	go func() {
+		startErr := app.Start(serverConfig, func(port int, stopServer func()) {
+			s.Client.serverPort = port
+			s.stopServer = stopServer
+			wg.Done()
+		})
+		startFailure = startErr
+		if startErr != nil {
+			wg.Done()
+		}
+	}()
 	wg.Wait()
-}
-
-func (s *apiTestSuite) AfterTest(suiteName, testName string) {
-	s.terminateTestServer()
-	os.Unsetenv(repositories.IntrusiveGitTestEnvvarName)
+	if startFailure != nil {
+		return fmt.Errorf("failed to start server: %w", startFailure)
+	}
+	return nil
 }
 
 // terminateTestServer terminates a test server
-func (s *apiTestSuite) terminateTestServer() {
+func (s *ApiTestSuite) terminateTestServer() {
 	fmt.Fprintln(os.Stderr, "Stopping test server...")
-	s.stopServer()
+	if s != nil && s.stopServer != nil {
+		s.stopServer()
+	}
 }

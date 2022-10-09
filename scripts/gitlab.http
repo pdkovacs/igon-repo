@@ -1,0 +1,66 @@
+@apiEndpoint = https://gitlab.com/api/v4
+@namespaceId = 59138982
+@projectId = testing-with-repositories%2Ficon-repo-gitrepo-test
+
+# @name namespaceOwnedOnly
+GET {{apiEndpoint}}/namespaces?owned_only=true
+PRIVATE-TOKEN: {{gitlabAccessToken}}
+
+###
+
+GET {{apiEndpoint}}/namespaces/{{namespaceId}}
+PRIVATE-TOKEN: {{gitlabAccessToken}}
+
+###
+
+# @name namespaceExists
+GET {{apiEndpoint}}/namespaces/testing-with-repositories/exists
+PRIVATE-TOKEN: {{gitlabAccessToken}}
+
+###
+
+# @name listProjects
+GET {{apiEndpoint}}/projects?owned=true
+PRIVATE-TOKEN: {{gitlabAccessToken}}
+
+###
+
+# @name getProject
+GET {{apiEndpoint}}/projects/{{projectId}}
+PRIVATE-TOKEN: {{gitlabAccessToken}}
+
+###
+
+# @name createProject
+POST  {{apiEndpoint}}/projects?namespace_id={{namespaceId}}&path=icon-repo-gitrepo-test
+PRIVATE-TOKEN: {{gitlabAccessToken}}
+
+###
+
+# @name deleteProject
+DELETE  {{apiEndpoint}}/projects/{{projectId}}
+PRIVATE-TOKEN: {{gitlabAccessToken}}
+
+###
+
+# @name getRepositoryTree
+GET {{apiEndpoint}}/projects/{{projectId}}/repository/tree?ref=main&recursive=true
+PRIVATE-TOKEN: {{gitlabAccessToken}}
+
+###
+
+# @name getRepositoryFileMetadata
+HEAD {{apiEndpoint}}/projects/{{projectId}}/repository/files/french%2Fgreat%2Fmetro-zazie@great.french?ref=main
+PRIVATE-TOKEN: {{gitlabAccessToken}}
+
+###
+
+# @name listCommits
+GET {{apiEndpoint}}/projects/{{projectId}}/repository/commits
+PRIVATE-TOKEN: {{gitlabAccessToken}}
+
+###
+
+# @name getCommit
+GET {{apiEndpoint}}/projects/{{projectId}}/repository/commits/{{listCommits.response.body.$.[0].$.id}}
+PRIVATE-TOKEN: {{gitlabAccessToken}}

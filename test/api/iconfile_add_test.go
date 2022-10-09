@@ -11,19 +11,22 @@ import (
 )
 
 type iconUpdateTestSuite struct {
-	iconTestSuite
+	IconTestSuite
 }
 
 func TestIconUpdateTestSuite(t *testing.T) {
-	suite.Run(t, &iconUpdateTestSuite{})
+	t.Parallel()
+	for _, iconSuite := range IconTestSuites("api_iconupdate") {
+		suite.Run(t, &iconUpdateTestSuite{IconTestSuite: iconSuite})
+	}
 }
 
-func (s *iconTestSuite) TestAddingIconfileFailsWith403WithoutPermission() {
+func (s *iconUpdateTestSuite) TestAddingIconfileFailsWith403WithoutPermission() {
 	dataIn, dataOut := testdata.Get()
 	moreDataIn, _ := testdata.GetMore()
 
-	session := s.client.mustLoginSetAllPerms()
-	session.mustAddTestData(dataIn)
+	session := s.Client.MustLoginSetAllPerms()
+	session.MustAddTestData(dataIn)
 
 	session.mustSetAllPermsExcept([]authr.PermissionID{authr.UPDATE_ICON, authr.ADD_ICONFILE})
 
@@ -34,19 +37,19 @@ func (s *iconTestSuite) TestAddingIconfileFailsWith403WithoutPermission() {
 	s.True(errors.Is(updateError, errJSONUnmarshal))
 	s.Equal(403, statusCode)
 
-	resp, descError := session.describeAllIcons()
+	resp, descError := session.DescribeAllIcons()
 	s.NoError(descError)
-	s.assertResponseIconSetsEqual(dataOut, resp)
+	s.AssertResponseIconSetsEqual(dataOut, resp)
 
-	s.assertEndState()
+	s.AssertEndState()
 }
 
-func (s *iconTestSuite) TestCanAddIconfilesWithProperPermission() {
+func (s *iconUpdateTestSuite) TestCanAddIconfilesWithProperPermission() {
 	dataIn, dataOut := testdata.Get()
 	moreDataIn, _ := testdata.GetMore()
 
-	session := s.client.mustLoginSetAllPerms()
-	session.mustAddTestData(dataIn)
+	session := s.Client.MustLoginSetAllPerms()
+	session.MustAddTestData(dataIn)
 
 	session.setAuthorization([]authr.PermissionID{authr.UPDATE_ICON, authr.ADD_ICONFILE})
 
@@ -63,19 +66,19 @@ func (s *iconTestSuite) TestCanAddIconfilesWithProperPermission() {
 	expectedIconDesc := dataOut
 	expectedIconDesc[0].Paths = append(expectedIconDesc[0].Paths, iconfilePath)
 
-	iconDesc, descError := session.describeAllIcons()
+	iconDesc, descError := session.DescribeAllIcons()
 	s.NoError(descError)
 
-	s.assertResponseIconSetsEqual(dataOut, iconDesc)
+	s.AssertResponseIconSetsEqual(dataOut, iconDesc)
 
-	s.assertEndState()
+	s.AssertEndState()
 }
 
-func (s *iconTestSuite) TestAddingIconfilesWithExistingFormatSizeComboToFail() {
+func (s *iconUpdateTestSuite) TestAddingIconfilesWithExistingFormatSizeComboToFail() {
 	dataIn, dataOut := testdata.Get()
 
-	session := s.client.mustLoginSetAllPerms()
-	session.mustAddTestData(dataIn)
+	session := s.Client.MustLoginSetAllPerms()
+	session.MustAddTestData(dataIn)
 
 	session.setAuthorization([]authr.PermissionID{authr.UPDATE_ICON, authr.ADD_ICONFILE})
 
@@ -87,10 +90,10 @@ func (s *iconTestSuite) TestAddingIconfilesWithExistingFormatSizeComboToFail() {
 	s.True(errors.Is(updateError, errJSONUnmarshal))
 	s.Equal(409, statusCode)
 
-	iconDesc, descError := session.describeAllIcons()
+	iconDesc, descError := session.DescribeAllIcons()
 	s.NoError(descError)
 
-	s.assertResponseIconSetsEqual(dataOut, iconDesc)
+	s.AssertResponseIconSetsEqual(dataOut, iconDesc)
 
-	s.assertEndState()
+	s.AssertEndState()
 }

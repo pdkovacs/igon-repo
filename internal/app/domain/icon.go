@@ -7,6 +7,10 @@ type IconfileDescriptor struct {
 	Size   string `json:"size"`
 }
 
+func (i IconfileDescriptor) String() string {
+	return fmt.Sprintf("Format: %s, Size: %s", i.Format, i.Size)
+}
+
 // Iconfile the file representation of an icon
 type Iconfile struct {
 	IconfileDescriptor
@@ -14,7 +18,7 @@ type Iconfile struct {
 }
 
 func (i Iconfile) String() string {
-	return fmt.Sprintf("Format: %s, Size: %s, Content: [%d bytes long]", i.Format, i.Size, len(i.Content))
+	return fmt.Sprintf("%s, Content: [%d bytes long]", i.IconfileDescriptor.String(), len(i.Content))
 }
 
 type IconAttributes struct {
