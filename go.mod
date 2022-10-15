@@ -1,6 +1,6 @@
 module igo-repo
 
-go 1.18
+go 1.19
 
 require (
 	github.com/coreos/go-oidc/v3 v3.2.0
