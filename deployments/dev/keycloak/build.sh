@@ -3,8 +3,28 @@ which ip && export MY_IP=$(ip route get 1.2.3.4 | awk '{print $7}' | tr -d '\n')
 DOCKER_COMPOSE=docker-compose
 which docker-compose >/dev/null 2>&1 || DOCKER_COMPOSE="docker compose"
 
-cd deployments/dev/keycloak && \
-	$DOCKER_COMPOSE up --build -d && \
+cd deployments/dev/keycloak;
+
+dcompose_project_in_list() {
+	awk '
+BEGIN { projectNotFound = 1; }
+/^NAME[[:blank:]]+STATUS[[:blank:]]+CONFIG FILES$/ { next; }
+/^keycloak.*[/]deployments[/]dev[/]keycloak[/]docker-compose.yaml$/ { projectNotFound = 0; }
+END { exit projectNotFound }
+'
+}
+
+if $DOCKER_COMPOSE ls -a | dcompose_project_in_list;
+then
+	if $DOCKER_COMPOSE ls | dcompose_project_in_list;
+	then
+		exit 0
+	fi
+	$DOCKER_COMPOSE start
+	exit 0
+fi
+
+$DOCKER_COMPOSE up --build -d && \
 	./wait-for-local-keycloak.sh && \
 	./create-terraform-client.sh && \
 	cd terraform && \
