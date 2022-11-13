@@ -1,21 +1,35 @@
 #!/bin/bash
 
-export ICON_REPO_CONFIG_FILE=deployments/dev/configurations/dev-oidc-proxy-gitlab.json
-cmd="make backend"
+export ICON_REPO_CONFIG_FILE=deployments/dev/app-configs/dev-oidc-proxy-gitlab.json
+cmd="make app"
 settle_down_secs=1
 
-backend_executable="igo-repo"
+app_executable="igo-repo"
+app_instance_count=2
+
+logs_home=~/workspace/logs
+mkdir -p $logs_home
+webpack_log=$logs_home/igonrepo-webpack-build
+app_log=$logs_home/iconrepo-app-
+
+start_app() {
+  set -x
+  for i in $(seq 0 $((app_instance_count -1)));
+  do
+    export SERVER_PORT=$((8091 + $i))
+    ./"$app_executable" -l debug >"$app_log$i" 2>&1 &
+  done
+  set +x
+}
 
 READLINK=greadlink
 which $READLINK || READLINK=readlink
 
 project_dir="$($READLINK -f $(dirname $0)/..)"
 echo "Project dir: $project_dir"
-mkdir -p ~/workspace/logs
-webpack_log=~/workspace/logs/igonrepo-webpack-build
 
 pkill webpack
-pkill "$backend_executable"
+pkill "$app_executable"
 
 tail_command_pattern="[t]ail.*${webpack_log}"
 ps -ef | awk -v tail_command_pattern="$tail_command_pattern" '$0 ~ tail_command_pattern { print $0; system("kill " $2); }'
@@ -47,7 +61,7 @@ watch_webpack() {
     if echo $line | grep 'webpack.*compiled successfully';
     then
       fswatch_pid=$(get_fswatch_pid)
-      echo "Client bundle recompiled, restarting backend (pid: $fswatch_pid)..."
+      echo "Client bundle recompiled, restarting app (pid: $fswatch_pid)..."
       kill $fswatch_pid
     fi
   done
@@ -57,7 +71,7 @@ watch_backend() {
   eval "$cmd" || exit 1
   while true
   do
-    ./"$backend_executable" -l debug &
+    start_app
     sleep $settle_down_secs
     set -x
     fswatch -r -1 --event Created --event Updated --event Removed -e '.*/[.]git/.*' -e 'web' -e $fswatch_pid_file'$' -e '.*/igo-repo/igo-repo$' . &
@@ -67,7 +81,7 @@ watch_backend() {
     [[ "$stopping" == "true" ]] && exit
     rm -rf $fswatch_pid_file
     set +x
-    pkill "$backend_executable"
+    pkill "$app_executable"
     eval "$cmd"
   done
 }
@@ -75,7 +89,10 @@ watch_backend() {
 cd $project_dir/web
 echo "" > $webpack_log
 watch_webpack &
-webpack --watch 2>&1 | tee $webpack_log &
+npx webpack --watch 2>&1 | tee $webpack_log &
 cd -
 
 watch_backend
+
+# You can watch the app instances' outputs with something like this:
+# for i in $(seq 0 $((app_instance_count -1))); do tilix -a session-add-down -x "tail -f $app_log$i" & ; done

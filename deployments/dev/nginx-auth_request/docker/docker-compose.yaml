@@ -1,0 +1,53 @@
+# https://github.com/mrparkers/terraform-provider-keycloak/blob/master/docker-compose.yml
+version: "3"
+volumes:
+  postgres:
+services:
+  redis-server:
+    image: redis
+    command: --loglevel debug
+  oauth2-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy
+    command:
+      - --http-address=0.0.0.0:4180
+      - --provider=keycloak-oidc
+      - --client-id=iconrepo
+      - --client-secret=Xb5BtE9RvMWCjJGfeMJDYOWIZGKSMm3z
+      - --redirect-url=http://$MY_IP:9999/oauth2/callback
+      - --oidc-issuer-url=http://$MY_IP:8080/auth/realms/my-realm
+      - --oidc-extra-audience=account
+      - --reverse-proxy=true
+      - --cookie-httponly=true
+      - --cookie-secure=false
+      - --cookie-secret=Au4Zozt44vz67jY2Fwm7TBeCarz6uL1g964YiFowTBk=
+      - --email-domain=*
+      - --insecure-oidc-allow-unverified-email=true
+      - --request-logging=true
+      - --auth-logging=true
+      - --standard-logging=true
+      - --session-store-type=redis
+      - --redis-connection-url=redis://redis-server/2
+      - --upstream=http://$MY_IP:9999/
+      - --pass-authorization-header=true
+      - --proxy-prefix=/oauth2
+      - --pass-host-header=true # pass the request Host Header to upstream
+      - --pass-user-headers=true # pass X-Forwarded-User, X-Forwarded-Groups, X-Forwarded-Email and X-Forwarded-Preferred-Username information to upstream
+      - --set-authorization-header=true # set Authorization Bearer response header (useful in Nginx auth_request mode)
+      - --set-xauthrequest=true # set X-Auth-Request-User, X-Auth-Request-Groups, X-Auth-Request-Email and X-Auth-Request-Preferred-Username response headers (useful in Nginx auth_request mode). When used with --pass-access-token, X-Auth-Request-Access-Token is added to response headers.
+      - --real-client-ip-header=X-Real-IP # Header used to determine the real IP of the client, requires --reverse-proxy to be set (one of: X-Forwarded-For, X-Real-IP, or X-ProxyUser-IP)
+      - --prompt="login"
+      # - --login-url-https://$MY_IP:8080
+      - --footer="-"
+      - --pass-access-token=true # pass OAuth access_token to upstream via X-Forwarded-Access-Token header. When used with --set-xauthrequest this adds the X-Auth-Request-Access-Token header to the response
+    entrypoint:
+      - oauth2-proxy
+    ports:
+      - 4180:4180
+  iconrepo-front:
+    image: nginx
+    volumes:
+        - "$NGINX_CONFIG_FILE:/etc/nginx/nginx.conf:ro"
+    ports:
+        - "9999:80"
+    command: [nginx-debug, '-g', 'daemon off;']
+

@@ -31,7 +31,6 @@ $(app): $(ui-bundle) $(shell find internal/ cmd/ -type f)
 		-X 'igo-repo/build.time=$$(date)' \
 		-X 'igo-repo/build.commit=$$(git rev-parse HEAD)' \
 	" -o igo-repo cmd/main.go
-backend: $(app)
 keycloak:
 	deployments/dev/keycloak/build.sh
 app: $(app)

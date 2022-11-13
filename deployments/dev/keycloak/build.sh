@@ -1,7 +1,9 @@
-which ip && export MY_IP=$(ip route get 1.2.3.4 | awk '{print $7}' | tr -d '\n') || export MY_IP=$(ifconfig | grep "inet " | grep -Fv 127.0.0.1 | awk '{print $2}')
+#!/bin/bash
 
-DOCKER_COMPOSE=docker-compose
-which docker-compose >/dev/null 2>&1 || DOCKER_COMPOSE="docker compose"
+my_parent_dir=$(dirname $0)
+. $my_parent_dir/../../functions.sh
+
+export MY_IP=$(get_my_ip)
 
 cd deployments/dev/keycloak;
 

@@ -138,7 +138,7 @@ func (s *server) initEndpoints(options config.Options) *gin.Engine {
 		logger.Debug().Msgf("Setting up authorized group with authentication type: %v...", options.AuthenticationType)
 		authorizedGroup.Use(authenticationCheck(options, &userService, s.logger.With().Logger()))
 
-		authorizedGroup.GET("/subscribe", subscriptionHandler(mustGetUserInfo, notifService, logging.CreateMethodLogger(s.logger, "subscriptionHandler")))
+		authorizedGroup.GET("/subscribe", subscriptionHandler(mustGetUserInfo, notifService, options.LoadBalancerAddress, logging.CreateMethodLogger(s.logger, "subscriptionHandler")))
 
 		authorizedGroup.GET("/user", userInfoHandler(options.AuthenticationType, userService, logging.CreateMethodLogger(s.logger, "UserInfoHandler")))
 
