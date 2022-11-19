@@ -12,21 +12,19 @@ mkdir -p $logs_home
 webpack_log=$logs_home/igonrepo-webpack-build
 app_log=$logs_home/iconrepo-app-
 
+project_dir="$(dirname $0)/.."
+. "$project_dir/scripts/functions.sh"
+
 start_app() {
   set -x
   for i in $(seq 0 $((app_instance_count -1)));
   do
     export SERVER_PORT=$((8091 + $i))
+    export LOAD_BALANCER_ADDRESS=$(get_my_ip):9999
     ./"$app_executable" -l debug >"$app_log$i" 2>&1 &
   done
   set +x
 }
-
-READLINK=greadlink
-which $READLINK || READLINK=readlink
-
-project_dir="$($READLINK -f $(dirname $0)/..)"
-echo "Project dir: $project_dir"
 
 pkill webpack
 pkill "$app_executable"

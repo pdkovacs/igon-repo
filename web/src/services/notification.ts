@@ -7,10 +7,11 @@ function dial() {
 	conn.addEventListener("close", ev => {
 		console.log(`WebSocket Disconnected code: ${ev.code}, reason: ${ev.reason}`, true);
 		if (ev.code !== 1001) {
-			console.log("Reconnecting in 1s", true);
-			setTimeout(dial, 1000);
+			console.log("Reconnecting in 5s", true);
+			setTimeout(dial, 5000); 
 		}
 	});
+	
 	conn.addEventListener("open", () => {
 		console.info("websocket connected");
 	});

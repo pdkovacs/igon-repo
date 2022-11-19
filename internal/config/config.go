@@ -53,7 +53,6 @@ type Options struct {
 	DBName                      string                     `json:"dbName" env:"DB_NAME" long:"db-name" short:"" default:"iconrepo" description:"Name of the database"`
 	DBSchemaName                string                     `json:"dbSchemaName" env:"DB_SCHEMA_NAME" long:"db-schema-name" short:"" default:"icon_repo" description:"Name of the database schemma"`
 	EnableBackdoors             bool                       `json:"enableBackdoors" env:"ENABLE_BACKDOORS" long:"enable-backdoors" short:"" description:"Enable backdoors"`
-	PackageRootDir              string                     `json:"packageRootDir" env:"PACKAGE_ROOT_DIR" long:"package-root-dir" short:"" default:"" description:"Package root dir"`
 	LogLevel                    string                     `json:"logLevel" env:"IGOREPO_LOG_LEVEL" long:"log-level" short:"l" default:"info"`
 }
 
@@ -199,6 +198,18 @@ func setValueFromString(value string, target reflect.Value) error {
 	case reflect.String:
 		{
 			target.SetString(value)
+		}
+	case reflect.Bool:
+		{
+			var x bool
+			if value == "true" {
+				x = true
+			} else if value == "false" {
+				x = false
+			} else {
+				return fmt.Errorf("expected 'true' or 'false', found: %s", value)
+			}
+			target.SetBool(x)
 		}
 	default:
 		return fmt.Errorf("unexpected property type: %v", target.Kind())

@@ -129,13 +129,13 @@ func (s GitTestSuite) AssertGitCleanStatus() {
 	s.True(status)
 }
 
-func (s GitTestSuite) AssertFileInRepo(iconName string, iconfile domain.Iconfile, now time.Time) {
+func (s GitTestSuite) AssertFileInRepo(iconName string, iconfile domain.Iconfile, timeBeforeCommit time.Time) {
 	commitID, getCommitIDErr := s.Repo.GetCommitIDFor(iconName, iconfile.IconfileDescriptor)
 	s.NoError(getCommitIDErr)
 	s.Greater(len(commitID), 0)
 	meta, getMetaErr := s.Repo.GetCommitMetadata(commitID)
 	s.NoError(getMetaErr)
-	s.Greater(meta.CommitDate, now.Add(-time.Duration(3_000)*time.Millisecond))
+	s.Greater(meta.CommitDate, timeBeforeCommit.Add(-time.Duration(1_000)*time.Millisecond))
 }
 
 func (s GitTestSuite) AssertFileNotInRepo(iconName string, iconfile domain.Iconfile) {

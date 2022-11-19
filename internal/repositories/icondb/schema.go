@@ -54,16 +54,33 @@ type dbSchema struct {
 	logger zerolog.Logger
 }
 
-func OpenSchema(config config.Options, dbConn connection, logger zerolog.Logger) (didExist bool, errUpgrade error) {
+// OpenSchema checks the availability of the schema, creates and upgrades it as necessary
+// Returns true if the schema already existed.
+func OpenSchema(config config.Options, dbConn connection, logger zerolog.Logger) (bool, error) {
 	schema := dbSchema{
 		conn:   dbConn,
 		logger: logger,
 	}
-	didExist, errUpgrade = schema.upgradeSchema()
-	if errUpgrade != nil {
-		return false, fmt.Errorf("failed to open schema: %w", errUpgrade)
+
+	schemaExists, schemaExistErr := schema.doesExist()
+	if schemaExistErr != nil {
+		return false, fmt.Errorf("failed to open database schema: %w", schemaExistErr)
 	}
-	return
+
+	if !schemaExists {
+		errCreateSchema := schema.create()
+
+		if errCreateSchema != nil {
+			return false, errCreateSchema
+		}
+	}
+
+	upgradeErr := schema.executeUpgrade()
+	if upgradeErr != nil {
+		return false, fmt.Errorf("failed upgrade the schema: %w", upgradeErr)
+	}
+
+	return schemaExists, nil
 }
 
 func compareVersions(upgrStep1 upgradeStep, upgrStep2 upgradeStep) int {
@@ -186,25 +203,12 @@ func (schema *dbSchema) create() error {
 	return nil
 }
 
-func (schema *dbSchema) upgradeSchema() (bool, error) {
-	exists, errDoesExist := schema.doesExist()
-	if errDoesExist != nil {
-		return false, errDoesExist
+func (schema *dbSchema) delete() error {
+	db := schema.conn.Pool
+	schemaName := schema.conn.schemaName
+	_, errDelete := db.Exec("drop schema " + schemaName + " cascade")
+	if errDelete != nil {
+		return fmt.Errorf("failed to delete schema '%s': %w", schemaName, errDelete)
 	}
-
-	if !exists {
-		errCreateSchema := schema.create()
-		if errCreateSchema != nil {
-			return false, errCreateSchema
-		}
-	}
-
-	if !exists {
-		errUpgrade := schema.executeUpgrade()
-		if errUpgrade != nil {
-			return false, errUpgrade
-		}
-	}
-
-	return exists, nil
+	return nil
 }

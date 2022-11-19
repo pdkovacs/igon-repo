@@ -1,7 +1,7 @@
 #!/bin/bash
 
 my_parent_dir=$(dirname $0)
-. $my_parent_dir/../../functions.sh
+. $my_parent_dir/../../../scripts/functions.sh
 
 export MY_IP=$(get_my_ip)
 

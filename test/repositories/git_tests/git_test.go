@@ -22,7 +22,7 @@ func (s *GitTestSuite) TestAcceptsNewIconfileWhenEmpty() {
 	var err error
 	icon := test_commons.TestData[0]
 	iconfile := icon.Iconfiles[0]
-	now := time.Now()
+	timeBeforeAdd := time.Now()
 	err = s.Repo.AddIconfile(icon.Name, iconfile, icon.ModifiedBy)
 	s.NoError(err)
 
@@ -31,7 +31,7 @@ func (s *GitTestSuite) TestAcceptsNewIconfileWhenEmpty() {
 	s.NoError(err)
 	s.Equal(len("8e9b80b5155dea01e5175bc819bbe364dbc07a66"), len(sha1))
 	s.AssertGitCleanStatus()
-	s.AssertFileInRepo(icon.Name, iconfile, now)
+	s.AssertFileInRepo(icon.Name, iconfile, timeBeforeAdd)
 }
 
 func (s *GitTestSuite) TestAcceptsNewIconfileWhenNotEmpty() {

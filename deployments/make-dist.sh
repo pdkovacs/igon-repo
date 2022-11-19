@@ -1,5 +1,5 @@
 #!/bin/bash
 
-. $(dirname $0)/functions.sh
+. $(dirname $0)/../scripts/functions.sh
 
 pack
