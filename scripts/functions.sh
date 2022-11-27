@@ -8,6 +8,8 @@ get_my_ip() {
   which ip >/dev/null && ip route get 1.2.3.4 | awk '{print $7}' | tr -d '\n' || ifconfig | grep "inet " | grep -Fv 127.0.0.1 | awk '{print $2}'
 }
 
+export MY_IP=$(get_my_ip)
+
 export DOCKER_COMPOSE=docker-compose
 which docker-compose >/dev/null 2>&1 || export DOCKER_COMPOSE="docker compose"
 

@@ -1,0 +1,13 @@
+{
+    "serverHostname": "0.0.0.0",
+    "serverPort": 8091,
+    "serverUrlContext": "",
+    "sessionDbName": "session",
+    "authenticationType": "oidc",
+    "oidcClientId": "iconrepo",
+    "oidcClientSecret": "Xb5BtE9RvMWCjJGfeMJDYOWIZGKSMm3z",
+    "oidcTokenIssuer": "http://localhost:8080/auth/realms/my-realm",
+    "oidcClientRedirectBackUrl": "http://$MY_IP:8091/openid-callback",
+    "gitlabNamespacePath": "",
+    "logLevel": "debug"
+}

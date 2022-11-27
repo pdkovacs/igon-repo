@@ -1,11 +1,12 @@
 #!/bin/bash
 
-export ICON_REPO_CONFIG_FILE=deployments/dev/app-configs/dev-oidc-proxy-gitlab.json
+export ICON_REPO_CONFIG_FILE=deployments/dev/app-configs/dev-oidc-template.json
+
 cmd="make app"
 settle_down_secs=1
 
 app_executable="igo-repo"
-app_instance_count=2
+app_instance_count=1
 
 logs_home=~/workspace/logs
 mkdir -p $logs_home
@@ -14,6 +15,14 @@ app_log=$logs_home/iconrepo-app-
 
 project_dir="$(dirname $0)/.."
 . "$project_dir/scripts/functions.sh"
+
+if echo $ICON_REPO_CONFIG_FILE | egrep '\-template.json';
+then
+  NEW_ICON_REPO_CONFIG_FILE=$(echo $ICON_REPO_CONFIG_FILE | sed -e 's/^\(.*\)-template[.]json$/\1.json/g')
+  echo $NEW_ICON_REPO_CONFIG_FILE
+  envsubst < $ICON_REPO_CONFIG_FILE > $NEW_ICON_REPO_CONFIG_FILE
+  export ICON_REPO_CONFIG_FILE=$NEW_ICON_REPO_CONFIG_FILE
+fi
 
 start_app() {
   set -x
@@ -43,7 +52,7 @@ cleanup() {
 
 trap cleanup EXIT SIGINT SIGTERM
 
-fswatch_pid_file="$project_dir/fswatch.pid"
+fswatch_pid_file="$($READLINK -f "$project_dir/fswatch.pid")"
 
 get_fswatch_pid() {
   while ! test -f "$fswatch_pid_file"; do

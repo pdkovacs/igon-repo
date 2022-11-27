@@ -29,6 +29,7 @@ type Options struct {
 	SessionMaxAge               int                        `json:"sessionMaxAge" env:"SESSION_MAX_AGE" long:"session-max-age" short:"s" default:"86400" description:"The maximum age in secods of a user's session"`
 	LoadBalancerAddress         string                     `json:"loadBalancerAddress" env:"LOAD_BALANCER_ADDRESS" long:"load-balancer-address" short:"" default:"" description:"The load balancer address patter"`
 	AppDescription              string                     `json:"appDescription" env:"APP_DESCRIPTION" long:"app-description" short:"" default:"" description:"Application description"`
+	SessionDbName               string                     `json:"sessionDbName" env:"SESSION_DB_NAME" long:"session-db-name" short:"" default:"" description:"Name of the session DB"`
 	LocalGitRepo                string                     `json:"localGitRepo" env:"LOCAL_GIT_REPO" long:"local-git-repo" short:"g" default:"" description:"Path to the local git repository"`
 	GitlabNamespacePath         string                     `json:"gitlabNamespacePath" env:"GITLAB_NAMESPACE_PATH" long:"gitlab-namespace-path" short:"" default:"testing-with-repositories" description:"GitLab namespace path"`
 	GitlabProjectPath           string                     `json:"gitlabProjectPath" env:"GITLAB_PROJECT_PATH" long:"gitlab-project-path" short:"" default:"icon-repo-gitrepo-test" description:"GitLab project path"`

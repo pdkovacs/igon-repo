@@ -1,6 +1,7 @@
 package httpadapter
 
 import (
+	"database/sql"
 	"encoding/gob"
 	"fmt"
 	"net"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/memstore"
+	"github.com/gin-contrib/sessions/postgres"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 )
@@ -98,6 +100,39 @@ func (s *server) SetupAndStart(options config.Options, ready func(port int, stop
 	s.start(options.ServerPort, r, ready)
 }
 
+func (s *server) createSessionStore(options config.Options) (sessions.Store, error) {
+	var store sessions.Store
+	logger := logging.CreateMethodLogger(s.logger, "create-session properties")
+
+	if options.SessionDbName != "" {
+		logger.Info().Msgf("Using DB %s for session store", options.SessionDbName)
+		connProps := config.CreateDbProperties(s.configuration, s.configuration.DBSchemaName, logger)
+		connStr := fmt.Sprintf(
+			"postgres://%s:%s@%s:%d/%s?sslmode=disable",
+			connProps.User,
+			connProps.Password,
+			connProps.Host,
+			connProps.Port,
+			options.SessionDbName,
+		)
+		sessionDb, openSessionDbErr := sql.Open("pgx", connStr)
+		if openSessionDbErr != nil {
+			return store, openSessionDbErr
+		}
+		sessionDb.Ping()
+		var createDbSessionStoreErr error
+		store, createDbSessionStoreErr = postgres.NewStore(sessionDb, []byte("secret"))
+		if createDbSessionStoreErr != nil {
+			return store, createDbSessionStoreErr
+		}
+	} else {
+		logger.Info().Msgf("Using in-memory session store", options.SessionDbName)
+		store = memstore.NewStore([]byte("secret"))
+	}
+
+	return store, nil
+}
+
 func (s *server) initEndpoints(options config.Options) *gin.Engine {
 	logger := logging.CreateMethodLogger(s.logger, "server:initEndpoints")
 	authorizationService := services.NewAuthorizationService(options)
@@ -107,7 +142,10 @@ func (s *server) initEndpoints(options config.Options) *gin.Engine {
 
 	if options.AuthenticationType != authn.SchemeOIDCProxy {
 		gob.Register(SessionData{})
-		store := memstore.NewStore([]byte("secret"))
+		store, createStoreErr := s.createSessionStore(options)
+		if createStoreErr != nil {
+			panic(createStoreErr)
+		}
 		store.Options(sessions.Options{MaxAge: options.SessionMaxAge})
 		rootEngine.Use(sessions.Sessions("mysession", store))
 	}

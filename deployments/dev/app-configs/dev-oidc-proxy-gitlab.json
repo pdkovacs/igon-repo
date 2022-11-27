@@ -2,9 +2,9 @@
     "serverHostname": "0.0.0.0",
     "serverUrlContext": "",
     "authenticationType": "oidc-proxy",
-    "logLevel": "debug",
     "localGitRepo": "",
     "gitlabNamespacePath": "testing-with-repositories",
     "gitlabProjectPath": "icon-repo",
-    "gitlabMainBranch": "main"
+    "gitlabMainBranch": "main",
+    "logLevel": "debug"
 }
