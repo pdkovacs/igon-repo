@@ -18,6 +18,8 @@ import (
 	"golang.org/x/oauth2"
 )
 
+type HandleOAuth2Callback func(c *gin.Context, storedState string) (*claims, error)
+
 func checkOIDCAuthentication(log zerolog.Logger) func(c *gin.Context) {
 	logger := logging.CreateMethodLogger(log, "checkOIDCAuthentication")
 
@@ -51,16 +53,18 @@ type claims struct {
 }
 
 type oidcScheme struct {
-	config      oidcConfig
-	logger      zerolog.Logger
-	userService *services.UserService
+	config         oidcConfig
+	logger         zerolog.Logger
+	userService    *services.UserService
+	usernameCookie string
 }
 
-func CreateOIDCSChemeHandler(config oidcConfig, userService *services.UserService, logger zerolog.Logger) gin.HandlerFunc {
+func CreateOIDCSChemeHandler(config oidcConfig, userService *services.UserService, usernameCookie string, logger zerolog.Logger) gin.HandlerFunc {
 	scheme := oidcScheme{
-		config:      config,
-		userService: userService,
-		logger:      logger,
+		config:         config,
+		logger:         logger,
+		userService:    userService,
+		usernameCookie: usernameCookie,
 	}
 	return scheme.createHandler()
 }
@@ -88,7 +92,7 @@ func (scheme *oidcScheme) createHandler() gin.HandlerFunc {
 		Scopes: []string{oidc.ScopeOpenID, "profile", "email"},
 	}
 
-	handleOAuth2Callback := scheme.handleOAuth2Callback(oauth2Config, verifier)
+	handleOAuth2Callback := scheme.getOAuth2CallbackHandler(oauth2Config, verifier, scheme.usernameCookie)
 
 	logger.Debug().Msg("Returning oidc-authn handler")
 
@@ -162,7 +166,7 @@ func (scheme *oidcScheme) createHandler() gin.HandlerFunc {
 	}
 }
 
-func (scheme *oidcScheme) handleOAuth2Callback(oauth2Config oauth2.Config, verifier *oidc.IDTokenVerifier) func(c *gin.Context, storedState string) (*claims, error) {
+func (scheme *oidcScheme) getOAuth2CallbackHandler(oauth2Config oauth2.Config, verifier *oidc.IDTokenVerifier, usernameCookie string) HandleOAuth2Callback {
 
 	logger := logging.CreateMethodLogger(scheme.logger, "handleOAuth2Callback")
 
@@ -199,6 +203,10 @@ func (scheme *oidcScheme) handleOAuth2Callback(oauth2Config oauth2.Config, verif
 		if err := idToken.Claims(&claims); err != nil {
 			logger.Error().Msgf("failed to extract claims from ID token: %v", err)
 			return nil, fmt.Errorf("failed to extract claims from ID token: %w", err)
+		}
+
+		if usernameCookie != "" {
+			c.SetCookie(usernameCookie, claims.Email, 0, "/", "", false, false)
 		}
 
 		return &claims, nil

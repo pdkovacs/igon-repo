@@ -54,6 +54,7 @@ type Options struct {
 	DBName                      string                     `json:"dbName" env:"DB_NAME" long:"db-name" short:"" default:"iconrepo" description:"Name of the database"`
 	DBSchemaName                string                     `json:"dbSchemaName" env:"DB_SCHEMA_NAME" long:"db-schema-name" short:"" default:"icon_repo" description:"Name of the database schemma"`
 	EnableBackdoors             bool                       `json:"enableBackdoors" env:"ENABLE_BACKDOORS" long:"enable-backdoors" short:"" description:"Enable backdoors"`
+	UsernameCookie              string                     `json:"usernameCookie" env:"USERNAME_COOKIE" long:"username-cookie" short:"" description:"The name of the cookie, if any, carrying username. Only OIDC for now."`
 	LogLevel                    string                     `json:"logLevel" env:"IGOREPO_LOG_LEVEL" long:"log-level" short:"l" default:"info"`
 }
 

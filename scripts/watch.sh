@@ -1,12 +1,12 @@
 #!/bin/bash
 
-export ICON_REPO_CONFIG_FILE=deployments/dev/app-configs/dev-oidc-template.json
+export ICON_REPO_CONFIG_FILE=deployments/dev/app-configs/dev-oidc-simplerouter-template.json
 
 cmd="make app"
 settle_down_secs=1
 
 app_executable="igo-repo"
-app_instance_count=1
+app_instance_count=2
 
 logs_home=~/workspace/logs
 mkdir -p $logs_home
@@ -22,17 +22,20 @@ then
   echo $NEW_ICON_REPO_CONFIG_FILE
   envsubst < $ICON_REPO_CONFIG_FILE > $NEW_ICON_REPO_CONFIG_FILE
   export ICON_REPO_CONFIG_FILE=$NEW_ICON_REPO_CONFIG_FILE
+  echo "ICON_REPO_CONFIG_FILE is $ICON_REPO_CONFIG_FILE"
 fi
 
 start_app() {
-  set -x
+  logfiles=""
   for i in $(seq 0 $((app_instance_count -1)));
   do
     export SERVER_PORT=$((8091 + $i))
     export LOAD_BALANCER_ADDRESS=$(get_my_ip):9999
     ./"$app_executable" -l debug >"$app_log$i" 2>&1 &
+    logfiles="$logfiles
+tail -f $app_log$i"
   done
-  set +x
+  echo "$logfiles"
 }
 
 pkill webpack
@@ -80,14 +83,12 @@ watch_backend() {
   do
     start_app
     sleep $settle_down_secs
-    set -x
     fswatch -r -1 --event Created --event Updated --event Removed -e '.*/[.]git/.*' -e 'web' -e $fswatch_pid_file'$' -e '.*/igo-repo/igo-repo$' . &
     fswatch_pid=$!
     echo $fswatch_pid > "$fswatch_pid_file"
     wait $fswatch_pid
     [[ "$stopping" == "true" ]] && exit
     rm -rf $fswatch_pid_file
-    set +x
     pkill "$app_executable"
     eval "$cmd"
   done
