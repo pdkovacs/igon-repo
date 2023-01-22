@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: keycloak
+  namespace: default
+data:
+    db.vendor: "postgres"
+    db.addr: "postgres"
+    db.port: "5432"
+    db.user: "keycloak"
+    db.database: "keycloak"
+    db.password: "keycloak"

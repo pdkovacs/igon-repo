@@ -2,7 +2,7 @@ terraform {
   required_providers {
     keycloak = {
       source = "mrparkers/keycloak"
-      version = "3.11.0-rc.0"
+      version = "4.0.0"
     }
   }
 }
@@ -10,7 +10,7 @@ terraform {
 provider "keycloak" {
     client_id     = "terraform"
     client_secret = "884e0f95-0f42-4a63-9b1f-94274655669e"
-    url           = "http://localhost:8080"
+    url           = "${var.keycloak_url}"
 }
 
 resource "keycloak_realm" "realm" {
@@ -105,5 +105,10 @@ resource "keycloak_openid_group_membership_protocol_mapper" "group_membership_ma
 
 variable "app_hostname" {
   type = string
-  default = "localhost"
+  default = "iconrepo"
+}
+
+variable "keycloak_url" {
+  type = string
+  default = "http://keycloak:8080"
 }

@@ -1,0 +1,84 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak
+  labels:
+    app: keycloak
+spec:
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+  selector:
+    app: keycloak
+  type: LoadBalancer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: keycloak
+  labels:
+    app: keycloak
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      containers:
+      - name: keycloak
+        image: quay.io/keycloak/keycloak:19.0.2
+        args: ["start-dev", "--features=preview"]
+        env:
+        - name: KEYCLOAK_ADMIN
+          value: keycloak
+        - name: KEYCLOAK_ADMIN_PASSWORD
+          value: password
+        - name: KC_DB
+          valueFrom:
+            configMapKeyRef:
+              name: keycloak
+              key: db.vendor
+        - name: KC_DB_URL_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: keycloak
+              key: db.addr
+        - name: KC_DB_URL_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: keycloak
+              key: db.port
+        - name: KC_DB_URL_DATABASE
+          valueFrom:
+            configMapKeyRef:
+              name: keycloak
+              key: db.database
+        - name: KC_DB_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: keycloak
+              key: db.user
+        - name: KC_DB_PASSWORD
+          valueFrom:
+            configMapKeyRef:
+              name: keycloak
+              key: db.password
+        ports:
+        - name: http
+          containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: /realms/master
+            port: 8080
+        resources:
+          requests:
+            memory: "1024Mi"
+            cpu: "500m"
+          limits:
+            memory: "2048Mi"
+            cpu: "500m"
