@@ -13,14 +13,16 @@ mkdir -p $logs_home
 webpack_log=$logs_home/igonrepo-webpack-build
 app_log=$logs_home/iconrepo-app-
 
-project_dir="$(dirname $0)/.."
+project_dir="$(dirname "$0")/.."
+# shellcheck disable=SC1091
 . "$project_dir/scripts/functions.sh"
 
-if echo $ICON_REPO_CONFIG_FILE | egrep '\-template.json';
+if echo $ICON_REPO_CONFIG_FILE | grep -E '\-template.json';
 then
+  # shellcheck disable=SC2001
   NEW_ICON_REPO_CONFIG_FILE=$(echo $ICON_REPO_CONFIG_FILE | sed -e 's/^\(.*\)-template[.]json$/\1.json/g')
-  echo $NEW_ICON_REPO_CONFIG_FILE
-  envsubst < $ICON_REPO_CONFIG_FILE > $NEW_ICON_REPO_CONFIG_FILE
+  echo "$NEW_ICON_REPO_CONFIG_FILE"
+  envsubst < $ICON_REPO_CONFIG_FILE > "$NEW_ICON_REPO_CONFIG_FILE"
   export ICON_REPO_CONFIG_FILE=$NEW_ICON_REPO_CONFIG_FILE
   echo "ICON_REPO_CONFIG_FILE is $ICON_REPO_CONFIG_FILE"
 fi
@@ -29,8 +31,9 @@ start_app() {
   logfiles=""
   for i in $(seq 0 $((app_instance_count -1)));
   do
-    export SERVER_PORT=$((8091 + $i))
-    export LOAD_BALANCER_ADDRESS=$(get_my_ip):9999
+    export SERVER_PORT=$((8091 + "$i"))
+    LOAD_BALANCER_ADDRESS=$(get_my_ip):9999
+    export LOAD_BALANCER_ADDRESS
     ./"$app_executable" -l debug >"$app_log$i" 2>&1 &
     logfiles="$logfiles
 tail -f $app_log$i"
@@ -62,17 +65,17 @@ get_fswatch_pid() {
     sleep 1
     echo "Still waiting for $fswatch_pid_file..."
   done
-  cat $fswatch_pid_file  
+  cat "$fswatch_pid_file"
 }
 
 watch_webpack() {
   tail -F -n5000 $webpack_log | while IFS= read -r line;
   do
-    if echo $line | grep 'webpack.*compiled successfully';
+    if echo "$line" | grep 'webpack.*compiled successfully';
     then
       fswatch_pid=$(get_fswatch_pid)
       echo "Client bundle recompiled, restarting app (pid: $fswatch_pid)..."
-      kill $fswatch_pid
+      kill "$fswatch_pid"
     fi
   done
 }
@@ -83,22 +86,23 @@ watch_backend() {
   do
     start_app
     sleep $settle_down_secs
-    fswatch -r -1 --event Created --event Updated --event Removed -e '.*/[.]git/.*' -e 'web' -e $fswatch_pid_file'$' -e '.*/igo-repo/igo-repo$' . &
+    fswatch -r -1 --event Created --event Updated --event Removed -e '.*/[.]git/.*' -e 'web' -e "$fswatch_pid_file"'$' -e '.*/igo-repo/igo-repo$' . &
     fswatch_pid=$!
     echo $fswatch_pid > "$fswatch_pid_file"
     wait $fswatch_pid
     [[ "$stopping" == "true" ]] && exit
-    rm -rf $fswatch_pid_file
+    rm -rf "$fswatch_pid_file"
     pkill "$app_executable"
     eval "$cmd"
   done
 }
 
-cd $project_dir/web
+# shellcheck disable=SC2164
+cd "$project_dir/web"
 echo "" > $webpack_log
 watch_webpack &
 npx webpack --watch 2>&1 | tee $webpack_log &
-cd -
+cd - || exit 1
 
 watch_backend
 

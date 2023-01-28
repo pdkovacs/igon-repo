@@ -5,19 +5,25 @@
 READLINK=$(greadlink --help >/dev/null 2>&1 && echo greadlink || echo readlink)
 
 get_my_ip() {
-  which ip >/dev/null && ip route get 1.2.3.4 | awk '{print $7}' | tr -d '\n' || ifconfig | grep "inet " | grep -Fv 127.0.0.1 | awk '{print $2}'
+  if which ip >/dev/null;
+  then
+    ip route get 1.2.3.4 | awk '{print $7}' | tr -d '\n'
+  else
+    ifconfig | grep "inet " | grep -Fv 127.0.0.1 | awk '{print $2}'
+  fi
 }
 
-export MY_IP=$(get_my_ip)
+MY_IP="$(get_my_ip)"
+export MY_IP
 
 export DOCKER_COMPOSE=docker-compose
 which docker-compose >/dev/null 2>&1 || export DOCKER_COMPOSE="docker compose"
 
 if [ "$0" = "bash" ];
 then
-    repo_root="$($READLINK -f $(dirname $BASH_SOURCE)/..)"
+    repo_root="$($READLINK -f "$(dirname "${BASH_SOURCE[0]}")"/..)"
 else
-    repo_root="$($READLINK -f $(dirname $0)/..)"
+    repo_root="$($READLINK -f "$(dirname "$0")/..")"
 fi
 
 dist_dir="${repo_root}/deploy/dist"
@@ -75,5 +81,5 @@ pack() {
 # }
 
 # start_docker() {
-#     "pwd && ls -al && node app.js",
+#     pwd && ls -al && node app.js
 # }

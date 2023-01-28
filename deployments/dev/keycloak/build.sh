@@ -1,9 +1,11 @@
 #!/bin/bash
 
 my_parent_dir=$(dirname $0)
+# shellcheck disable=SC1091
 . $my_parent_dir/../../../scripts/functions.sh
 
-export MY_IP=$(get_my_ip)
+MY_IP=$(get_my_ip)
+export MY_IP
 
 cd deployments/dev/keycloak;
 

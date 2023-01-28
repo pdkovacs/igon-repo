@@ -1,3 +1,5 @@
+#!/bin/bash
+
 my_parent_dir=$(dirname $0)
 . $my_parent_dir/../../../scripts/functions.sh
 
