@@ -1,0 +1,13 @@
+apiVersion: skaffold/v4beta2
+kind: Config
+metadata:
+  name: igo-repo
+build:
+  artifacts:
+  - image: iconrepo
+    context: deployments/docker
+    docker:
+      dockerfile: Dockerfile
+manifests:
+  rawYaml:
+  - deployments/dev/app/app.service.yaml

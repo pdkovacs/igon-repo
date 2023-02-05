@@ -81,6 +81,7 @@ func (s *ApiTestSuite) initConfig() config.Options {
 		conf.GitlabNamespacePath = "" // to guide the test app on which git provider to use
 		s.TestGitRepo = git_tests.NewLocalGitTestRepo(conf)
 	case gitrepo.Gitlab:
+		conf.GitlabNamespacePath = "testing-with-repositories"
 		conf.LocalGitRepo = "" // to guide the test app on which git provider to use
 		s.TestGitRepo = git_tests.NewGitlabTestRepoClient(conf)
 	case nil:

@@ -85,9 +85,9 @@ resource "keycloak_openid_client" "iconrepo" {
 
   access_type         = "CONFIDENTIAL"
   valid_redirect_uris = [
-    "http://${var.app_hostname}:8091/openid-callback", # app
-    "http://${var.app_hostname}:4180/oauth2/callback", # oauth-proxy
-    "http://${var.app_hostname}:9999/oauth2/callback"  # load-balancer (nginx or simple_router)
+    "http://${var.app_hostname}:8080/openid-callback" # app
+    # "http://${var.app_hostname}:4180/oauth2/callback", # oauth-proxy
+    # "http://${var.app_hostname}:9999/oauth2/callback"  # load-balancer (nginx or simple_router)
   ]
   standard_flow_enabled = true
 

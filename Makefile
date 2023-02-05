@@ -43,15 +43,16 @@ $(backend): $(shell find internal/ cmd/ -type f)
 	$(build-go)
 $(frontend):
 	cd web; npm install; npm run frontend;
-keycloak:
-	deployments/dev/keycloak/build.sh
+init-keycloak:
+	cd deployments/dev/keycloak/user-client-init
+	bash build.sh
 app: $(app)
 backend: $(backend)
 frontend: $(frontend)
 docker: GOOS=linux
 docker: GOARCH=amd64
-docker: $(app)
-	cp igo-repo deployments/docker
-	docker build -t iconrepo:1.0 deployments/docker
+app-docker: $(app)
+	eval "$(minikube docker-env)"
+	deployments/docker/build.sh
 watch:
 	./scripts/watch.sh

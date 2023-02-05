@@ -31,7 +31,7 @@ type Options struct {
 	AppDescription              string                     `json:"appDescription" env:"APP_DESCRIPTION" long:"app-description" short:"" default:"" description:"Application description"`
 	SessionDbName               string                     `json:"sessionDbName" env:"SESSION_DB_NAME" long:"session-db-name" short:"" default:"" description:"Name of the session DB"`
 	LocalGitRepo                string                     `json:"localGitRepo" env:"LOCAL_GIT_REPO" long:"local-git-repo" short:"g" default:"" description:"Path to the local git repository"`
-	GitlabNamespacePath         string                     `json:"gitlabNamespacePath" env:"GITLAB_NAMESPACE_PATH" long:"gitlab-namespace-path" short:"" default:"testing-with-repositories" description:"GitLab namespace path"`
+	GitlabNamespacePath         string                     `json:"gitlabNamespacePath" env:"GITLAB_NAMESPACE_PATH" long:"gitlab-namespace-path" short:"" default:"" description:"GitLab namespace path"`
 	GitlabProjectPath           string                     `json:"gitlabProjectPath" env:"GITLAB_PROJECT_PATH" long:"gitlab-project-path" short:"" default:"icon-repo-gitrepo-test" description:"GitLab project path"`
 	GitlabMainBranch            string                     `json:"gitlabMainBranch" env:"GITLAB_MAIN_BRANCH" long:"gitlab-main-branch" short:"" default:"main" description:"The GitLab project's main branch"`
 	GitlabAccessToken           string                     `json:"gitlabAccessToken" env:"GITLAB_ACCESS_TOKEN" long:"gitlab-access-token" short:"" default:"" description:"GitLab API access token"`
@@ -55,34 +55,45 @@ type Options struct {
 	DBSchemaName                string                     `json:"dbSchemaName" env:"DB_SCHEMA_NAME" long:"db-schema-name" short:"" default:"icon_repo" description:"Name of the database schemma"`
 	EnableBackdoors             bool                       `json:"enableBackdoors" env:"ENABLE_BACKDOORS" long:"enable-backdoors" short:"" description:"Enable backdoors"`
 	UsernameCookie              string                     `json:"usernameCookie" env:"USERNAME_COOKIE" long:"username-cookie" short:"" description:"The name of the cookie, if any, carrying username. Only OIDC for now."`
-	LogLevel                    string                     `json:"logLevel" env:"IGOREPO_LOG_LEVEL" long:"log-level" short:"l" default:"info"`
+	LogLevel                    string                     `json:"logLevel" env:"LOG_LEVEL" long:"log-level" short:"l" default:"info"`
 }
 
 var DefaultIconRepoHome = filepath.Join(os.Getenv("HOME"), ".ui-toolbox/icon-repo")
 var DefaultIconDataLocationGit = filepath.Join(DefaultIconRepoHome, "git-repo")
 var DefaultConfigFilePath = filepath.Join(DefaultIconRepoHome, "config.json")
 
+type ConfigFilePath string
+
+const (
+	NO_CONFIG_FILE ConfigFilePath = "none"
+)
+
 // GetConfigFilePath gets the path of the configuration file
-func GetConfigFilePath() string {
-	var result string
-	if result = os.Getenv("ICON_REPO_CONFIG_FILE"); result != "" {
-	} else {
+func GetConfigFilePath() ConfigFilePath {
+	result := os.Getenv("ICON_REPO_CONFIG_FILE")
+	if result == "" {
 		result = DefaultConfigFilePath
 	}
 	log.Info().Msgf("Configuration file: %s", result)
-	return result
+	return ConfigFilePath(result)
 }
 
 // ReadConfiguration reads the configuration file and merges it with the command line arguments
-func ReadConfiguration(filePath string, clArgs []string) (Options, error) {
-	mapInFile, optsInFile, err := readConfigurationFromFile(filePath)
-	if err != nil {
-		return Options{}, err
+func ReadConfiguration(filePath ConfigFilePath, clArgs []string) (Options, error) {
+	mapInConfigFile := map[string]interface{}{}
+	optsInFile := Options{}
+	if filePath != NO_CONFIG_FILE {
+		var err error
+		mapInConfigFile, optsInFile, err = readConfigurationFromFile(filePath)
+		if err != nil {
+			return Options{}, err
+		}
 	}
-	return parseFlagsMergeSettings(clArgs, mapInFile, optsInFile), nil
+	return parseFlagsMergeSettings(clArgs, mapInConfigFile, optsInFile), nil
 }
 
-func readConfigurationFromFile(filePath string) (map[string]interface{}, Options, error) {
+func readConfigurationFromFile(configFilePath ConfigFilePath) (map[string]interface{}, Options, error) {
+	filePath := string(configFilePath)
 	var mapInFile = make(map[string]interface{})
 	optsInFile := Options{}
 

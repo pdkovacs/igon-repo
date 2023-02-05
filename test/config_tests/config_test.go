@@ -121,7 +121,7 @@ func (s *readConfigurationTestSuite) TestConfigFileSettingsOverridesDefaults() {
 	defer closeRemoveFile(configFile)
 
 	clArgs := []string{}
-	opts, err := config.ReadConfiguration(configFile.Name(), clArgs)
+	opts, err := config.ReadConfiguration(config.ConfigFilePath(configFile.Name()), clArgs)
 	s.NoError(err)
 	s.Equal("localhost", opts.ServerHostname)
 	s.Equal(8080, opts.ServerPort)
@@ -154,7 +154,7 @@ func (s *readConfigurationTestSuite) TestEnvVarSettingOverridesConfigFile() {
 	setEnvVar("DB_HOST", dbHostInEnvVar)
 
 	clArgs := []string{}
-	opts, err := config.ReadConfiguration(configFile.Name(), clArgs)
+	opts, err := config.ReadConfiguration(config.ConfigFilePath(configFile.Name()), clArgs)
 	s.NoError(err)
 	s.Equal("localhost", opts.ServerHostname)
 	s.Equal(8080, opts.ServerPort)
@@ -171,7 +171,7 @@ func (s *readConfigurationTestSuite) TestCliArgsOverrideConfigFile() {
 	defer closeRemoveFile(configFile)
 
 	clArgs := []string{"--db-host", dbHostInArg}
-	opts, err := config.ReadConfiguration(configFile.Name(), clArgs)
+	opts, err := config.ReadConfiguration(config.ConfigFilePath(configFile.Name()), clArgs)
 	s.NoError(err)
 	s.Equal("localhost", opts.ServerHostname)
 	s.Equal(8080, opts.ServerPort)
@@ -205,7 +205,7 @@ func (s *readConfigurationTestSuite) TestPasswordCredentialsFromConfigFile() {
 	defer closeRemoveFile(configFile)
 
 	clArgs := []string{}
-	opts, err := config.ReadConfiguration(configFile.Name(), clArgs)
+	opts, err := config.ReadConfiguration(config.ConfigFilePath(configFile.Name()), clArgs)
 	s.NoError(err)
 	s.Equal("localhost", opts.ServerHostname)
 	s.Equal(8080, opts.ServerPort)
@@ -221,7 +221,7 @@ func (s *readConfigurationTestSuite) TestUsersByRolesFromConfigFile() {
 	defer closeRemoveFile(configFile)
 
 	clArgs := []string{}
-	opts, err := config.ReadConfiguration(configFile.Name(), clArgs)
+	opts, err := config.ReadConfiguration(config.ConfigFilePath(configFile.Name()), clArgs)
 	s.NoError(err)
 	s.Equal("localhost", opts.ServerHostname)
 	s.Equal(8080, opts.ServerPort)
