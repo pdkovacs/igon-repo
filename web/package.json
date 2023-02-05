@@ -4,7 +4,8 @@
   "description": "Client for ui-toolbox/iconrepo",
   "main": "index.js",
   "scripts": {
-    "dist": "rimraf dist && cross-env NODE_ENV=production webpack",
+    "dist": "rimraf dist && cross-env NODE_ENV=production && cross-env WEBPACK_OUTPUT_DIR=dist webpack",
+    "frontend": "rimraf frontend && cross-env NODE_ENV=production && cross-env WEBPACK_OUTPUT_DIR=frontend webpack",
     "dev": "rimraf dist && mkdir dist && cross-env NODE_ENV=development node dev-server.js",
     "lint": "tslint -c tslint.json '{src,test}/**/*.{ts,tsx}'",
     "pretest": "rimraf dist && cross-env NODE_ENV=test webpack",
