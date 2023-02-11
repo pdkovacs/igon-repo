@@ -1,0 +1,11 @@
+{
+    "dbHost": "postgres",
+    "serverHostname": "0.0.0.0",
+    "serverPort": 8080,
+    "authenticationType": "oidc",
+    "oidcTokenIssuer": "http://keycloak:8080/realms/my-realm",
+    "oidcClientId": "iconrepo",
+    "oidcClientSecret": "1jH1TlxHvnxpHYuj7rMy2floGMPqcPrj",
+    "oidcClientRedirectBackUrl": "http://iconrepo:8080/openid-callback",
+    "logLevel": "debug"
+}
