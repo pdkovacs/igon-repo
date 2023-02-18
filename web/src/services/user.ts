@@ -38,12 +38,12 @@ export const fetchUserInfo: () => Promise<UserInfo> = () => fetch(getEndpointUrl
     }
 );
 
-export const logout = () => fetch(getEndpointUrl("/logout"), {
+export const logout = (idPlogoutUrl: string) => fetch(getEndpointUrl("/logout"), {
     method: "POST",
     mode: "no-cors",
     credentials: "include"
 }).then(() => {
-    window.location.assign(getEndpointUrl(""));
+	window.location.assign(idPlogoutUrl);
 });
 
 export const hasAddIconPrivilege = (user: UserInfo) => {

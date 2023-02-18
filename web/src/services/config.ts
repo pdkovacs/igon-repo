@@ -21,7 +21,26 @@ export interface AppInfo {
 
 const fetchAppInfo: () => Promise<AppInfo> = () => getData("/app-info", 200);
 
-export const fetchConfig = () => fetchAppInfo();
+export interface ClientConfig {
+	readonly idPLogoutUrl: string;
+}
+
+const fetchClientConfig: () => Promise<ClientConfig> = () => getData("/config", 200);
+
+export interface Config {
+	readonly appInfo: AppInfo;
+	readonly clientConfig: ClientConfig;
+}
+
+export const fetchConfig = async (): Promise<Config> => {
+	return Promise.all([fetchAppInfo(), fetchClientConfig()])
+	.then(values => {
+		return {
+			appInfo: values[0] as AppInfo,
+			clientConfig: values[1] as ClientConfig
+		}
+	});
+}
 
 export const defaultTypeForFile = (fileName: string) => {
 	const formats = Object.keys(iconfileTypes);

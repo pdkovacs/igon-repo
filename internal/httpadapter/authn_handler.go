@@ -88,3 +88,18 @@ func authentication(options config.Options, userService *services.UserService, l
 	}
 	return nil
 }
+
+func logout(options config.Options, log zerolog.Logger) gin.HandlerFunc {
+	return func(g *gin.Context) {
+		if options.AuthenticationType != authn.SchemeOIDC {
+			log.Info().Msgf("Logout is not currently supported with authentication scheme %#v", options.AuthenticationType)
+			g.AbortWithStatus(400)
+		}
+		session := sessions.Default(g)
+		session.Clear() // this will mark the session as "written" only if there's
+		// at least one key to delete
+		session.Options(sessions.Options{MaxAge: -1})
+		session.Save()
+		g.Redirect(302, options.OIDCLogoutURL)
+	}
+}

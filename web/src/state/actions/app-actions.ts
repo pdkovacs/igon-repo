@@ -1,17 +1,17 @@
 import { ActionType, createAction } from "typesafe-actions";
-import { AppInfo, fetchConfig } from "../../services/config";
+import { Config, fetchConfig } from "../../services/config";
 import { fetchUserInfo, UserInfo } from "../../services/user";
 import { AppThunk } from "./base";
 
 export const loginNeeded = createAction("app/prompt-for-login")<boolean>();
 
-export const fetchConfigSuccess = createAction("app/fetch-config-success")<AppInfo>();
+export const fetchConfigSuccess = createAction("app/fetch-config-success")<Config>();
 export const fetchConfigFailure = createAction("app/fetch-config-failure")<Error>();
 export const fetchConfigAction: () => AppThunk = ()  => {
 	return dispatch => {
 		return fetchConfig()
 		.then(
-			appinfo => dispatch(fetchConfigSuccess(appinfo)),
+			config => dispatch(fetchConfigSuccess(config)),
 			error => dispatch(fetchConfigFailure(error))
 		);
 	};

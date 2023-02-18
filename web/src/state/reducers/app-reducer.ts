@@ -6,6 +6,7 @@ import { fetchConfigSuccess, ConfigAction, UserInfoAction, fetchUserInfoSuccess,
 export interface AppSlice {
 	readonly appInfo: AppInfo;
 	readonly userInfo: UserInfo;
+	readonly idPLogoutUrl: string;
 }
 
 const initialState: AppSlice = {
@@ -20,7 +21,8 @@ const initialState: AppSlice = {
 		permissions: [],
 		username: "John Doe",
 		authenticated: false
-	}
+	},
+	idPLogoutUrl: "/"
 };
 
 export const appReducer = (state: AppSlice = initialState, action: ConfigAction | UserInfoAction): AppSlice => {
@@ -39,7 +41,8 @@ export const appReducer = (state: AppSlice = initialState, action: ConfigAction 
 		case getType(fetchConfigSuccess): {
 			return {
 				...state,
-				appInfo: action.payload
+				appInfo: action.payload.appInfo,
+				idPLogoutUrl: action.payload.clientConfig.idPLogoutUrl
 			};
 		}
 		case getType(fetchUserInfoSuccess): {

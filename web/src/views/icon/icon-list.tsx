@@ -75,10 +75,10 @@ export const IconList = (): JSX.Element => {
 		<header className="top-header">
 		<div className="inner-wrapper">
 			<div className="branding">
-					<AppSettgins versionInfo = {settings.appInfo.versionInfo} />
-					<div className="app-description">
-						<span>{settings.appInfo.appDescription}</span>
-					</div>
+				<AppSettgins versionInfo = {settings.appInfo.versionInfo} />
+				<div className="app-description">
+					<span>{settings.appInfo.appDescription}</span>
+				</div>
 			</div>
 			<div className="right-control-group">
 				<div className="search">
@@ -95,7 +95,7 @@ export const IconList = (): JSX.Element => {
 						/>
 					</div>
 				</div>
-				<UserSettings username={settings.userInfo.username}/>
+				<UserSettings username={settings.userInfo.username} idPlogoutUrl={settings.idPLogoutUrl}/>
 			</div>
 		</div>
 		</header>

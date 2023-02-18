@@ -34,18 +34,19 @@ test-single: $(app) # a sample test-case is used, replace it with whichever othe
 	go test -parallel 10 -v -timeout 60s ./... -run '^TestIconCreateTestSuite$$' -testify.m TestFailsWith403WithoutPrivilege#01
 run:
 	go run cmd/main.go
-$(ui-bundle): 
+$(ui-bundle): $(shell find web/src -type f) web/webpack.config.js
 	cd web; npm install; npm run dist;
 $(app): $(ui-bundle) $(shell find internal/ cmd/ -type f)
 	$(build-go)
 $(backend): $(shell find internal/ cmd/ -type f)
 	rm -rf $(ui-bundle-dir); mkdir -p $(ui-bundle-dir); touch $(ui-bundle-dir)/empty.html
 	$(build-go)
-$(frontend):
+$(frontend): $(shell find web/src -type f) web/webpack.config.js
 	cd web; npm install; npm run frontend;
 init-keycloak:
 	cd deployments/dev/keycloak/user-client-init
 	bash build.sh
+ui-bundle: $(ui-bundle)
 app: $(app)
 backend: $(backend)
 frontend: $(frontend)

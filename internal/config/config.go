@@ -43,6 +43,7 @@ type Options struct {
 	OIDCUserAuthorizationURL    string                     `json:"oidcUserAuthorizationUrl" env:"OIDC_USER_AUTHORIZATION_URL" long:"oidc-user-authorization-url" short:"" default:"" description:"OIDC user authorization url"`
 	OIDCClientRedirectBackURL   string                     `json:"oidcClientRedirectBackUrl" env:"OIDC_CLIENT_REDIRECT_BACK_URL" long:"oidc-client-redirect-back-url" short:"" default:"" description:"OIDC client redirect back url"`
 	OIDCTokenIssuer             string                     `json:"oidcTokenIssuer" env:"OIDC_TOKEN_ISSUER" long:"oidc-token-issuer" short:"" default:"" description:"OIDC token issuer"`
+	OIDCLogoutURL               string                     `json:"oidcLogoutUrl" env:"OIDC_LOGOUT_URL" long:"oidc-logout-url" short:"" default:"" description:"OIDC logout URL"`
 	OIDCIpJwtPublicKeyURL       string                     `json:"oidcIpJwtPublicKeyUrl" env:"OIDC_IP_JWT_PUBLIC_KEY_URL" long:"oidc-ip-jwt-public-key-url" short:"" default:"" description:"OIDC ip jwt public key url"`
 	OIDCIpJwtPublicKeyPemBase64 string                     `json:"oidcIpJwtPublicKeyPemBase64" env:"OIDC_IP_JWT_PUBLIC_KEY_PEM_BASE64" long:"oidc-ip-jwt-public-key-pem-base64" short:"" default:"" description:"OIDC ip jwt public key pem base64"`
 	OIDCIpLogoutURL             string                     `json:"oidcIpLogoutUrl" env:"OIDC_IP_LOGOUT_URL" long:"oidc-ip-logout-url" short:"" default:"" description:"OIDC ip logout url"`

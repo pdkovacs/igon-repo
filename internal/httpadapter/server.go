@@ -176,6 +176,12 @@ func (s *server) initEndpoints(options config.Options) *gin.Engine {
 		logger.Debug().Msgf("Setting up authorized group with authentication type: %v...", options.AuthenticationType)
 		authorizedGroup.Use(authenticationCheck(options, &userService, s.logger.With().Logger()))
 
+		rootEngine.GET("/config", func(c *gin.Context) {
+			c.JSON(200, clientConfig{IdPLogoutURL: options.OIDCLogoutURL})
+		})
+		logger.Debug().Msg("Setting up logout handler")
+		authorizedGroup.POST("/logout", logout(options, s.logger.With().Logger()))
+
 		authorizedGroup.GET("/subscribe", subscriptionHandler(mustGetUserInfo, notifService, options.LoadBalancerAddress, logging.CreateMethodLogger(s.logger, "subscriptionHandler")))
 
 		authorizedGroup.GET("/user", userInfoHandler(options.AuthenticationType, userService, logging.CreateMethodLogger(s.logger, "UserInfoHandler")))

@@ -7,6 +7,7 @@ import PopupState, { bindMenu, bindTrigger } from "material-ui-popup-state";
 
 interface UserSettingsProps {
     username: string;
+		idPlogoutUrl: string;
 }
 
 export class UserSettings extends React.Component<UserSettingsProps, never> {
@@ -24,8 +25,8 @@ export class UserSettings extends React.Component<UserSettingsProps, never> {
 							</IconButton>
 							<Menu {...bindMenu(popupState)}>
 								<MenuItem onClick={() => {
-									logout();
 									popupState.close();
+									logout(this.props.idPlogoutUrl);
 								}}>Logout</MenuItem>
 							</Menu>
 						</React.Fragment>
