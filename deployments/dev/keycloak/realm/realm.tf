@@ -21,60 +21,6 @@ resource "keycloak_realm" "realm" {
   }
 }
 
-resource "keycloak_user" "user" {
-  realm_id = keycloak_realm.realm.id
-  username = "bob"
-  enabled  = true
-
-  email      = "bob@domain.com"
-  first_name = "Bob"
-  last_name  = "Bobson"
-}
-
-resource "keycloak_group" "icon_editor" {
-  realm_id = keycloak_realm.realm.id
-  name     = "ICON_EDITOR"
-}
-
-resource "keycloak_user_groups" "user_groups" {
-  realm_id = keycloak_realm.realm.id
-  user_id = keycloak_user.alice.id
-
-  group_ids  = [
-    keycloak_group.icon_editor.id
-  ]
-}
-
-resource "keycloak_user" "alice" {
-  realm_id   = keycloak_realm.realm.id
-  username   = "alice"
-  enabled    = true
-
-  email      = "alice@domain.com"
-  first_name = "Alice"
-  last_name  = "Aliceberg"
-
-  initial_password {
-    value     = "al1ce"
-    temporary = false
-  }
-}
-
-resource "keycloak_user" "joe" {
-  realm_id   = keycloak_realm.realm.id
-  username   = "joe"
-  enabled    = true
-
-  email      = "joe@domain.com"
-  first_name = "Joe"
-  last_name  = "Joeberg"
-
-  initial_password {
-    value     = "j0e"
-    temporary = false
-  }
-}
-
 resource "keycloak_openid_client" "iconrepo" {
   realm_id            = keycloak_realm.realm.id
   client_id           = "iconrepo"

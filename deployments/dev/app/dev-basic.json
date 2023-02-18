@@ -1,0 +1,31 @@
+{
+    "dbHost": "postgres",
+    "serverHostname": "0.0.0.0",
+    "serverPort": 8080,
+    "authenticationType": "basic",
+    "usersByRoles": {
+        "ICON_EDITOR": [
+            "ux1",
+            "ux2"
+        ]
+    },
+    "iconDataCreateNew": "init",
+	"passwordCredentials": [
+		{
+			"username": "ux1",
+			"password": "ux1"
+		},
+		{
+			"username": "ux2",
+			"password": "ux2"
+		},
+		{
+			"username": "dev1",
+			"password": "dev1"
+		},
+		{
+			"username": "dev2",
+			"password": "dev2"
+		}
+	]
+}

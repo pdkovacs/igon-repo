@@ -5,7 +5,7 @@
     "authenticationType": "oidc",
     "oidcTokenIssuer": "http://keycloak:8080/realms/my-realm",
     "oidcClientId": "iconrepo",
-    "oidcClientSecret": "1jH1TlxHvnxpHYuj7rMy2floGMPqcPrj",
+    "oidcClientSecret": "This value is coming from the environment variable",
     "oidcClientRedirectBackUrl": "http://iconrepo:8080/openid-callback",
     "logLevel": "debug"
 }

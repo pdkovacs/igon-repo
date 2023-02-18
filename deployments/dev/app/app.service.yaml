@@ -43,7 +43,17 @@ spec:
         name: iconrepo
         env:
         - name: ICON_REPO_CONFIG_FILE
-          value: /etc/config/dev-oidc-basic.json
+          value: /etc/config/config.json
+        - name: OIDC_CLIENT_SECRET
+          valueFrom:
+           secretKeyRef:
+             name: iconrepo
+             key: oidc-client-secret
+        - name: GITLAB_ACCESS_TOKEN
+          valueFrom:
+           secretKeyRef:
+             name: iconrepo
+             key: gitlab-access-token
         ports:
         - name: http
           containerPort: 8080
@@ -71,5 +81,7 @@ spec:
       volumes:
         - name: config-volume
           configMap:
-            name: dev-oidc
+            name: iconrepo
+        - name: secrets-volume
+          
 
