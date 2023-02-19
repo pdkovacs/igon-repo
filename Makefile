@@ -53,7 +53,17 @@ frontend: $(frontend)
 docker: GOOS=linux
 docker: GOARCH=amd64
 app-docker: $(app)
+	cp $(app) deployments/docker/backend/
 	eval "$(minikube docker-env)"
-	deployments/docker/build.sh
+	deployments/docker/backend/build.sh
+backend-docker: $(backend)
+	cp $(app) deployments/docker/backend/
+	eval "$(minikube docker-env)"
+	deployments/docker/backend/build.sh
+frontend-docker: $(frontend)
+	cp $(ui-bundle) deployments/docker/client/
+	cp $(ui-bundle-dir)/index.html deployments/docker/client/
+	eval "$(minikube docker-env)"
+	deployments/docker/client/build.sh
 watch:
 	./scripts/watch.sh

@@ -1,48 +1,27 @@
 #!/bin/bash
 
 export ICON_REPO_CONFIG_FILE=deployments/dev/app-configs/dev-oidc-simplerouter-template.json
+export deployment_target=local # local or k8s
 
-cmd="make app"
+build_backend_cmd="make app"
+
+build_backend
+
 settle_down_secs=1
 
-app_executable="igo-repo"
-app_instance_count=2
-
-logs_home=~/workspace/logs
-mkdir -p $logs_home
-webpack_log=$logs_home/igonrepo-webpack-build
-app_log=$logs_home/iconrepo-app-
+LOGS_HOME=~/workspace/logs
+mkdir -p $LOGS_HOME
+webpack_log=$LOGS_HOME/igonrepo-webpack-build
 
 project_dir="$(dirname "$0")/.."
 # shellcheck disable=SC1091
 . "$project_dir/scripts/functions.sh"
-
-if echo $ICON_REPO_CONFIG_FILE | grep -E '\-template.json';
-then
-  # shellcheck disable=SC2001
-  NEW_ICON_REPO_CONFIG_FILE=$(echo $ICON_REPO_CONFIG_FILE | sed -e 's/^\(.*\)-template[.]json$/\1.json/g')
-  echo "$NEW_ICON_REPO_CONFIG_FILE"
-  envsubst < $ICON_REPO_CONFIG_FILE > "$NEW_ICON_REPO_CONFIG_FILE"
-  export ICON_REPO_CONFIG_FILE=$NEW_ICON_REPO_CONFIG_FILE
-  echo "ICON_REPO_CONFIG_FILE is $ICON_REPO_CONFIG_FILE"
-fi
-
-start_app() {
-  logfiles=""
-  for i in $(seq 0 $((app_instance_count -1)));
-  do
-    export SERVER_PORT=$((8091 + "$i"))
-    LOAD_BALANCER_ADDRESS=$(get_my_ip):9999
-    export LOAD_BALANCER_ADDRESS
-    ./"$app_executable" -l debug >"$app_log$i" 2>&1 &
-    logfiles="$logfiles
-tail -f $app_log$i"
-  done
-  echo "$logfiles"
-}
+. "$project_dir/scripts/depl-${deployment_target}.sh"
 
 pkill webpack
-pkill "$app_executable"
+
+depl_process_app_config
+depl_kill_app_process
 
 tail_command_pattern="[t]ail.*${webpack_log}"
 ps -ef | awk -v tail_command_pattern="$tail_command_pattern" '$0 ~ tail_command_pattern { print $0; system("kill " $2); }'
@@ -60,31 +39,23 @@ trap cleanup EXIT SIGINT SIGTERM
 
 fswatch_pid_file="$($READLINK -f "$project_dir/fswatch.pid")"
 
-get_fswatch_pid() {
-  while ! test -f "$fswatch_pid_file"; do
-    sleep 1
-    echo "Still waiting for $fswatch_pid_file..."
-  done
-  cat "$fswatch_pid_file"
-}
-
 watch_webpack() {
   tail -F -n5000 $webpack_log | while IFS= read -r line;
   do
     if echo "$line" | grep 'webpack.*compiled successfully';
     then
-      fswatch_pid=$(get_fswatch_pid)
-      echo "Client bundle recompiled, restarting app (pid: $fswatch_pid)..."
-      kill "$fswatch_pid"
+      echo "Client bundle recompiled, redeploying app..."
+      deploy_webpack_bundle
     fi
   done
 }
 
 watch_backend() {
-  eval "$cmd" || exit 1
+  eval "$build_backend_cmd" || exit 1
   while true
   do
-    start_app
+    deploy_backend
+
     sleep $settle_down_secs
     fswatch -r -1 --event Created --event Updated --event Removed -e '.*/[.]git/.*' -e 'web' -e "$fswatch_pid_file"'$' -e '.*/igo-repo/igo-repo$' . &
     fswatch_pid=$!
@@ -92,8 +63,10 @@ watch_backend() {
     wait $fswatch_pid
     [[ "$stopping" == "true" ]] && exit
     rm -rf "$fswatch_pid_file"
-    pkill "$app_executable"
-    eval "$cmd"
+    
+    kill_backend_process
+    
+    eval "$build_backend_cmd"
   done
 }
 
@@ -105,6 +78,3 @@ npx webpack --watch 2>&1 | tee $webpack_log &
 cd - || exit 1
 
 watch_backend
-
-# You can watch the app instances' outputs with something like this:
-# for i in $(seq 0 $((app_instance_count -1))); do tilix -a session-add-down -x "tail -f $app_log$i" & ; done

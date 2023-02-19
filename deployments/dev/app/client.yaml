@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: iconrepo
+  labels:
+    app: iconrepo-client
+spec:
+  selector:
+    app: iconrepo-client
+  type: LoadBalancer
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: iconrepo-client
+  name: iconrepo-client
+  namespace: default
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: iconrepo-client
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: iconrepo-client
+    spec:
+      containers:
+      - image: iconrepo-client:latest
+        imagePullPolicy: Never
+        name: iconrepo-client
+        ports:
+        - name: http
+          containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: /index.html
+            port: 8080
+        resources:
+          requests:
+            memory: "1024Mi"
+            cpu: "500m"
+          limits:
+            memory: "2048Mi"
+            cpu: "500m"
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - name: config-volume
+          mountPath: /opt/iconrepo/extra
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+        - name: config-volume
+          configMap:
+            name: iconrepo-client
+        - name: client-config
+          
+
