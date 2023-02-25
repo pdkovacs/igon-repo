@@ -1,11 +1,9 @@
 #!/bin/bash
 
-export ICON_REPO_CONFIG_FILE=deployments/dev/app-configs/dev-oidc-simplerouter-template.json
-export deployment_target=local # local or k8s
+export ICON_REPO_CONFIG_FILE=deployments/dev/app/dev-oidc.json
+export deployment_target=k8s # local or k8s
 
 build_backend_cmd="make app"
-
-build_backend
 
 settle_down_secs=1
 
@@ -71,10 +69,10 @@ watch_backend() {
 }
 
 # shellcheck disable=SC2164
-cd "$project_dir/web"
-echo "" > $webpack_log
-watch_webpack &
-npx webpack --watch 2>&1 | tee $webpack_log &
-cd - || exit 1
+# cd "$project_dir/web"
+# echo "" > $webpack_log
+# watch_webpack &
+# npx webpack --watch 2>&1 | tee $webpack_log &
+# cd - || exit 1
 
 watch_backend

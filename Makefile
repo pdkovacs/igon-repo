@@ -57,9 +57,7 @@ app-docker: $(app)
 	eval "$(minikube docker-env)"
 	deployments/docker/backend/build.sh
 backend-docker: $(backend)
-	cp $(app) deployments/docker/backend/
-	eval "$(minikube docker-env)"
-	deployments/docker/backend/build.sh
+	scripts/make.sh build_backend_docker $(app)
 frontend-docker: $(frontend)
 	cp $(ui-bundle) deployments/docker/client/
 	cp $(ui-bundle-dir)/index.html deployments/docker/client/

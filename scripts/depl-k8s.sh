@@ -1,15 +1,13 @@
 #!/bin/bash
 
 depl_process_app_config() {
-  if echo "$ICON_REPO_CONFIG_FILE" | grep -E '\-template.json';
+  if [ ! -f $ICON_REPO_CONFIG_FILE ];
   then
-    # shellcheck disable=SC2001
-    NEW_ICON_REPO_CONFIG_FILE=$(echo "$ICON_REPO_CONFIG_FILE" | sed -e 's/^\(.*\)-template[.]json$/\1.json/g')
-    echo "$NEW_ICON_REPO_CONFIG_FILE"
-    envsubst < "$ICON_REPO_CONFIG_FILE" > "$NEW_ICON_REPO_CONFIG_FILE"
-    export ICON_REPO_CONFIG_FILE=$NEW_ICON_REPO_CONFIG_FILE
-    echo "ICON_REPO_CONFIG_FILE is $ICON_REPO_CONFIG_FILE"
+    echo "File $ICON_REPO_CONFIG_FILE doesn't exist"
+    exit 1;
   fi
+
+  kubectl create configmap iconrepo --from-file="$ICON_REPO_CONFIG_FILE" --dry-run=client -o yaml | kubectl apply -f -
 }
 
 kill_backend_process() {
@@ -17,11 +15,20 @@ kill_backend_process() {
 }
 
 deploy_backend() {
-  kubect apply -f ...
+  docker images -f reference='iconrepo:dev-*' --format=json | jq -r '.Tag' | \
+  while read old_tag;
+  do
+    docker rmi "iconrepo:$old_tag"
+  done
+  scripts/make.sh build_backend_docker igo-repo
+  tag=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 13 ; echo '')
+  new_dev_image=iconrepo:dev-"${tag,,}"
+  docker tag iconrepo:latest "$new_dev_image" 
+  kubectl set image deployment/iconrepo iconrepo="$new_dev_image"
 }
 
 deploy_webpack_bundle() {
-  kubect apply -f ...
+  kubectl apply -f ...
 }
 
 # You can watch the app instances' outputs with something like this:
