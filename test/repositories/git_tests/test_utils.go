@@ -68,7 +68,7 @@ func MustResetTestGitRepo(repo GitTestRepo) {
 	os.Unsetenv(gitrepo.SimulateGitCommitFailureEnvvarName)
 }
 
-const gitlabAPITokenLineRegexpString = "export GITLAB_ACCESS_TOKEN=\"?(.+)\""
+const gitlabAPITokenLineRegexpString = "GITLAB_ACCESS_TOKEN=?(.+)"
 
 var gitlabAPITokenLineRegexp = regexp.MustCompile(gitlabAPITokenLineRegexpString)
 
