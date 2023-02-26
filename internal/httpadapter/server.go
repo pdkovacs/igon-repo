@@ -140,6 +140,8 @@ func (s *server) initEndpoints(options config.Options) *gin.Engine {
 
 	rootEngine := gin.Default()
 
+	rootEngine.Use(CORSMiddleware(options.ClientServerURL))
+
 	if options.AuthenticationType != authn.SchemeOIDCProxy {
 		gob.Register(SessionData{})
 		store, createStoreErr := s.createSessionStore(options)
@@ -219,4 +221,22 @@ func (s *server) Stop() {
 		logger.Info().Msg("Listener closed successfully")
 	}
 
+}
+
+// TODO:
+// Use "github.com/gin-contrib/cors" with strict, parameterized rules
+func CORSMiddleware(clientServerURL string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", clientServerURL)
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	}
 }

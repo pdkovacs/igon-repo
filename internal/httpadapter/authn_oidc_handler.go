@@ -59,17 +59,17 @@ type oidcScheme struct {
 	usernameCookie string
 }
 
-func CreateOIDCSChemeHandler(config oidcConfig, userService *services.UserService, usernameCookie string, logger zerolog.Logger) gin.HandlerFunc {
+func CreateOIDCSChemeHandler(config oidcConfig, userService *services.UserService, usernameCookie string, clientServerURL string, logger zerolog.Logger) gin.HandlerFunc {
 	scheme := oidcScheme{
 		config:         config,
 		logger:         logger,
 		userService:    userService,
 		usernameCookie: usernameCookie,
 	}
-	return scheme.createHandler()
+	return scheme.createHandler(clientServerURL)
 }
 
-func (scheme *oidcScheme) createHandler() gin.HandlerFunc {
+func (scheme *oidcScheme) createHandler(clientServerURL string) gin.HandlerFunc {
 	logger := logging.CreateMethodLogger(scheme.logger, "oidc-authn")
 	config := scheme.config
 
@@ -113,6 +113,8 @@ func (scheme *oidcScheme) createHandler() gin.HandlerFunc {
 		if userSession, ok := user.(SessionData); ok {
 			if len(userSession.UserInfo.UserId.IDInDomain) > 0 {
 				logger.Debug().Msg("session already authenticated")
+				// TODO: redirect to proper path
+				c.Redirect(302, clientServerURL)
 				return
 			}
 			logger.Error().Msg("has user-session, but no user-id")

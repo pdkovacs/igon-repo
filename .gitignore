@@ -15,3 +15,5 @@
 terraform.tfstate*
 fswatch.pid
 deployments/dev/app/config.json
+bundle.js
+index.html

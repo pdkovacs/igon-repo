@@ -83,3 +83,7 @@ pack() {
 # start_docker() {
 #     pwd && ls -al && node app.js
 # }
+
+ns_date() {
+  date --rfc-3339 ns
+}

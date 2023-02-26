@@ -57,6 +57,7 @@ type Options struct {
 	EnableBackdoors             bool                       `json:"enableBackdoors" env:"ENABLE_BACKDOORS" long:"enable-backdoors" short:"" description:"Enable backdoors"`
 	UsernameCookie              string                     `json:"usernameCookie" env:"USERNAME_COOKIE" long:"username-cookie" short:"" description:"The name of the cookie, if any, carrying username. Only OIDC for now."`
 	LogLevel                    string                     `json:"logLevel" env:"LOG_LEVEL" long:"log-level" short:"l" default:"info"`
+	ClientServerURL             string                     `json:"clientServerUrl" env:"CLIENT_SERVER_URL" long:"client-server-url" short:"" default:""`
 }
 
 var DefaultIconRepoHome = filepath.Join(os.Getenv("HOME"), ".ui-toolbox/icon-repo")

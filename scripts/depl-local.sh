@@ -3,7 +3,7 @@
 app_instance_count=2
 app_executable="igo-repo"
 
-depl_process_app_config() {
+deploy_app_config() {
   if echo "$ICON_REPO_CONFIG_FILE" | grep -E '\-template.json';
   then
     # shellcheck disable=SC2001
@@ -16,6 +16,7 @@ depl_process_app_config() {
 }
 
 kill_backend_process() {
+  deploy_app_config
   pkill "$app_executable"
   pkill "$app_executable"
 }

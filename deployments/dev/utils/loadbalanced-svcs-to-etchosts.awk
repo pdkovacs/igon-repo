@@ -27,6 +27,6 @@ BEGIN {
 		}
 	}
 	close("kubectl get svc")
-	print "sudo mv tmp-hosts /etc/hosts" | "/bin/bash"
+	print "cat tmp-hosts; rm tmp-hosts" | "/bin/bash"
     close("/bin/bash")
 }

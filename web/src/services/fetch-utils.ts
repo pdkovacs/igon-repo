@@ -14,8 +14,9 @@ enum FetchMethod {
 export type QueryParams = {[key: string]: string};
 
 const fetchWithMethod = async <B, R> (fetchMethod: FetchMethod, path: string, expectedHttpStatus: number, queryParams?: QueryParams, body?: B, json = true) => {
+	const realPath = path.startsWith("!") ? path.substring(1) : getEndpointUrl(path);
 	try {
-		const response = await fetch(getEndpointUrl(path), {
+		const response = await fetch(realPath, {
 			method: fetchMethod,
 			credentials: "include",
 			headers: json ? {
@@ -38,7 +39,7 @@ const fetchWithMethod = async <B, R> (fetchMethod: FetchMethod, path: string, ex
 		const responseBodyText = await response.text();
 		return responseBodyText ? JSON.parse(responseBodyText) as R : null;
 	} catch (fetchError) {
-		console.log(">>>>>>>>>>>>>>>>>>> fetchError", fetchError);
+		console.error(fetchError);
 		throw fetchError;
 	}
 };

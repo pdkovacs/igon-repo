@@ -27,4 +27,4 @@ function dial() {
 	});
 }
 
-dial();
+// dial();

@@ -1,7 +1,3 @@
-const getUrl = window.location;
-const pathName = getUrl.pathname.endsWith("/")
-    ? getUrl.pathname.substring(0, getUrl.pathname.length - 1)
-    : getUrl.pathname;
-const baseUrl = getUrl.protocol + "//" + getUrl.host + pathName;
+import store from "../state/store";
 
-export default (path: string) => baseUrl + path;
+export default (path: string) => (store.getState().app.backendUrl || "") + path;

@@ -1,5 +1,6 @@
 import { ActionType, createAction } from "typesafe-actions";
 import { Config, fetchConfig } from "../../services/config";
+import { getData } from "../../services/fetch-utils";
 import { fetchUserInfo, UserInfo } from "../../services/user";
 import { AppThunk } from "./base";
 
@@ -22,6 +23,22 @@ export type ConfigAction = (
 	ActionType<typeof fetchConfigSuccess> |
 	ActionType<typeof fetchConfigFailure>
 )
+
+export interface DeployConfig {
+	readonly backendUrl: string;
+}
+
+export const fetchDeployConfigSuccess = createAction("app/fetch-deploy-config-success")<DeployConfig>();
+export const fetchDeployConfigFailure = createAction("app/fetch-deploy-config-failure")<Error>();
+export const fetchDeployConfigAction: () => AppThunk = ()  => {
+	return dispatch => {
+		getData("!/extra/client-config.json", 200)
+		.then(
+			(deployConfig: DeployConfig) => dispatch(fetchDeployConfigSuccess(deployConfig)),
+			error => dispatch(fetchDeployConfigFailure(error))
+		);
+	};
+};
 
 export const fetchUserInfoSuccess = createAction("app/fetch-userinfo-success")<UserInfo>();
 export const fetchUserInfoFailure = createAction("app/fetch-userinfo-failure")<Error>();

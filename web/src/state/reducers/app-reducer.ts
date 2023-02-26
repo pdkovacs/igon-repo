@@ -1,12 +1,13 @@
-import { getType } from "typesafe-actions";
+import { ActionType, getType } from "typesafe-actions";
 import { AppInfo } from "../../services/config";
 import { UserInfo } from "../../services/user";
-import { fetchConfigSuccess, ConfigAction, UserInfoAction, fetchUserInfoSuccess, loginNeeded } from "../actions/app-actions";
+import { fetchConfigSuccess, ConfigAction, UserInfoAction, fetchUserInfoSuccess, loginNeeded, fetchDeployConfigSuccess } from "../actions/app-actions";
 
 export interface AppSlice {
 	readonly appInfo: AppInfo;
 	readonly userInfo: UserInfo;
 	readonly idPLogoutUrl: string;
+	readonly backendUrl: string;
 }
 
 const initialState: AppSlice = {
@@ -22,11 +23,18 @@ const initialState: AppSlice = {
 		username: "John Doe",
 		authenticated: false
 	},
-	idPLogoutUrl: "/"
+	idPLogoutUrl: "/",
+	backendUrl: null
 };
 
-export const appReducer = (state: AppSlice = initialState, action: ConfigAction | UserInfoAction): AppSlice => {
+export const appReducer = (state: AppSlice = initialState, action: ActionType<typeof fetchDeployConfigSuccess> | ConfigAction | UserInfoAction): AppSlice => {
 	switch(action.type) {
+		case getType(fetchDeployConfigSuccess): {
+			return {
+				...state,
+				backendUrl: action.payload.backendUrl
+			};
+		}
 		case getType(loginNeeded): {
 			return {
 				...state,

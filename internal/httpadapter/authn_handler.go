@@ -81,7 +81,7 @@ func authentication(options config.Options, userService *services.UserService, l
 			clientID:              options.OIDCClientID,
 			clientSecret:          options.OIDCClientSecret,
 			serverURLContext:      options.ServerURLContext,
-		}, userService, options.UsernameCookie, log)
+		}, userService, options.UsernameCookie, options.ClientServerURL, log)
 	case authn.SchemeOIDCProxy:
 		return func(g *gin.Context) {
 		}
