@@ -126,7 +126,7 @@ func (s *server) createSessionStore(options config.Options) (sessions.Store, err
 			return store, createDbSessionStoreErr
 		}
 	} else {
-		logger.Info().Msgf("Using in-memory session store", options.SessionDbName)
+		logger.Info().Msgf("Using in-memory session store")
 		store = memstore.NewStore([]byte("secret"))
 	}
 

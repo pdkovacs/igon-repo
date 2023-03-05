@@ -108,6 +108,7 @@ func (s *GitTestSuite) BeforeTest(suiteName, testName string) {
 	case gitrepo.Local:
 		s.Repo = NewLocalGitTestRepo(conf)
 	case gitrepo.Gitlab:
+		conf.GitlabNamespacePath = "testing-with-repositories"
 		s.Repo = NewGitlabTestRepoClient(conf)
 	case nil:
 		s.Repo = NewLocalGitTestRepo(conf)

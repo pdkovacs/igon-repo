@@ -31,6 +31,7 @@ func (testSuite *gitlabRepoTestSuite) BeforeTest(suiteName string, testName stri
 	conf.LocalGitRepo = fmt.Sprintf("%s_%s", conf.LocalGitRepo, testSequenceId)
 	conf.GitlabProjectPath = fmt.Sprintf("%s_%s", defaultTestConfig.GitlabProjectPath, testSequenceId)
 	conf.GitlabAccessToken = git_tests.GitTestGitlabAPIToken()
+	conf.GitlabNamespacePath = "testing-with-repositories"
 
 	repo, err := gitrepo.NewGitlabRepositoryClient(
 		conf.GitlabNamespacePath,
