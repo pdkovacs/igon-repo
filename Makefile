@@ -43,9 +43,8 @@ $(backend): $(shell find internal/ cmd/ -type f)
 	$(build-go)
 $(frontend): $(shell find web/src -type f) web/webpack.config.js
 	cd web; npm install; npm run frontend;
-init-keycloak:
-	cd deployments/dev/keycloak/user-client-init
-	bash build.sh
+keycloak-init:
+	cd deployments/dev/keycloak/; bash build.sh
 ui-bundle: $(ui-bundle)
 app: $(app)
 backend: $(backend)
