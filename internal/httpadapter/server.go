@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"regexp"
 	"strconv"
 
 	"igo-repo/internal/app/domain"
@@ -140,7 +141,7 @@ func (s *server) initEndpoints(options config.Options) *gin.Engine {
 
 	rootEngine := gin.Default()
 
-	rootEngine.Use(CORSMiddleware(options.ClientServerURL))
+	rootEngine.Use(CORSMiddleware(options.AllowedClientURLsRegex, logging.CreateMethodLogger(logger, "CORS")))
 
 	if options.AuthenticationType != authn.SchemeOIDCProxy {
 		gob.Register(SessionData{})
@@ -225,15 +226,33 @@ func (s *server) Stop() {
 
 // TODO:
 // Use "github.com/gin-contrib/cors" with strict, parameterized rules
-func CORSMiddleware(clientServerURL string) gin.HandlerFunc {
+func CORSMiddleware(clientURLs string, logger zerolog.Logger) gin.HandlerFunc {
+	var clientURLsRegexp = regexp.MustCompile(clientURLs)
+
 	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", clientServerURL)
+		origin := c.Request.Header.Get("origin")
+
+		if origin == "" { // Not from browser or not COR
+			c.Next()
+			return
+		}
+
+		matchingOrigin := clientURLsRegexp.FindString(origin)
+
+		if matchingOrigin == "" {
+			c.AbortWithStatus(http.StatusForbidden)
+			return
+		}
+
+		logger.Debug().Msgf("%s request originated at %s. Matches: %s.", c.Request.Method, origin, matchingOrigin)
+
+		c.Writer.Header().Set("Access-Control-Allow-Origin", matchingOrigin)
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
 
 		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
+			c.AbortWithStatus(http.StatusNoContent)
 			return
 		}
 
