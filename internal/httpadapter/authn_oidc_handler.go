@@ -18,6 +18,8 @@ import (
 	"golang.org/x/oauth2"
 )
 
+const authenticationRefererSessionKey = "authentication-referer"
+
 type HandleOAuth2Callback func(c *gin.Context, storedState string) (*claims, error)
 
 func checkOIDCAuthentication(log zerolog.Logger) func(c *gin.Context) {
@@ -100,6 +102,9 @@ func (scheme *oidcScheme) createHandler(clientServerURL string) gin.HandlerFunc 
 		logging.CreateMethodLogger(logger, "oidc-authn")
 		logger.Debug().Msgf("Incoming request %v...", c.Request.URL)
 
+		referer := c.Request.Header.Get("referer")
+		logger.Debug().Msgf("Incoming request's Referer: %s", referer)
+
 		queryError := c.Query("error")
 		if queryError != "" {
 			logger.Error().Msgf("callback error: %s", queryError)
@@ -113,8 +118,17 @@ func (scheme *oidcScheme) createHandler(clientServerURL string) gin.HandlerFunc 
 		if userSession, ok := user.(SessionData); ok {
 			if len(userSession.UserInfo.UserId.IDInDomain) > 0 {
 				logger.Debug().Msg("session already authenticated")
-				// TODO: redirect to proper path
-				c.Redirect(302, clientServerURL)
+				authnReferer := session.Get(authenticationRefererSessionKey)
+				if authnReferer != nil {
+					if redirectTo, ok := authnReferer.(string); ok {
+						if authnReferer != "" {
+							c.Redirect(302, redirectTo)
+						}
+					} else {
+						logger.Warn().Msgf("Value of %s in the session wasn't a string", authenticationRefererSessionKey)
+					}
+					session.Delete(authenticationRefererSessionKey)
+				}
 				return
 			}
 			logger.Error().Msg("has user-session, but no user-id")
@@ -159,6 +173,7 @@ func (scheme *oidcScheme) createHandler(clientServerURL string) gin.HandlerFunc 
 
 		state := randSeq(32)
 		session.Set(oidcTokenRequestStateKey, state)
+		session.Set(authenticationRefererSessionKey, referer)
 		session.Save()
 
 		logger.Debug().Msgf("new authn round started, state %v saved to session", state)
