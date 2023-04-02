@@ -3,6 +3,10 @@
 app_instance_count=2
 app_executable="igo-repo"
 
+build_backend() {
+  make app
+}
+
 deploy_app_config() {
   if echo "$ICON_REPO_CONFIG_FILE" | grep -E '\-template.json';
   then

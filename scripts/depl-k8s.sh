@@ -20,6 +20,18 @@ kill_backend_process() {
   echo "kill_backend_process not implemented for k8s"
 }
 
+build_backend() {
+  GOOS=linux GOARCH=amd64 make app
+}
+
+build_image() {
+  build_image_cmd="$1"
+  (
+    eval $(minikube docker-env)
+    eval "$build_image_cmd"
+  )
+}
+
 redeploy_service() {
   image_name="$1"
   build_image_cmd="$2"
@@ -31,7 +43,7 @@ redeploy_service() {
   do
     docker rmi "$image_name:$old_tag"
   done
-  eval "$build_image_cmd"
+  build_image "$build_image_cmd"
   tag=$(tr -dc A-Za-z0-9 </dev/urandom | head -c 13 ; echo '')
   new_dev_image="$image_name":dev-"${tag,,}"
   docker tag "$image_name":latest "$new_dev_image" 
@@ -40,15 +52,21 @@ redeploy_service() {
 
 deploy_backend() {
   deploy_app_config
-  redeploy_service iconrepo-backend "scripts/make.sh build_backend_docker igo-repo" iconrepo iconrepo
+  build_image_cmd="scripts/make.sh build_backend_docker igo-repo"
+  # redeploy_service iconrepo-backend "$build_image_cmd" iconrepo iconrepo
+  build_image "$build_image_cmd"
+  kubectl delete pod $(kubectl get pod -l app=iconrepo -o jsonpath='{.items[0].metadata.name}')
 }
 
 deploy_webpack_bundle() {
   ui_bundle="$1"
   ui_bundle_dir="$2"
   deploy_client_config
+  build_image_cmd="scripts/make.sh build_client_docker \"$ui_bundle\" \"$ui_bundle_dir\""
   set -x
-  redeploy_service iconrepo-client "scripts/make.sh build_client_docker \"$ui_bundle\" \"$ui_bundle_dir\"" iconrepo-client iconrepo-client
+  # redeploy_service iconrepo-client "$build_image_cmd" iconrepo-client iconrepo-client
+  build_image "$build_image_cmd"
+  kubectl delete pod $(kubectl get pod -l app=iconrepo -o jsonpath='{.items[0].metadata.name}')
   set +x
 }
 

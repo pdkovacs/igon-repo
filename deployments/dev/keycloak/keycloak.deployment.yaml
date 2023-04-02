@@ -21,6 +21,8 @@ metadata:
     app: keycloak
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: keycloak
@@ -33,41 +35,9 @@ spec:
       - name: keycloak
         image: quay.io/keycloak/keycloak:19.0.3
         args: ["start-dev", "--features=preview"]
-        env:
-        - name: KEYCLOAK_ADMIN
-          value: keycloak
-        - name: KEYCLOAK_ADMIN_PASSWORD
-          value: password
-        - name: KC_DB
-          valueFrom:
-            configMapKeyRef:
+        envFrom:
+          - configMapRef:
               name: keycloak
-              key: db.vendor
-        - name: KC_DB_URL_HOST
-          valueFrom:
-            configMapKeyRef:
-              name: keycloak
-              key: db.addr
-        - name: KC_DB_URL_PORT
-          valueFrom:
-            configMapKeyRef:
-              name: keycloak
-              key: db.port
-        - name: KC_DB_URL_DATABASE
-          valueFrom:
-            configMapKeyRef:
-              name: keycloak
-              key: db.database
-        - name: KC_DB_USERNAME
-          valueFrom:
-            configMapKeyRef:
-              name: keycloak
-              key: db.user
-        - name: KC_DB_PASSWORD
-          valueFrom:
-            configMapKeyRef:
-              name: keycloak
-              key: db.password
         ports:
         - name: http
           containerPort: 8080

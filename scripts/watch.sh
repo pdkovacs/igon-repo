@@ -6,8 +6,6 @@ export deployment_target=k8s # local or k8s
 ui_bundle="$1"
 ui_bundle_dir="$2"
 
-build_backend_cmd="make app"
-
 settle_down_secs=1
 
 LOGS_HOME=~/workspace/logs
@@ -52,21 +50,22 @@ watch_webpack() {
 }
 
 watch_backend() {
-  eval "$build_backend_cmd" || exit 1
+  build_backend || exit 1
   while true
   do
     deploy_backend
 
     sleep $settle_down_secs
 
+set -x
     fswatch -r -1 --event Created --event Updated --event Removed \
       -e '.*/[.]git/.*' \
       -e 'web' \
       -e "$fswatch_pid_file"'$' \
       -e '.*/igo-repo/igo-repo$' \
       -e 'deployments' \
-      -i "$ICON_REPO_CONFIG_FILE" \ # this doesn't work; see https://github.com/emcrisostomo/fswatch/issues/247 .
       . &
+set +x
 
     fswatch_pid=$!
     echo $fswatch_pid > "$fswatch_pid_file"
@@ -79,7 +78,7 @@ watch_backend() {
     
     kill_backend_process
     
-    eval "$build_backend_cmd"
+    build_backend
   done
 }
 

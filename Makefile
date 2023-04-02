@@ -59,4 +59,4 @@ backend-docker: $(backend)
 frontend-docker: $(frontend)
 	scripts/make.sh build_frontend_docker $(ui-bundle) $(ui-bundle-dir)
 watch:
-	./scripts/watch.sh $(ui-bundle) $(ui-bundle-dir)
+	./scripts/watch.sh $(ui-bundle) $(ui-bundle-dir) 2>&1 | tee ~/workspace/logs/igo-repo-watch-log

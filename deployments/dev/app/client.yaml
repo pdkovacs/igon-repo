@@ -23,15 +23,12 @@ metadata:
 spec:
   progressDeadlineSeconds: 600
   replicas: 1
+  strategy:
+    type: Recreate
   revisionHistoryLimit: 10
   selector:
     matchLabels:
       app: iconrepo-client
-  strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 25%
-    type: RollingUpdate
   template:
     metadata:
       labels:

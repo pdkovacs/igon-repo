@@ -23,22 +23,19 @@ metadata:
 spec:
   progressDeadlineSeconds: 600
   replicas: 1
+  strategy:
+    type: Recreate
   revisionHistoryLimit: 10
   selector:
     matchLabels:
       app: iconrepo
-  strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 25%
-    type: RollingUpdate
   template:
     metadata:
       labels:
         app: iconrepo
     spec:
       containers:
-      - image: iconrepo:latest
+      - image: iconrepo-backend:latest
         imagePullPolicy: Never
         name: iconrepo
         env:
@@ -48,12 +45,12 @@ spec:
           valueFrom:
            secretKeyRef:
              name: iconrepo
-             key: oidc-client-secret
+             key: OIDC_CLIENT_SECRET
         - name: GITLAB_ACCESS_TOKEN
           valueFrom:
            secretKeyRef:
              name: iconrepo
-             key: gitlab-access-token
+             key: GITLAB_ACCESS_TOKEN
         ports:
         - name: http
           containerPort: 8080
