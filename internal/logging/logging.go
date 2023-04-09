@@ -2,6 +2,7 @@ package logging
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"time"
 
@@ -15,8 +16,23 @@ const (
 	InfoLevel  LogLevel = "info"
 )
 
+type LogFormat = string
+
+const (
+	JSONFormat    LogFormat = "json"
+	ColoredFormat LogFormat = "colored"
+)
+
+func createLogWriter() io.Writer {
+	var logWriter io.Writer = os.Stderr
+	if false {
+		logWriter = zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
+	}
+	return logWriter
+}
+
 func CreateRootLogger(levelArg LogLevel) zerolog.Logger {
-	logger := zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339})
+	logger := zerolog.New(createLogWriter())
 	var level zerolog.Level
 	if levelArg == InfoLevel {
 		level = zerolog.InfoLevel
