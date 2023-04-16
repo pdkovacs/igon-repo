@@ -1,7 +1,5 @@
 #!/bin/bash
 
-echo "Executing curl...."
-
 bash ./wait-for-local-keycloak.sh
 bash ./create-terraform-client.sh
 

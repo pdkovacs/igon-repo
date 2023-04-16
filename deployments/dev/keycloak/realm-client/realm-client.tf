@@ -27,7 +27,7 @@ resource "keycloak_openid_client" "iconrepo" {
 
   access_type         = "CONFIDENTIAL"
   valid_redirect_uris = [
-    "http://${var.app_hostname}:8080/*"
+    "http://${var.app_hostname}/*"
   ]
   standard_flow_enabled = true
 
@@ -45,7 +45,7 @@ resource "keycloak_openid_group_membership_protocol_mapper" "group_membership_ma
 
 variable "app_hostname" {
   type = string
-  default = "iconrepo-backend.local.com"
+  default = "api.iconrepo.local.com"
 }
 
 variable "keycloak_url" {
