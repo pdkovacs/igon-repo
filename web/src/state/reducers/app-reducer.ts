@@ -14,7 +14,8 @@ const initialState: AppSlice = {
 	appInfo: {
 		versionInfo: {
 			version: "No data",
-			commit: "No data"
+			commit: "No data",
+			buildTime: "No data"
 		},
 		appDescription: "No data"
 	},

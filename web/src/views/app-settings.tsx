@@ -1,4 +1,4 @@
-import { Button, Dialog } from "@mui/material";
+import { Button, Dialog, DialogActions, DialogContent } from "@mui/material";
 import * as React from "react";
 import { VersionInfo } from "../services/config";
 import "./app-settings.styl";
@@ -29,23 +29,24 @@ export class AppSettgins extends React.Component<{versionInfo: VersionInfo}, {is
 				{...dialogOptions}
 				open={this.state.isOpen}
 				onClose={this.handleClose}>
-				<div>
-					<div className="about-dialog">
-						<table>
-							<tbody>
-								<tr>
-									<td>Version:</td><td>{this.props.versionInfo.version}</td>
-								</tr>
-								<tr>
-									<td>Commit ID:</td><td>{this.props.versionInfo.commit}</td>
-								</tr>
-						</tbody>
-						</table>
-				</div>
-				</div>
-				<div>
+				<DialogContent className="about-dialog">
+					<table>
+						<tbody>
+							<tr>
+								<td>Version:</td><td>{this.props.versionInfo.version}</td>
+							</tr>
+							<tr>
+								<td>Commit ID:</td><td>{this.props.versionInfo.commit}</td>
+							</tr>
+							<tr>
+								<td>Build time:</td><td>{this.props.versionInfo.buildTime}</td>
+							</tr>
+					</tbody>
+					</table>
+				</DialogContent>
+				<DialogActions>
 					<Button onClick={this.handleClose}>Close</Button>
-				</div>
+				</DialogActions>
 			</Dialog>
 		</div>;
 	}

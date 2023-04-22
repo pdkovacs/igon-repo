@@ -7,14 +7,18 @@ app       = igo-repo
 frontend  = web/frontend/bundle.js
 backend   = igo-repo-backend
 
+define buildinfo =
+	echo VERSION=0.0.1 > internal/config/buildinfo.txt
+	printf "TIME=" >> internal/config/buildinfo.txt
+	date --rfc-3339=ns >> internal/config/buildinfo.txt
+	printf "COMMIT=" >> internal/config/buildinfo.txt
+	git rev-parse HEAD >> internal/config/buildinfo.txt
+endef
+
 define build-go =
+	$(buildinfo)
 	echo "GOOS: ${GOOS} GOARCH: ${GOARCH}"
-		env GOOS=${GOOS} GOARCH=${GOARCH} go build -ldflags "\
-			-X 'igo-repo/build.version=0.0.1' \
-			-X 'igo-repo/build.user=$$(id -u -n)' \
-			-X 'igo-repo/build.time=$$(date)' \
-			-X 'igo-repo/build.commit=$$(git rev-parse HEAD)' \
-		" -o igo-repo cmd/main.go
+		env GOOS=${GOOS} GOARCH=${GOARCH} go build -o igo-repo cmd/main.go
 endef
 
 .PHONY: clean test run app

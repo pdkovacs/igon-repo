@@ -12,6 +12,7 @@ export const iconfileTypes: { [key: string]: string[] } = Object.freeze({
 export interface VersionInfo {
 	version: string;
 	commit: string;
+	buildTime: string;
 }
 
 export interface AppInfo {
@@ -38,9 +39,9 @@ export const fetchConfig = async (): Promise<Config> => {
 		return {
 			appInfo: values[0] as AppInfo,
 			clientConfig: values[1] as ClientConfig
-		}
+		};
 	});
-}
+};
 
 export const defaultTypeForFile = (fileName: string) => {
 	const formats = Object.keys(iconfileTypes);

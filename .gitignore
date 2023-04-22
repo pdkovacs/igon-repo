@@ -17,3 +17,4 @@ fswatch.pid
 deployments/dev/app/config.json
 bundle.js
 index.html
+internal/config/buildinfo.txt
