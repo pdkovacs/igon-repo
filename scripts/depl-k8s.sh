@@ -66,7 +66,7 @@ deploy_webpack_bundle() {
   set -x
   # redeploy_service iconrepo-client "$build_image_cmd" iconrepo-client iconrepo-client
   build_image "$build_image_cmd"
-  kubectl delete pod $(kubectl get pod -l app=iconrepo -o jsonpath='{.items[0].metadata.name}')
+  kubectl delete pod $(kubectl get pod -l app=iconrepo-client -o jsonpath='{.items[0].metadata.name}')
   set +x
 }
 
