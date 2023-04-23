@@ -7,7 +7,6 @@ import type {} from "redux-thunk/extend-redux";
 import "./app.styl";
 import { IconRepoState } from "./state/reducers/root-reducer";
 import { LoginDialog } from "./views/login";
-import { useReporters } from "./utils/use-reporters";
 
 import "./services/notification";
 import { useNotifications } from "./utils/use-notifications";
@@ -19,8 +18,6 @@ export const App = () => {
 
 	const dispatch = useDispatch();
 
-	const { reportInfo } = useReporters();
-
 	useEffect(() => {
 		dispatch(fetchDeployConfigAction());
 	}, []);
@@ -30,7 +27,6 @@ export const App = () => {
 			dispatch(fetchUserInfoAction());
 
 			if (authenticated) {
-				reportInfo("You are logged in (again)!");
 				dispatch(fetchConfigAction());
 			}
 		}
