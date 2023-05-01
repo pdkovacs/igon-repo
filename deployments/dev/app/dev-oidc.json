@@ -6,12 +6,11 @@
     "oidcTokenIssuer": "http://keycloak:8080/realms/my-realm",
     "oidcClientId": "iconrepo",
     "oidcClientSecret": "This value is coming from the environment variable",
-    "oidcClientRedirectBackUrl": "http://api.iconrepo.local.com/openid-callback",
+    "oidcClientRedirectBackUrl": "http://iconrepo.local.com/openid-callback",
     "oidcLogoutUrl": "http://keycloak:8080/realms/my-realm/protocol/openid-connect/logout",
     "localGitRepo": "",
     "gitlabNamespacePath": "testing-with-repositories",
     "gitlabProjectPath": "icon-repo",
     "gitlabMainBranch": "main",
-    "logLevel": "debug",
-    "allowedClientUrlsRegex": ".*//.*\\.iconrepo.local.com(:[0-9]+)?(/.*)?"
+    "logLevel": "debug"
 }

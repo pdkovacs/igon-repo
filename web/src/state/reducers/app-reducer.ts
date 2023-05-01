@@ -3,11 +3,16 @@ import { AppInfo } from "../../services/config";
 import { UserInfo } from "../../services/user";
 import { fetchConfigSuccess, ConfigAction, UserInfoAction, fetchUserInfoSuccess, loginNeeded, fetchDeployConfigSuccess } from "../actions/app-actions";
 
+export interface BackendAccess {
+	readonly baseUrl: string;
+	readonly pathRoot: string;
+}
+
 export interface AppSlice {
 	readonly appInfo: AppInfo;
 	readonly userInfo: UserInfo;
 	readonly idPLogoutUrl: string;
-	readonly backendUrl: string;
+	readonly backendAccess: BackendAccess;
 }
 
 const initialState: AppSlice = {
@@ -25,7 +30,10 @@ const initialState: AppSlice = {
 		authenticated: false
 	},
 	idPLogoutUrl: "/",
-	backendUrl: null
+	backendAccess: {
+		baseUrl: null,
+		pathRoot: null
+	}
 };
 
 export const appReducer = (state: AppSlice = initialState, action: ActionType<typeof fetchDeployConfigSuccess> | ConfigAction | UserInfoAction): AppSlice => {
@@ -33,7 +41,7 @@ export const appReducer = (state: AppSlice = initialState, action: ActionType<ty
 		case getType(fetchDeployConfigSuccess): {
 			return {
 				...state,
-				backendUrl: action.payload.backendUrl
+				backendAccess: action.payload.backendAccess
 			};
 		}
 		case getType(loginNeeded): {

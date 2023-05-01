@@ -9,8 +9,8 @@
 2. Install the manifests for the app:
    
    ```
-   kubectl apply -f backend-httpproxy.yaml
-   kubectl apply -f client-httpproxy.yaml
+   kubectl apply -f cors/backend-httpproxy.yaml
+   kubectl apply -f cors/client-httpproxy.yaml
    ```
 
 3. Check and note the FQDNs:

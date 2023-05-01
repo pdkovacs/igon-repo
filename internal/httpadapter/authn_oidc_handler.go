@@ -30,7 +30,7 @@ func checkOIDCAuthentication(log zerolog.Logger) func(c *gin.Context) {
 		user := session.Get(UserKey)
 		if user == nil {
 			logger.Debug().Msgf("Request not authenticated: %v", c.Request.URL)
-			c.AbortWithStatus(401)
+			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 		logger.Debug().Msgf("User session: %v", user)
@@ -61,17 +61,17 @@ type oidcScheme struct {
 	usernameCookie string
 }
 
-func CreateOIDCSChemeHandler(config oidcConfig, userService *services.UserService, usernameCookie string, clientServerURL string, logger zerolog.Logger) gin.HandlerFunc {
+func CreateOIDCSChemeHandler(config oidcConfig, userService *services.UserService, usernameCookie string, redirectToReferrer bool, logger zerolog.Logger) gin.HandlerFunc {
 	scheme := oidcScheme{
 		config:         config,
 		logger:         logger,
 		userService:    userService,
 		usernameCookie: usernameCookie,
 	}
-	return scheme.createHandler(clientServerURL)
+	return scheme.createHandler(redirectToReferrer)
 }
 
-func (scheme *oidcScheme) createHandler(clientServerURL string) gin.HandlerFunc {
+func (scheme *oidcScheme) createHandler(redirectToReferrer bool) gin.HandlerFunc {
 	logger := logging.CreateMethodLogger(scheme.logger, "oidc-authn")
 	config := scheme.config
 
@@ -103,13 +103,13 @@ func (scheme *oidcScheme) createHandler(clientServerURL string) gin.HandlerFunc 
 		logger.Debug().Msgf("Incoming request %v...", c.Request.URL)
 
 		referer := c.Request.Header.Get("referer")
-		logger.Debug().Msgf("Incoming request's Referer: %s", referer)
+		logger.Debug().Msgf("Incoming request's Referer: '%s'", referer)
 
 		queryError := c.Query("error")
 		if queryError != "" {
 			logger.Error().Msgf("callback error: %s", queryError)
 			c.Writer.WriteString("callback error")
-			c.AbortWithStatus(401)
+			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 
@@ -117,12 +117,14 @@ func (scheme *oidcScheme) createHandler(clientServerURL string) gin.HandlerFunc 
 		user := session.Get(UserKey)
 		if userSession, ok := user.(SessionData); ok {
 			if len(userSession.UserInfo.UserId.IDInDomain) > 0 {
-				logger.Debug().Msg("session already authenticated")
+				logger.Debug().Msgf("session '%s' already authenticated", session.ID())
 				authnReferer := session.Get(authenticationRefererSessionKey)
-				if authnReferer != nil {
+				if redirectToReferrer && authnReferer != nil {
 					if redirectTo, ok := authnReferer.(string); ok {
 						if authnReferer != "" {
-							c.Redirect(302, redirectTo)
+							c.Abort()
+							c.Redirect(http.StatusFound, redirectTo)
+							return
 						}
 					} else {
 						logger.Warn().Msgf("Value of %s in the session wasn't a string", authenticationRefererSessionKey)
@@ -132,7 +134,7 @@ func (scheme *oidcScheme) createHandler(clientServerURL string) gin.HandlerFunc 
 				return
 			}
 			logger.Error().Msg("has user-session, but no user-id")
-			c.AbortWithStatus(401)
+			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 
@@ -142,8 +144,8 @@ func (scheme *oidcScheme) createHandler(clientServerURL string) gin.HandlerFunc 
 			state := session.Get(oidcTokenRequestStateKey)
 			storedState, ok := state.(string)
 			if !ok {
-				logger.Error().Msg("no suitable auth2-state stored for session")
-				c.AbortWithStatus(401)
+				logger.Debug().Msgf("no suitable auth2-state stored for session '%s'", session.ID())
+				c.AbortWithStatus(http.StatusUnauthorized)
 				return
 			}
 			claims, handleCallbackErr := handleOAuth2Callback(c, storedState)
@@ -163,11 +165,11 @@ func (scheme *oidcScheme) createHandler(clientServerURL string) gin.HandlerFunc 
 			}
 			if handleCallbackErr != nil {
 				logger.Error().Msgf("error while processing authorization code: %v", handleCallbackErr)
-				c.AbortWithStatus(401)
+				c.AbortWithStatus(http.StatusUnauthorized)
 				return
 			}
 			logger.Error().Msg("No claims found")
-			c.AbortWithStatus(401)
+			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
 
@@ -176,7 +178,7 @@ func (scheme *oidcScheme) createHandler(clientServerURL string) gin.HandlerFunc 
 		session.Set(authenticationRefererSessionKey, referer)
 		session.Save()
 
-		logger.Debug().Msgf("new authn round started, state %v saved to session", state)
+		logger.Debug().Msgf("new authn round started with state %v save'd 'to session '%s'", state, session.ID())
 
 		c.Abort()
 		c.Redirect(http.StatusFound, oauth2Config.AuthCodeURL(state))

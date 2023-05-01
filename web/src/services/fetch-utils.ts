@@ -22,18 +22,17 @@ const fetchWithMethod = async <B, R> (fetchMethod: FetchMethod, path: string, ex
 			headers: json ? {
         "Content-Type": "application/json; charset=utf-8"
 			} : undefined,
-			// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 			// @ts-ignore
 			body: body ? json ? JSON.stringify(body) : body: undefined
 		});
 
 		if (response.status === 401) {
 			store.dispatch(loginNeeded(true));
-			return;
+			return throwError("Request for " + realPath + " was rejected as Unauthrozied", response);
 		}
 
 		if (response.status !== expectedHttpStatus) {
-			return throwError("Unexpected status: ", response);
+			return throwError("Request for " + realPath + " returned unexpected status: " + response.status, response);
 		}
 
 		const responseBodyText = await response.text();

@@ -141,7 +141,9 @@ func (s *server) initEndpoints(options config.Options) *gin.Engine {
 
 	rootEngine := gin.Default()
 
-	rootEngine.Use(CORSMiddleware(options.AllowedClientURLsRegex, logging.CreateMethodLogger(logger, "CORS")))
+	if config.UseCORS(options) {
+		rootEngine.Use(CORSMiddleware(options.AllowedClientURLsRegex, logging.CreateMethodLogger(logger, "CORS")))
+	}
 
 	if options.AuthenticationType != authn.SchemeOIDCProxy {
 		gob.Register(SessionData{})
@@ -240,6 +242,7 @@ func CORSMiddleware(clientURLs string, logger zerolog.Logger) gin.HandlerFunc {
 		matchingOrigin := clientURLsRegexp.FindString(origin)
 
 		if matchingOrigin == "" {
+			logger.Debug().Msgf("No matching origin for %s %s using '%s'", c.Request.Method, origin, clientURLs)
 			c.AbortWithStatus(http.StatusForbidden)
 			return
 		}

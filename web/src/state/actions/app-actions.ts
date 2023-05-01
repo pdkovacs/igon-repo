@@ -3,6 +3,7 @@ import { Config, fetchConfig } from "../../services/config";
 import { getData } from "../../services/fetch-utils";
 import { fetchUserInfo, UserInfo } from "../../services/user";
 import { AppThunk } from "./base";
+import { BackendAccess } from "../reducers/app-reducer";
 
 export const loginNeeded = createAction("app/prompt-for-login")<boolean>();
 
@@ -25,7 +26,7 @@ export type ConfigAction = (
 )
 
 export interface DeployConfig {
-	readonly backendUrl: string;
+	readonly backendAccess: BackendAccess;
 }
 
 export const fetchDeployConfigSuccess = createAction("app/fetch-deploy-config-success")<DeployConfig>();

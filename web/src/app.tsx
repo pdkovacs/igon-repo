@@ -3,6 +3,7 @@ import { IconList } from "./views/icon/icon-list";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchConfigAction, fetchDeployConfigAction, fetchUserInfoAction } from "./state/actions/app-actions";
 import type {} from "redux-thunk/extend-redux";
+import getEndPointUrl from "./services/url";
 
 import "./app.styl";
 import { IconRepoState } from "./state/reducers/root-reducer";
@@ -14,7 +15,7 @@ import { useNotifications } from "./utils/use-notifications";
 export const App = () => {
 
 	const authenticated = useSelector((state: IconRepoState) => state.app.userInfo.authenticated);
-	const backendUrl = useSelector((state: IconRepoState) => state.app.backendUrl);
+	const backendBaseUrl = useSelector((state: IconRepoState) => state.app.backendAccess.baseUrl);
 
 	const dispatch = useDispatch();
 
@@ -23,19 +24,19 @@ export const App = () => {
 	}, []);
 
 	useEffect(() => {
-		if (backendUrl !== null) {
+		if (backendBaseUrl !== null) {
 			dispatch(fetchUserInfoAction());
 
 			if (authenticated) {
 				dispatch(fetchConfigAction());
 			}
 		}
-	}, [authenticated, backendUrl]);
+	}, [authenticated, backendBaseUrl]);
 
 	useNotifications();
 
 	return <div className="iconrepo-app">
-		{ !authenticated && <LoginDialog open={!authenticated} loginUrl="some URL"/> }
-		{ authenticated && backendUrl !== null && <IconList/> }
+		{ !authenticated && <LoginDialog open={!authenticated} loginUrl={getEndPointUrl("/login")}/> }
+		{ authenticated && backendBaseUrl !== null && <IconList/> }
 	</div>;
 };

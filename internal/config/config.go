@@ -270,3 +270,7 @@ func setValueFromInterface(value interface{}, target reflect.Value) error {
 		return fmt.Errorf("unexpected property type: %v", target.Kind())
 	}
 }
+
+func UseCORS(options Options) bool {
+	return len(options.AllowedClientURLsRegex) > 0
+}

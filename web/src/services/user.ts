@@ -1,5 +1,6 @@
 import getEndpointUrl from "./url";
 import { throwError } from "./errors";
+import { getData } from "./fetch-utils";
 
 export interface UserInfo {
     readonly username: string;
@@ -20,22 +21,12 @@ export const initialUserInfo = () => ({
     permissions: [] as string[]
 });
 
-export const fetchUserInfo: () => Promise<UserInfo> = () => fetch(getEndpointUrl("/user"), {
-    method: "GET",
-    credentials: "include"
-})
-.then(response => {
-    if (response.status !== 200) {
-        return throwError("Failed to get user info", response);
-    } else {
-        return response.json();
-    }
-})
+export const fetchUserInfo: () => Promise<UserInfo> = () => getData<{}, UserInfo>("/user", 200)
 .then(
-    userInfo => {
-        userInfo.authenticated = true;
-        return userInfo;
-    }
+    userInfo => ({
+			...userInfo,
+			authenticated: true
+    })
 );
 
 export const logout = (idPlogoutUrl: string) => fetch(getEndpointUrl("/logout"), {

@@ -2,7 +2,6 @@ import { Button, Dialog, DialogActions, DialogContent, DialogTitle } from "@mui/
 import React from "react";
 import { useDispatch } from "react-redux";
 import { loginNeeded } from "../state/actions/app-actions";
-import getEndPointUrl from "../services/url";
 
 interface LoginDialogProps {
 	readonly open:     boolean;
@@ -27,7 +26,7 @@ export const LoginDialog = (props: LoginDialogProps) => {
 				// href={pathOfSelectedIconfile}
 				onClick={() => {
 					dispatch(loginNeeded(false));
-					window.location.href = getEndPointUrl("/login");
+					window.location.href = props.loginUrl;
 				}}
 			>
 				OK

@@ -2,6 +2,7 @@ package httpadapter
 
 import (
 	"fmt"
+	"net/http"
 
 	"igo-repo/internal/app/security/authn"
 	"igo-repo/internal/app/security/authr"
@@ -81,7 +82,7 @@ func authentication(options config.Options, userService *services.UserService, l
 			clientID:              options.OIDCClientID,
 			clientSecret:          options.OIDCClientSecret,
 			serverURLContext:      options.ServerURLContext,
-		}, userService, options.UsernameCookie, options.AllowedClientURLsRegex, log)
+		}, userService, options.UsernameCookie, config.UseCORS(options), log)
 	case authn.SchemeOIDCProxy:
 		return func(g *gin.Context) {
 		}
@@ -93,13 +94,14 @@ func logout(options config.Options, log zerolog.Logger) gin.HandlerFunc {
 	return func(g *gin.Context) {
 		if options.AuthenticationType != authn.SchemeOIDC {
 			log.Info().Msgf("Logout is not currently supported with authentication scheme %#v", options.AuthenticationType)
-			g.AbortWithStatus(400)
+			g.AbortWithStatus(http.StatusBadRequest)
 		}
 		session := sessions.Default(g)
 		session.Clear() // this will mark the session as "written" only if there's
 		// at least one key to delete
 		session.Options(sessions.Options{MaxAge: -1})
 		session.Save()
-		g.Redirect(302, options.OIDCLogoutURL)
+		g.Abort()
+		g.Redirect(http.StatusFound, options.OIDCLogoutURL)
 	}
 }

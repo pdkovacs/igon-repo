@@ -13,7 +13,10 @@ deploy_app_config() {
 }
 
 deploy_client_config() {
-  kubectl create configmap iconrepo-client --from-file=deployments/dev/app/client-config.json --dry-run=client -o yaml | kubectl apply -f -
+  kubectl create configmap iconrepo-client \
+    --from-file=deployments/dev/app/contour-httpproxy/$backend_client_split/client-config.json \
+    --dry-run=client -o yaml | \
+      kubectl apply -f -
 }
 
 kill_backend_process() {

@@ -1,0 +1,5 @@
+{ 
+    "backendAccess": {
+        "baseUrl": "http://api.iconrepo.local.com"
+    }
+}
