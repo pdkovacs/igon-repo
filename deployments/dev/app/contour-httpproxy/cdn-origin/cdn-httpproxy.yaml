@@ -12,6 +12,14 @@ spec:
       services:
         - name: iconrepo-backend
           port: 8080
+      pathRewritePolicy:
+        replacePrefix:
+        - prefix: /api
+          replacement: /
+      cookieRewritePolicies: # We're not directing to REWRITE here actually, we're directing NOT to REWRITE
+      - name: mysession
+        pathRewrite:
+          value: /
     - conditions:
       - prefix: /openid-callback
       services:
