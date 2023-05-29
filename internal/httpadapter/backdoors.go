@@ -17,12 +17,14 @@ func HandlePutIntoBackdoorRequest(logger zerolog.Logger) func(c *gin.Context) {
 		if errReadRequest != nil {
 			logger.Error().Msgf("failed to read request body %T: %v", c.Request.Body, errReadRequest)
 			c.JSON(500, nil)
+			return
 		}
 		permissions := []authr.PermissionID{}
 		errBodyUnmarshal := json.Unmarshal(requestBody, &permissions)
 		if errBodyUnmarshal != nil {
 			logger.Error().Msgf("failed to unmarshal request body %T: %v", requestBody, errBodyUnmarshal)
 			c.JSON(400, nil)
+			return
 		}
 		session := sessions.Default(c)
 		user := session.Get(UserKey)
