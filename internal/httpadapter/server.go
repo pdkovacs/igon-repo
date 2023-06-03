@@ -62,10 +62,6 @@ func CreateServer(configuration config.Options, api api, logger zerolog.Logger) 
 	}
 }
 
-type Stoppable interface {
-	Stop()
-}
-
 // start starts the service
 func (s *server) start(portRequested int, r http.Handler, ready func(port int, stop func())) {
 	logger := logging.CreateMethodLogger(s.logger, "StartServer")
