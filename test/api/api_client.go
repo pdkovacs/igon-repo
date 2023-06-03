@@ -167,10 +167,6 @@ func (c *apiTestClient) get(req *testRequest) (testResponse, error) {
 	return c.sendRequest("GET", req)
 }
 
-func (c *apiTestClient) post(req *testRequest) (testResponse, error) {
-	return c.sendRequest("POST", req)
-}
-
 func getFilePath(iconName string, fileDescriptor domain.IconfileDescriptor) string {
 	return fmt.Sprintf("/icon/%s/format/%s/size/%s", iconName, fileDescriptor.Format, fileDescriptor.Size)
 }
