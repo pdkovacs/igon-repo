@@ -26,7 +26,7 @@ import (
 var rootAPILogger = logging.CreateRootLogger(logging.DebugLevel)
 
 type ApiTestSuite struct {
-	suite.Suite
+	*suite.Suite
 	config          config.Options
 	stopServer      func()
 	testDBRepo      icondb.Repository
@@ -43,7 +43,18 @@ func apiTestSuites(testSequenceId string, gitProviders []git_tests.GitTestRepo) 
 	conf.DBSchemaName = testSequenceId
 	conf.LocalGitRepo = fmt.Sprintf("%s_%s", conf.LocalGitRepo, testSequenceId)
 	for _, repo := range gitProviders {
-		all = append(all, ApiTestSuite{config: conf, TestGitRepo: repo, testSequenceId: testSequenceId})
+		suiteToEmbed := new(suite.Suite)
+		all = append(all, ApiTestSuite{
+			suiteToEmbed,
+			conf,
+			nil,
+			icondb.Repository{},
+			repo,
+			apiTestClient{},
+			zerolog.Logger{},
+			testSequenceId,
+			0,
+		})
 	}
 	return all
 }
