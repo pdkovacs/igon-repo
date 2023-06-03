@@ -31,8 +31,8 @@ func (client *apiTestClient) login(credentials *requestCredentials) (*apiTestSes
 	}
 	cjar := client.MustCreateCookieJar()
 
-	resp, postError := client.post(&testRequest{
-		path:        "/",
+	resp, postError := client.get(&testRequest{
+		path:        "/login",
 		credentials: credentials,
 		jar:         cjar,
 		json:        true,
