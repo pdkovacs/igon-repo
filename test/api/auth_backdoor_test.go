@@ -56,7 +56,7 @@ func (s *authBackDoorTestSuite) TestBackDoorMustntBeAvailableByDefault() {
 		body: []authr.PermissionID{},
 	})
 	s.NoError(err)
-	s.Equal(404, resp.statusCode)
+	s.Equal(405, resp.statusCode)
 }
 
 func (s *authBackDoorTestSuite) TestBackDoorShouldBeAvailableWhenEnabled() {
