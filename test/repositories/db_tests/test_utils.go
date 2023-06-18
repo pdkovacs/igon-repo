@@ -50,11 +50,11 @@ func ResetDBData(db *sql.DB) error {
 func (s *DBTestSuite) NewTestDBRepo() {
 	var err error
 	config := test_commons.GetTestConfig()
-	connection, err := icondb.NewDBConnection(config, logging.CreateUnitLogger(s.logger, "test-db-connection"))
+	connection, err := icondb.NewDBConnection(config)
 	if err != nil {
 		panic(fmt.Sprintf("failed to create test connection: %v", err))
 	}
-	_, schemaErr := icondb.OpenSchema(config, connection, logging.CreateUnitLogger(s.logger, "db-schema"))
+	_, schemaErr := icondb.OpenSchema(config, connection)
 	if schemaErr != nil {
 		panic(schemaErr)
 	}
@@ -62,7 +62,7 @@ func (s *DBTestSuite) NewTestDBRepo() {
 	if err != nil {
 		panic(fmt.Sprintf("failed to delete test data: %v", err))
 	}
-	s.dbRepo = icondb.NewDBRepository(connection, logging.CreateUnitLogger(s.logger, "test-db-repo"))
+	s.dbRepo = icondb.NewDBRepository(connection)
 	if err != nil {
 		panic(err)
 	}
@@ -73,7 +73,7 @@ func manageTestResourcesAfterEach() {
 
 func (s *DBTestSuite) SetupSuite() {
 	s.config.DBSchemaName = "itest_repositories"
-	s.logger = logging.CreateRootLogger(logging.DebugLevel)
+	s.logger = logging.Get()
 }
 
 func (s *DBTestSuite) TearDownSuite() {
@@ -96,7 +96,7 @@ func (s *DBTestSuite) equalIconAttributes(icon1 domain.Icon, icon2 domain.IconDe
 	}
 }
 
-func (s DBTestSuite) getIconCount() (int, error) {
+func (s *DBTestSuite) getIconCount() (int, error) {
 	var getIconCountSQL = "SELECT count(*) from icon"
 	var count int
 	err := s.dbRepo.Conn.Pool.QueryRow(getIconCountSQL).Scan(&count)

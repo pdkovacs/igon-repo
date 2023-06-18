@@ -21,7 +21,7 @@ func TestAuthBackDoorTestSuite(t *testing.T) {
 }
 
 func (s *authBackDoorTestSuite) BeforeTest(suiteName string, testName string) {
-	s.ApiTestSuite.config = s.ApiTestSuite.initConfig()
+	s.ApiTestSuite.config = s.ApiTestSuite.initTestCaseConfig()
 	if suiteName != "authBackDoorTestSuite" {
 		return
 	}

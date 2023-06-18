@@ -27,13 +27,15 @@ func (sa *socketAdapter) Write(ctx context.Context, msg string) error {
 	return sa.wsConn.Write(ctx, websocket.MessageText, []byte(msg))
 }
 
-func subscriptionHandler(getUserInfo func(c *gin.Context) authr.UserInfo, ns *services.Notification, loadBalancerAddress string, logger zerolog.Logger) gin.HandlerFunc {
+func subscriptionHandler(getUserInfo func(c *gin.Context) authr.UserInfo, ns *services.Notification, loadBalancerAddress string) gin.HandlerFunc {
 	return func(g *gin.Context) {
+		logger := zerolog.Ctx(g.Request.Context())
+
 		wsConn, subsErr := websocket.Accept(g.Writer, g.Request, &websocket.AcceptOptions{
 			OriginPatterns: []string{loadBalancerAddress},
 		})
 		if subsErr != nil {
-			logger.Error().Msgf("Failed to accept WS connection request: %v", subsErr)
+			logger.Error().Err(subsErr).Msg("Failed to accept WS connection request")
 			g.Error(subsErr)
 			g.AbortWithStatus(500)
 			return
@@ -55,7 +57,7 @@ func subscriptionHandler(getUserInfo func(c *gin.Context) authr.UserInfo, ns *se
 			return
 		}
 		if subscriptionError != nil {
-			logger.Error().Msgf("%v", subscriptionError)
+			logger.Error().Err(subscriptionError).Msg("subscription terminated")
 			return
 		}
 	}

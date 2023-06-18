@@ -4,8 +4,6 @@ import (
 	"igo-repo/internal/app/domain"
 	"igo-repo/internal/app/security/authr"
 	"igo-repo/internal/app/services"
-
-	"github.com/rs/zerolog"
 )
 
 type iconService interface {
@@ -33,8 +31,8 @@ type AppCore struct {
 	Repository Repository
 }
 
-func (app *AppCore) GetAPI(logger zerolog.Logger) *api {
+func (app *AppCore) GetAPI() *api {
 	return &api{
-		IconService: services.NewIconService(app.Repository, logger),
+		IconService: services.NewIconService(app.Repository),
 	}
 }

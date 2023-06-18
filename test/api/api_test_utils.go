@@ -19,11 +19,10 @@ import (
 	"igo-repo/test/testdata"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
+	"github.com/rs/xid"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 )
-
-var rootAPILogger = logging.CreateRootLogger(logging.DebugLevel)
 
 type ApiTestSuite struct {
 	*suite.Suite
@@ -35,13 +34,14 @@ type ApiTestSuite struct {
 	logger          zerolog.Logger
 	testSequenceId  string
 	testCaseCounter int
+	xid             string
 }
 
-func apiTestSuites(testSequenceId string, gitProviders []git_tests.GitTestRepo) []ApiTestSuite {
+func apiTestSuites(testSequenceName string, gitProviders []git_tests.GitTestRepo) []ApiTestSuite {
 	all := []ApiTestSuite{}
 	conf := test_commons.CloneConfig(test_commons.GetTestConfig())
-	conf.DBSchemaName = testSequenceId
-	conf.LocalGitRepo = fmt.Sprintf("%s_%s", conf.LocalGitRepo, testSequenceId)
+	conf.DBSchemaName = testSequenceName
+	conf.LocalGitRepo = fmt.Sprintf("%s_%s", conf.LocalGitRepo, testSequenceName)
 	for _, repo := range gitProviders {
 		suiteToEmbed := new(suite.Suite)
 		all = append(all, ApiTestSuite{
@@ -51,9 +51,10 @@ func apiTestSuites(testSequenceId string, gitProviders []git_tests.GitTestRepo) 
 			icondb.Repository{},
 			repo,
 			apiTestClient{},
-			zerolog.Logger{},
-			testSequenceId,
+			logging.Get().With().Str("test_sequence_name", testSequenceName).Logger(),
+			testSequenceName,
 			0,
+			"",
 		})
 	}
 	return all
@@ -66,11 +67,11 @@ func (s *ApiTestSuite) SetupSuite() {
 	s.config.LogLevel = logging.DebugLevel
 
 	// testDBConn and testDBREpo will be only used to read for verification
-	testDBConn, testDBErr := icondb.NewDBConnection(s.config, logging.CreateUnitLogger(rootAPILogger, "test-db-connection"))
+	testDBConn, testDBErr := icondb.NewDBConnection(s.config)
 	if testDBErr != nil {
 		panic(testDBErr)
 	}
-	s.testDBRepo = icondb.NewDBRepository(testDBConn, logging.CreateUnitLogger(rootAPILogger, "test-db-repository"))
+	s.testDBRepo = icondb.NewDBRepository(testDBConn)
 
 	s.config.GitlabAccessToken = git_tests.GitTestGitlabAPIToken()
 
@@ -80,11 +81,13 @@ func (s *ApiTestSuite) SetupSuite() {
 	s.config.AuthenticationType = authn.SchemeBasic
 	s.config.ServerPort = 0
 
-	s.logger = logging.CreateUnitLogger(rootAPILogger, "apiTestSuite")
+	s.logger = logging.CreateUnitLogger(s.logger, "apiTestSuite")
 }
 
-func (s *ApiTestSuite) initConfig() config.Options {
+func (s *ApiTestSuite) initTestCaseConfig() config.Options {
 	s.testCaseCounter++
+	s.xid = xid.New().String()
+	s.logger = s.logger.With().Str("app_xid", s.xid).Logger()
 	conf := test_commons.CloneConfig(s.config)
 	conf.GitlabProjectPath = fmt.Sprintf("%s_%s_%d", conf.GitlabProjectPath, s.testSequenceId, s.testCaseCounter)
 	switch s.TestGitRepo.(type) {
@@ -107,7 +110,7 @@ func (s *ApiTestSuite) initConfig() config.Options {
 }
 
 func (s *ApiTestSuite) BeforeTest(suiteName string, testName string) {
-	conf := s.initConfig()
+	conf := s.initTestCaseConfig()
 	conf.EnableBackdoors = true
 	startErr := s.startApp(conf)
 	if startErr != nil {
@@ -121,7 +124,7 @@ func (s *ApiTestSuite) AfterTest(suiteName, testName string) {
 
 	deleteRepoErr := s.TestGitRepo.Delete()
 	if deleteRepoErr != nil {
-		s.logger.Error().Msgf("failed to delete testGitRepo %s: %#v", s.TestGitRepo, deleteRepoErr)
+		s.logger.Error().Err(deleteRepoErr).Str("project", s.TestGitRepo.String()).Msg("failed to delete testGitRepo")
 	}
 }
 

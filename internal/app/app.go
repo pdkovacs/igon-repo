@@ -3,7 +3,6 @@ package app
 import (
 	"igo-repo/internal/config"
 	"igo-repo/internal/httpadapter"
-	"igo-repo/internal/logging"
 	"igo-repo/internal/repositories"
 	"igo-repo/internal/repositories/gitrepo"
 	"igo-repo/internal/repositories/icondb"
@@ -11,23 +10,21 @@ import (
 
 func Start(conf config.Options, ready func(port int, stop func())) error {
 
-	rootLogger := logging.CreateRootLogger(conf.LogLevel)
-
-	connection, dbErr := icondb.NewDBConnection(conf, logging.CreateUnitLogger(rootLogger, "db-connection"))
+	connection, dbErr := icondb.NewDBConnection(conf)
 	if dbErr != nil {
 		return dbErr
 	}
 
-	dbSchemaAlreadyThere, schemaErr := icondb.OpenSchema(conf, connection, logging.CreateUnitLogger(rootLogger, "db-schema"))
+	dbSchemaAlreadyThere, schemaErr := icondb.OpenSchema(conf, connection)
 	if schemaErr != nil {
 		return schemaErr
 	}
 
-	db := icondb.NewDBRepository(connection, logging.CreateUnitLogger(rootLogger, "db-repository"))
+	db := icondb.NewDBRepository(connection)
 
 	var git repositories.GitRepository
 	if len(conf.LocalGitRepo) > 0 {
-		git = gitrepo.NewLocalGitRepository(conf.LocalGitRepo, logging.CreateUnitLogger(rootLogger, "local-git-repository"))
+		git = gitrepo.NewLocalGitRepository(conf.LocalGitRepo)
 	}
 	if len(conf.GitlabNamespacePath) > 0 {
 		var gitlabRepoErr error
@@ -36,7 +33,6 @@ func Start(conf config.Options, ready func(port int, stop func())) error {
 			conf.GitlabProjectPath,
 			conf.GitlabMainBranch,
 			conf.GitlabAccessToken,
-			logging.CreateUnitLogger(rootLogger, "gitlab-repository"),
 		)
 		if gitlabRepoErr != nil {
 			return gitlabRepoErr
@@ -56,8 +52,7 @@ func Start(conf config.Options, ready func(port int, stop func())) error {
 
 	server := httpadapter.CreateServer(
 		conf,
-		httpadapter.CreateAPI(appRef.GetAPI(logging.CreateUnitLogger(rootLogger, "api")).IconService),
-		logging.CreateUnitLogger(rootLogger, "server"),
+		httpadapter.CreateAPI(appRef.GetAPI().IconService),
 	)
 
 	server.SetupAndStart(conf, func(port int, stop func()) {

@@ -76,7 +76,7 @@ func GetConfigFilePath() ConfigFilePath {
 	if result == "" {
 		result = DefaultConfigFilePath
 	}
-	log.Info().Msgf("Configuration file: %s", result)
+	log.Info().Str("configfile_path", result).Msg("configuration file found")
 	return ConfigFilePath(result)
 }
 

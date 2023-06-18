@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"igo-repo/internal/config"
+	"igo-repo/internal/logging"
 
 	"github.com/rs/zerolog"
 )
@@ -13,10 +14,11 @@ type connection struct {
 	schemaName string
 }
 
-func NewDBConnection(conf config.Options, logger zerolog.Logger) (connection, error) {
+func NewDBConnection(conf config.Options) (connection, error) {
+	logger := logging.Get()
 	sqlDB, errNewDB := open(config.CreateDbProperties(conf, conf.DBSchemaName, logger), logger)
 	if errNewDB != nil {
-		logger.Error().Msgf("Failed to open connection %v", errNewDB)
+		logger.Error().Err(errNewDB).Msg("failed to open connection")
 		panic(errNewDB)
 	}
 	return connection{sqlDB, conf.DBSchemaName}, nil
@@ -32,9 +34,10 @@ func open(connProps config.DbConnectionProperties, logger zerolog.Logger) (*sql.
 		connProps.Database,
 		connProps.Schema,
 	)
-	logger.Debug().Msgf("connStr=%s", connStr)
+	logger.Debug().Str("connection-string", connStr).Msg("opening connection...")
 	db, err := sql.Open("pgx", connStr)
 	if err != nil {
+		logger.Error().Err(err).Str("user_name", connProps.User).Str("password", connProps.Password).Str("full_connstr", connStr).Msg("failed to open database")
 		return nil, err
 	}
 	db.Ping()

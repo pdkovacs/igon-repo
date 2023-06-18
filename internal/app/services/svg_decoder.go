@@ -8,8 +8,6 @@ import (
 	"image"
 	"io"
 	"strconv"
-
-	"github.com/rs/zerolog"
 )
 
 var name = "svg"
@@ -30,13 +28,13 @@ type SVG struct {
 	Height  string   `xml:"height,attr"`
 }
 
-func decodeSVGConfig(log zerolog.Logger) func(reader io.Reader) (image.Config, error) {
+func decodeSVGConfig() func(reader io.Reader) (image.Config, error) {
 	return func(reader io.Reader) (image.Config, error) {
-		logger := logging.CreateMethodLogger(log, "SVG decoder::decodeSVGConfig")
+		logger := logging.CreateMethodLogger(logging.Get(), "SVG decoder::decodeSVGConfig")
 
 		byteValue, readError := io.ReadAll(reader)
 		if readError != nil {
-			logger.Error().Msgf("failed to read image content: %v", readError)
+			logger.Error().Err(readError).Msg("failed to read image content")
 			return image.Config{}, fmt.Errorf("failed to read image content: %w", readError)
 		}
 		svg := SVG{}
@@ -44,13 +42,13 @@ func decodeSVGConfig(log zerolog.Logger) func(reader io.Reader) (image.Config, e
 
 		width, widthParseError := strconv.Atoi(svg.Width)
 		if widthParseError != nil {
-			logger.Error().Msgf("failed to parse image width: %v", readError)
+			logger.Error().Err(readError).Msg("failed to parse image width")
 			return image.Config{}, fmt.Errorf("failed to parse image width: %w", readError)
 		}
 
 		height, heightParseError := strconv.Atoi(svg.Height)
 		if heightParseError != nil {
-			logger.Error().Msgf("failed to parse image height: %v", readError)
+			logger.Error().Err(readError).Msg("failed to parse image height")
 			return image.Config{}, fmt.Errorf("failed to parse image height: %w", readError)
 		}
 
@@ -62,6 +60,6 @@ func decodeSVGConfig(log zerolog.Logger) func(reader io.Reader) (image.Config, e
 	}
 }
 
-func RegisterSVGDecoder(logger zerolog.Logger) {
-	image.RegisterFormat(name, magicString, decodeSVG, decodeSVGConfig(logger))
+func RegisterSVGDecoder() {
+	image.RegisterFormat(name, magicString, decodeSVG, decodeSVGConfig())
 }

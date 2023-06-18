@@ -7,8 +7,6 @@ import (
 	"igo-repo/internal/logging"
 	"sort"
 	"strings"
-
-	"github.com/rs/zerolog"
 )
 
 type upgradeStep struct {
@@ -50,16 +48,14 @@ var upgradeSteps = []upgradeStep{
 }
 
 type dbSchema struct {
-	conn   connection
-	logger zerolog.Logger
+	conn connection
 }
 
 // OpenSchema checks the availability of the schema, creates and upgrades it as necessary
 // Returns true if the schema already existed.
-func OpenSchema(config config.Options, dbConn connection, logger zerolog.Logger) (bool, error) {
+func OpenSchema(config config.Options, dbConn connection) (bool, error) {
 	schema := dbSchema{
-		conn:   dbConn,
-		logger: logger,
+		conn: dbConn,
 	}
 
 	schemaExists, schemaExistErr := schema.doesExist()
@@ -136,7 +132,8 @@ func applyUpgrade(tx *sql.Tx, upgrStep upgradeStep) error {
 
 func (schema *dbSchema) executeUpgrade() error {
 	var err error
-	logger := logging.CreateMethodLogger(schema.logger, "executeUpgrade")
+
+	logger := logging.Get().With().Str(logging.UnitLogger, "db-schema").Str(logging.MethodLogger, "executeUpgarde").Logger()
 
 	sort.Slice(upgradeSteps, func(i int, j int) bool { return compareVersions(upgradeSteps[i], upgradeSteps[j]) < 0 })
 
@@ -154,9 +151,9 @@ func (schema *dbSchema) executeUpgrade() error {
 			return fmt.Errorf("failed to execute schema upgrade: %w", err)
 		}
 		if applied {
-			logger.Info().Msgf("Version already applied: %s", upgrStep.version)
+			logger.Info().Str("version", upgrStep.version).Msg("already applied version found")
 		} else {
-			logger.Info().Msgf("Applying upgrade: '%s' ...", upgrStep.version)
+			logger.Info().Str("version", upgrStep.version).Msg("Applying upgrade...")
 			err = applyUpgrade(tx, upgrStep)
 			if err != nil {
 				return fmt.Errorf("failed to apply upgrade step '%s': %w", upgrStep.version, err)
@@ -168,7 +165,8 @@ func (schema *dbSchema) executeUpgrade() error {
 }
 
 func (schema *dbSchema) doesExist() (bool, error) {
-	logger := logging.CreateMethodLogger(schema.logger, "createMaybe")
+	logger := logging.Get().With().Str(logging.UnitLogger, "db-schema").Str(logging.MethodLogger, "doesExist").Logger()
+
 	db := schema.conn.Pool
 	schemaName := schema.conn.schemaName
 	row := db.QueryRow("SELECT schema_name FROM information_schema.schemata WHERE schema_name = $1", schemaName)
@@ -184,11 +182,11 @@ func (schema *dbSchema) doesExist() (bool, error) {
 	}
 
 	if scheName.Valid && scheName.String == schemaName {
-		logger.Info().Msgf("schema '%s' exists", schemaName)
+		logger.Info().Str("schema-name", schemaName).Msg("schema exists")
 		return true, nil
 	}
 
-	logger.Info().Msgf("schema '%s' doesn't exist", schemaName)
+	logger.Info().Str("schema-name", schemaName).Msg("schema doesn't exist")
 
 	return false, nil
 }

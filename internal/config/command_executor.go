@@ -33,7 +33,7 @@ func (e ExecCmdParams) String() string {
 
 func ExecuteCommand(params ExecCmdParams, logger zerolog.Logger) (string, error) {
 	execCmdLogger := logging.CreateMethodLogger(logger, "config.ExecuteCommand")
-	execCmdLogger.Info().Msgf("Starting: %v...", params)
+	execCmdLogger.Info().Interface("params", params).Msg("Starting execution...")
 
 	cmd := exec.Command(params.Name, params.Args...)
 	if params.Opts != nil {

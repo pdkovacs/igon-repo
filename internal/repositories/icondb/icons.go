@@ -126,10 +126,9 @@ type Repository struct {
 	Conn   connection
 }
 
-func NewDBRepository(conn connection, logger zerolog.Logger) Repository {
+func NewDBRepository(conn connection) Repository {
 	return Repository{
-		logger: logger,
-		Conn:   conn,
+		Conn: conn,
 	}
 }
 
@@ -212,7 +211,7 @@ func (repo Repository) CreateIcon(iconName string, iconfile domain.Iconfile, mod
 		}
 	}
 
-	repo.logger.Info().Msgf("Icon %s with iconfile %v created", iconName, iconfile)
+	repo.logger.Info().Str("icon-name", iconName).Interface("iconfile", iconfile).Msg("Icon created")
 	tx.Commit()
 	return nil
 }

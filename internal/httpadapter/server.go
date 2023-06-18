@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"time"
 
 	"igo-repo/internal/app/domain"
 	"igo-repo/internal/app/security/authn"
@@ -54,11 +55,11 @@ type server struct {
 	api           api
 }
 
-func CreateServer(configuration config.Options, api api, logger zerolog.Logger) server {
+func CreateServer(configuration config.Options, api api) server {
 	return server{
 		configuration: configuration,
 		api:           api,
-		logger:        logger,
+		logger:        logging.Get().With().Str(logging.UnitLogger, "http-server").Logger(),
 	}
 }
 
@@ -78,7 +79,7 @@ func (s *server) start(portRequested int, r http.Handler, ready func(port int, s
 		panic(fmt.Sprintf("Error while parsing the server address: %v", err))
 	}
 
-	logger.Info().Msgf("Listening on port: %v", port)
+	logger.Info().Str("port", port).Msg("started to listen")
 
 	if ready != nil {
 		portAsInt, err := strconv.Atoi(port)
@@ -102,7 +103,7 @@ func (s *server) createSessionStore(options config.Options) (sessions.Store, err
 	logger := logging.CreateMethodLogger(s.logger, "create-session properties")
 
 	if options.SessionDbName != "" {
-		logger.Info().Msgf("Using DB %s for session store", options.SessionDbName)
+		logger.Info().Str("database", options.SessionDbName).Msg("connecting to session store")
 		connProps := config.CreateDbProperties(s.configuration, s.configuration.DBSchemaName, logger)
 		connStr := fmt.Sprintf(
 			"postgres://%s:%s@%s:%d/%s?sslmode=disable",
@@ -123,7 +124,7 @@ func (s *server) createSessionStore(options config.Options) (sessions.Store, err
 			return store, createDbSessionStoreErr
 		}
 	} else {
-		logger.Info().Msgf("Using in-memory session store")
+		logger.Info().Msg("Using in-memory session store")
 		store = memstore.NewStore([]byte("secret"))
 	}
 
@@ -136,6 +137,7 @@ func (s *server) initEndpoints(options config.Options) *gin.Engine {
 	userService := services.NewUserService(&authorizationService)
 
 	rootEngine := gin.Default()
+	rootEngine.Use(RequestLogger)
 
 	if config.UseCORS(options) {
 		rootEngine.Use(CORSMiddleware(options.AllowedClientURLsRegex, logging.CreateMethodLogger(logger, "CORS")))
@@ -153,7 +155,7 @@ func (s *server) initEndpoints(options config.Options) *gin.Engine {
 
 	rootEngine.NoRoute(authentication(options, &userService, s.logger.With().Logger()), gin.WrapH(web.AssetHandler("/", "dist", logger)))
 
-	logger.Debug().Msgf("Creating login end-point with authentication type: %v...", options.AuthenticationType)
+	logger.Debug().Str("authn-type", string(options.AuthenticationType)).Msg("Creating login end-point...")
 	rootEngine.GET("/login", authentication(options, &userService, s.logger.With().Logger()))
 
 	rootEngine.GET("/app-info", func(c *gin.Context) {
@@ -174,36 +176,36 @@ func (s *server) initEndpoints(options config.Options) *gin.Engine {
 	{
 		notifService := services.CreateNotificationService(logger)
 
-		logger.Debug().Msgf("Setting up authorized group with authentication type: %v...", options.AuthenticationType)
+		logger.Debug().Str("authn-type", string(options.AuthenticationType)).Msg("Setting up authorized group")
 		authorizedGroup.Use(authenticationCheck(options, &userService, s.logger.With().Logger()))
 
 		rootEngine.GET("/config", func(c *gin.Context) {
 			c.JSON(200, clientConfig{IdPLogoutURL: options.OIDCLogoutURL})
 		})
 		logger.Debug().Msg("Setting up logout handler")
-		authorizedGroup.POST("/logout", logout(options, s.logger.With().Logger()))
+		authorizedGroup.POST("/logout", logout(options))
 
-		authorizedGroup.GET("/subscribe", subscriptionHandler(mustGetUserInfo, notifService, options.LoadBalancerAddress, logging.CreateMethodLogger(s.logger, "subscriptionHandler")))
+		authorizedGroup.GET("/subscribe", subscriptionHandler(mustGetUserInfo, notifService, options.LoadBalancerAddress))
 
-		authorizedGroup.GET("/user", userInfoHandler(options.AuthenticationType, userService, logging.CreateMethodLogger(s.logger, "UserInfoHandler")))
+		authorizedGroup.GET("/user", userInfoHandler(options.AuthenticationType, userService))
 
 		if options.EnableBackdoors {
-			authorizedGroup.PUT("/backdoor/authentication", HandlePutIntoBackdoorRequest(logging.CreateMethodLogger(s.logger, "PUT /backdoor/authentication")))
-			authorizedGroup.GET("/backdoor/authentication", HandleGetIntoBackdoorRequest(logging.CreateMethodLogger(s.logger, "GET /backdoor/authentication")))
+			authorizedGroup.PUT("/backdoor/authentication", HandlePutIntoBackdoorRequest())
+			authorizedGroup.GET("/backdoor/authentication", HandleGetIntoBackdoorRequest())
 		}
 
-		authorizedGroup.GET("/icon", describeAllIconsHanler(s.api.iconService.DescribeAllIcons, logging.CreateMethodLogger(s.logger, "describeAllIconsHanler")))
-		authorizedGroup.GET("/icon/:name", describeIconHandler(s.api.iconService.DescribeIcon, logging.CreateMethodLogger(s.logger, "describeIconHandler")))
-		authorizedGroup.POST("/icon", createIconHandler(mustGetUserInfo, s.api.iconService.CreateIcon, notifService.Publish, logging.CreateMethodLogger(s.logger, "createIconHandler")))
-		authorizedGroup.DELETE("/icon/:name", deleteIconHandler(mustGetUserInfo, s.api.iconService.DeleteIcon, notifService.Publish, logging.CreateMethodLogger(s.logger, "deleteIconHandler")))
+		authorizedGroup.GET("/icon", describeAllIcons(s.api.iconService.DescribeAllIcons))
+		authorizedGroup.GET("/icon/:name", describeIcon(s.api.iconService.DescribeIcon))
+		authorizedGroup.POST("/icon", createIcon(mustGetUserInfo, s.api.iconService.CreateIcon, notifService.Publish))
+		authorizedGroup.DELETE("/icon/:name", deleteIcon(mustGetUserInfo, s.api.iconService.DeleteIcon, notifService.Publish))
 
-		authorizedGroup.POST("/icon/:name", addIconfileHandler(mustGetUserInfo, s.api.iconService.AddIconfile, notifService.Publish, logging.CreateMethodLogger(s.logger, "addIconfileHandler")))
-		authorizedGroup.GET("/icon/:name/format/:format/size/:size", getIconfileHandler(s.api.iconService.GetIconfile, logging.CreateMethodLogger(s.logger, "getIconfileHandler")))
-		authorizedGroup.DELETE("/icon/:name/format/:format/size/:size", deleteIconfileHandler(mustGetUserInfo, s.api.iconService.DeleteIconfile, notifService.Publish, logging.CreateMethodLogger(s.logger, "deleteIconfileHandler")))
+		authorizedGroup.POST("/icon/:name", addIconfile(mustGetUserInfo, s.api.iconService.AddIconfile, notifService.Publish))
+		authorizedGroup.GET("/icon/:name/format/:format/size/:size", getIconfile(s.api.iconService.GetIconfile))
+		authorizedGroup.DELETE("/icon/:name/format/:format/size/:size", deleteIconfile(mustGetUserInfo, s.api.iconService.DeleteIconfile, notifService.Publish))
 
-		authorizedGroup.GET("/tag", getTagsHandler(s.api.iconService.GetTags, logging.CreateMethodLogger(s.logger, "getTagsHandler")))
-		authorizedGroup.POST("/icon/:name/tag", addTagHandler(mustGetUserInfo, s.api.iconService.AddTag, logging.CreateMethodLogger(s.logger, "addTagHandler")))
-		authorizedGroup.DELETE("/icon/:name/tag/:tag", removeTagHandler(mustGetUserInfo, s.api.iconService.RemoveTag, logging.CreateMethodLogger(s.logger, "removeTagHandler")))
+		authorizedGroup.GET("/tag", getTags(s.api.iconService.GetTags))
+		authorizedGroup.POST("/icon/:name/tag", addTag(mustGetUserInfo, s.api.iconService.AddTag))
+		authorizedGroup.DELETE("/icon/:name/tag/:tag", removeTag(mustGetUserInfo, s.api.iconService.RemoveTag))
 	}
 
 	return rootEngine
@@ -212,14 +214,56 @@ func (s *server) initEndpoints(options config.Options) *gin.Engine {
 // Stop kills the listener
 func (s *server) Stop() {
 	logger := logging.CreateMethodLogger(s.logger, "ListenerKiller")
-	logger.Info().Msgf("listener: %v", s.listener)
 	error := s.listener.Close()
 	if error != nil {
-		logger.Error().Msgf("Error while closing listener: %v", error)
+		logger.Error().Err(error).Interface("listener", s.listener).Msg("Error while closing listener")
 	} else {
-		logger.Info().Msg("Listener closed successfully")
+		logger.Info().Interface("listener", s.listener).Msg("Listener closed successfully")
 	}
 
+}
+
+func RequestLogger(g *gin.Context) {
+	start := time.Now()
+
+	l := logging.Get()
+
+	r := g.Request
+	g.Request = r.WithContext(l.WithContext(r.Context()))
+
+	lrw := newLoggingResponseWriter(g.Writer)
+
+	defer func() {
+		panicVal := recover()
+		if panicVal != nil {
+			lrw.statusCode = http.StatusInternalServerError // ensure that the status code is updated
+			panic(panicVal)                                 // continue panicking
+		}
+		l.
+			Info().
+			Str("method", g.Request.Method).
+			Str("url", g.Request.URL.RequestURI()).
+			Str("user_agent", g.Request.UserAgent()).
+			Int("status_code", lrw.statusCode).
+			Dur("elapsed_ms", time.Since(start)).
+			Msg("incoming request")
+	}()
+
+	g.Next()
+}
+
+type loggingResponseWriter struct {
+	http.ResponseWriter
+	statusCode int
+}
+
+func newLoggingResponseWriter(w http.ResponseWriter) *loggingResponseWriter {
+	return &loggingResponseWriter{w, http.StatusOK}
+}
+
+func (lrw *loggingResponseWriter) WriteHeader(code int) {
+	lrw.statusCode = code
+	lrw.ResponseWriter.WriteHeader(code)
 }
 
 // TODO:
@@ -238,12 +282,12 @@ func CORSMiddleware(clientURLs string, logger zerolog.Logger) gin.HandlerFunc {
 		matchingOrigin := clientURLsRegexp.FindString(origin)
 
 		if matchingOrigin == "" {
-			logger.Debug().Msgf("No matching origin for %s %s using '%s'", c.Request.Method, origin, clientURLs)
+			logger.Debug().Str("request-method", c.Request.Method).Str("origin", origin).Interface("client-urls", clientURLs).Msg("No matching origin")
 			c.AbortWithStatus(http.StatusForbidden)
 			return
 		}
 
-		logger.Debug().Msgf("%s request originated at %s. Matches: %s.", c.Request.Method, origin, matchingOrigin)
+		logger.Debug().Str("request-method", c.Request.Method).Str("origin", origin).Str("matching-origin", matchingOrigin).Msg("request origin matched")
 
 		c.Writer.Header().Set("Access-Control-Allow-Origin", matchingOrigin)
 		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")

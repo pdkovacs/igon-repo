@@ -17,15 +17,16 @@ type userInfoDTO struct {
 	DisplayName string               `json:"displayName"`
 }
 
-func userInfoHandler(authType authn.AuthenticationScheme, userService services.UserService, logger zerolog.Logger) func(c *gin.Context) {
-	return func(c *gin.Context) {
-		userId := c.Query("userId")
+func userInfoHandler(authType authn.AuthenticationScheme, userService services.UserService) func(c *gin.Context) {
+	return func(g *gin.Context) {
+		logger := zerolog.Ctx(g.Request.Context())
+		userId := g.Query("userId")
 
 		if authType == authn.SchemeOIDCProxy {
-			userInfo, getUserInfoErr := getUserInfo(authType)(c)
+			userInfo, getUserInfoErr := getUserInfo(authType)(g)
 			if getUserInfoErr != nil {
-				logger.Error().Msgf("failed to find user-info")
-				c.AbortWithStatus(401)
+				logger.Error().Msg("failed to find user-info")
+				g.AbortWithStatus(401)
 				return
 			}
 
@@ -36,17 +37,17 @@ func userInfoHandler(authType authn.AuthenticationScheme, userService services.U
 				DisplayName: userInfo.DisplayName,
 			}
 
-			c.JSON(200, responseUserInfo)
+			g.JSON(200, responseUserInfo)
 			return
 		}
 
-		session := sessions.Default(c)
+		session := sessions.Default(g)
 		user := session.Get(UserKey)
 
 		usession, ok := user.(SessionData)
 		if !ok {
-			logger.Error().Msgf("failed to cast user session of type %T", user)
-			c.AbortWithStatus(500)
+			logger.Error().Type("user", user).Msg("failed to cast user session")
+			g.AbortWithStatus(500)
 			return
 		}
 
@@ -56,7 +57,9 @@ func userInfoHandler(authType authn.AuthenticationScheme, userService services.U
 		} else {
 			userInfo = userService.GetUserInfo(authn.UserID{IDInDomain: userId})
 		}
-		logger.Debug().Msgf("User info: %v", userInfo)
+		if logger.GetLevel() == zerolog.DebugLevel {
+			logger.Debug().Interface("user-info", userInfo).Msg("user info reetrieved")
+		}
 
 		responseUserInfo := userInfoDTO{
 			Username:    userInfo.UserId.IDInDomain,
@@ -65,6 +68,6 @@ func userInfoHandler(authType authn.AuthenticationScheme, userService services.U
 			DisplayName: userInfo.DisplayName,
 		}
 
-		c.JSON(200, responseUserInfo)
+		g.JSON(200, responseUserInfo)
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"igo-repo/internal/app/security/authn"
 	"igo-repo/internal/app/security/authr"
 	"igo-repo/internal/config"
+	"strings"
 
 	"github.com/rs/zerolog/log"
 )
@@ -62,6 +63,6 @@ func getLocalGroupsFor(userID authn.UserID, usersByGroups map[string][]string) [
 			}
 		}
 	}
-	log.Debug().Msgf("Groups of %s: %v", userID, groupNames)
+	log.Debug().Str("user_id", userID.String()).Str("group_names", strings.Join(groupNames, ", ")).Msg("user's group memberships collected")
 	return authr.GroupNamesToGroupIDs(groupNames)
 }

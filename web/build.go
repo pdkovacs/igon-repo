@@ -27,7 +27,7 @@ func AssetHandler(prefix, root string, log zerolog.Logger) http.Handler {
 
 		logger := logging.CreateMethodLogger(log, "AssetHandler")
 
-		logger.Debug().Msgf("%v requested...", name)
+		logger.Debug().Str("asset", name).Msg("asset requested")
 
 		assetPath := path.Join(root, name)
 

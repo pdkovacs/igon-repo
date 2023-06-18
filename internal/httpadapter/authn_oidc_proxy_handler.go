@@ -22,7 +22,7 @@ func checkOIDCProxyAuthentication(authRService services.AuthorizationService, lo
 	return func(c *gin.Context) {
 
 		abort := func(details string) {
-			logger.Debug().Msgf("Request for %v not authenticated: %s", c.Request.URL, details)
+			logger.Debug().Str("path", c.Request.URL.Path).Str("details", details).Msg("Request for %v not authenticated")
 			c.AbortWithStatus(401)
 		}
 
@@ -58,7 +58,9 @@ func checkOIDCProxyAuthentication(authRService services.AuthorizationService, lo
 			return
 		}
 
-		logger.Debug().Msgf("received claims: %#v ?", receivedClaims)
+		if logger.GetLevel() == zerolog.DebugLevel {
+			logger.Debug().Interface("claims", receivedClaims).Msg("claims received")
+		}
 
 		groupIds := authr.GroupNamesToGroupIDs(receivedClaims.Groups)
 		userInfo := authr.UserInfo{

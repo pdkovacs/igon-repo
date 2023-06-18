@@ -23,10 +23,9 @@ func (repo Local) String() string {
 	return fmt.Sprintf("Local git repository at %s", repo.Location)
 }
 
-func NewLocalGitRepository(location string, logger zerolog.Logger) Local {
+func NewLocalGitRepository(location string) Local {
 	git := Local{
 		Location:  location,
-		Logger:    logger,
 		FilePaths: NewGitFilePaths(location),
 	}
 	return git
@@ -126,7 +125,7 @@ func (repo Local) executeIconfileJob(iconfileOperation func() ([]string, error),
 
 	defer func() {
 		if err != nil {
-			logger.Debug().Msgf("failed GIT operation on iconfile: %v -> %s", err, out)
+			logger.Debug().Err(err).Str("out", out).Msg("failed GIT operation")
 			repo.rollback()
 		} else {
 			logger.Debug().Msg("Success")
@@ -156,7 +155,7 @@ func (repo Local) createIconfile(iconName string, iconfile domain.Iconfile, modi
 	var err error
 
 	logOp := func(opmsg string) string {
-		repo.Logger.Debug().Msgf("about to %s", opmsg)
+		repo.Logger.Debug().Str("operation", opmsg).Msg("operation starting")
 		return opmsg
 	}
 
@@ -333,7 +332,7 @@ func (repo Local) GetCommitMetadata(commitId string) (CommitMetadata, error) {
 	if execErr != nil {
 		return CommitMetadata{}, fmt.Errorf("failed to get metadata from repo for commit %s: %w", commitId, execErr)
 	}
-	logger.Debug().Msgf("raw metadata: %s", output)
+	logger.Debug().Str("meta-data", output).Msg("raw metadata extracted")
 	commitMetadata, parseErr := parseLocalCommitMetadata(output)
 	if parseErr != nil {
 		return commitMetadata, fmt.Errorf("failed to parse metadata from commit %s: %w", commitId, parseErr)

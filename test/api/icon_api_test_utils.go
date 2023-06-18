@@ -52,7 +52,7 @@ func (s *IconTestSuite) assertAllFilesInDBAreInGitAsWell() []string {
 
 			s.Equal(len(fileContentInDB), len(fileContentInGit))
 			if len(fileContentInDB) != len(fileContentInGit) {
-				s.logger.Error().Msgf("fileContentInDB: %s\n\nfileContentInGit: %s", fileContentInDB, fileContentInGit)
+				s.logger.Error().Str("db-content", string(fileContentInDB)).Str("git-content", string(fileContentInGit)).Send()
 			}
 			s.True(bytes.Equal(fileContentInDB, fileContentInGit))
 

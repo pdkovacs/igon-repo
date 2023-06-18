@@ -8,7 +8,6 @@ import (
 
 	"igo-repo/internal/app/domain"
 	"igo-repo/internal/config"
-	"igo-repo/internal/logging"
 	"igo-repo/internal/repositories"
 	"igo-repo/internal/repositories/gitrepo"
 	"igo-repo/test/test_commons"
@@ -17,7 +16,7 @@ import (
 )
 
 func NewLocalGitTestRepo(conf config.Options) gitrepo.Local {
-	return gitrepo.NewLocalGitRepository(conf.LocalGitRepo, logging.CreateRootLogger(logging.DebugLevel))
+	return gitrepo.NewLocalGitRepository(conf.LocalGitRepo)
 }
 
 func NewGitlabTestRepoClient(conf config.Options) gitrepo.Gitlab {
@@ -26,7 +25,6 @@ func NewGitlabTestRepoClient(conf config.Options) gitrepo.Gitlab {
 		conf.GitlabProjectPath,
 		conf.GitlabMainBranch,
 		conf.GitlabAccessToken,
-		logging.CreateRootLogger(logging.DebugLevel),
 	)
 	if err != nil {
 		panic(err)
@@ -50,6 +48,9 @@ type GitTestRepo interface {
 }
 
 func GitProvidersToTest() []GitTestRepo {
+	if len(os.Getenv("LOCAL_GIT_ONLY")) > 0 {
+		return []GitTestRepo{gitrepo.Local{}}
+	}
 	return []GitTestRepo{
 		gitrepo.Local{},
 		gitrepo.Gitlab{},
@@ -120,17 +121,17 @@ func (s *GitTestSuite) AfterTest(suiteName, testName string) {
 	s.Repo.Delete()
 }
 
-func (s GitTestSuite) GetStateID() (string, error) {
+func (s *GitTestSuite) GetStateID() (string, error) {
 	return s.Repo.GetStateID()
 }
 
-func (s GitTestSuite) AssertGitCleanStatus() {
+func (s *GitTestSuite) AssertGitCleanStatus() {
 	status, err := s.Repo.CheckStatus()
 	s.NoError(err)
 	s.True(status)
 }
 
-func (s GitTestSuite) AssertFileInRepo(iconName string, iconfile domain.Iconfile, timeBeforeCommit time.Time) {
+func (s *GitTestSuite) AssertFileInRepo(iconName string, iconfile domain.Iconfile, timeBeforeCommit time.Time) {
 	commitID, getCommitIDErr := s.Repo.GetCommitIDFor(iconName, iconfile.IconfileDescriptor)
 	s.NoError(getCommitIDErr)
 	s.Greater(len(commitID), 0)
@@ -139,7 +140,7 @@ func (s GitTestSuite) AssertFileInRepo(iconName string, iconfile domain.Iconfile
 	s.Greater(meta.CommitDate, timeBeforeCommit.Add(-time.Duration(1_000)*time.Millisecond))
 }
 
-func (s GitTestSuite) AssertFileNotInRepo(iconName string, iconfile domain.Iconfile) {
+func (s *GitTestSuite) AssertFileNotInRepo(iconName string, iconfile domain.Iconfile) {
 	commitId, err := s.Repo.GetCommitIDFor(iconName, iconfile.IconfileDescriptor)
 	s.NoError(err)
 	s.Equal("", commitId)

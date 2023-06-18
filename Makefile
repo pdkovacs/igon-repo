@@ -25,6 +25,8 @@ endef
 clean:
 	go clean -testcache
 	rm -f igo-repo
+# example command line:
+#   export LOCAL_GIT_ONLY=yes; export ICONREPO_DB_HOST=postgres; make clean && time make test 2>&1 | tee ~/workspace/logs/icon-repo-test
 test: test-app test-api test-repos test-seq
 test-app: $(app)
 	go test -parallel 10 -v -timeout 60s ./test/app/...

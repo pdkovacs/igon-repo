@@ -11,29 +11,31 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func HandlePutIntoBackdoorRequest(logger zerolog.Logger) func(c *gin.Context) {
-	return func(c *gin.Context) {
-		requestBody, errReadRequest := io.ReadAll(c.Request.Body)
+func HandlePutIntoBackdoorRequest() func(c *gin.Context) {
+	return func(g *gin.Context) {
+		logger := zerolog.Ctx(g.Request.Context())
+
+		requestBody, errReadRequest := io.ReadAll(g.Request.Body)
 		if errReadRequest != nil {
-			logger.Error().Msgf("failed to read request body %T: %v", c.Request.Body, errReadRequest)
-			c.JSON(500, nil)
+			logger.Error().Type("request-body-type", g.Request.Body).Err(errReadRequest).Msg("failed to read request body")
+			g.JSON(500, nil)
 			return
 		}
 		permissions := []authr.PermissionID{}
 		errBodyUnmarshal := json.Unmarshal(requestBody, &permissions)
 		if errBodyUnmarshal != nil {
-			logger.Error().Msgf("failed to unmarshal request body %T: %v", requestBody, errBodyUnmarshal)
-			c.JSON(400, nil)
+			logger.Error().Type("request-body-type", g.Request.Body).Err(errBodyUnmarshal).Msg("failed to unmarshal request body")
+			g.JSON(400, nil)
 			return
 		}
-		session := sessions.Default(c)
+		session := sessions.Default(g)
 		user := session.Get(UserKey)
-		logger.Info().Msgf("%v requested authorization: %v", user, permissions)
+		logger.Info().Interface("user", user).Interface("permissions", permissions).Msg("authorization requested")
 
 		sessionData, ok := user.(SessionData)
 		if !ok {
-			logger.Error().Msgf("failed to cast %T to SessionData: ", user)
-			c.AbortWithStatus(500)
+			logger.Error().Type("session-data", user).Msg("failed to cast to SessionData")
+			g.AbortWithStatus(500)
 			return
 		}
 
@@ -41,20 +43,22 @@ func HandlePutIntoBackdoorRequest(logger zerolog.Logger) func(c *gin.Context) {
 		updatedCachedUserInfo.UserInfo.Permissions = permissions
 		session.Set(UserKey, SessionData{updatedCachedUserInfo.UserInfo})
 		session.Save()
-		c.JSON(200, nil)
+		g.JSON(200, nil)
 	}
 }
 
-func HandleGetIntoBackdoorRequest(logger zerolog.Logger) func(c *gin.Context) {
-	return func(c *gin.Context) {
-		session := sessions.Default(c)
+func HandleGetIntoBackdoorRequest() func(g *gin.Context) {
+	return func(g *gin.Context) {
+		logger := zerolog.Ctx(g.Request.Context())
+
+		session := sessions.Default(g)
 		user := session.Get(UserKey)
 		sessionData, ok := user.(SessionData)
 		if !ok {
-			logger.Error().Msgf("failed to cast %T to SessionData: ", user)
-			c.AbortWithStatus(500)
+			logger.Error().Type("session-data", user).Msg("failed to cast to SessionData")
+			g.AbortWithStatus(500)
 			return
 		}
-		c.JSON(200, sessionData.UserInfo)
+		g.JSON(200, sessionData.UserInfo)
 	}
 }

@@ -11,7 +11,7 @@ import (
 
 const testRepoLocation = "test-git-repo"
 
-var localGitRepoTestLogger = logging.CreateUnitLogger(logging.CreateRootLogger(logging.DebugLevel), "repositories.localGitRepoTestSuite")
+var localGitRepoTestLogger = logging.CreateUnitLogger(logging.Get(), "repositories.localGitRepoTestSuite")
 
 type localGitRepoTestSuite struct {
 	suite.Suite
@@ -32,7 +32,7 @@ func (testSuite *localGitRepoTestSuite) removeRepoDir() {
 
 func (testSuite *localGitRepoTestSuite) BeforeTest(suiteName string, testName string) {
 	testSuite.removeRepoDir()
-	gitRepo := NewLocalGitRepository(testRepoLocation, localGitRepoTestLogger)
+	gitRepo := NewLocalGitRepository(testRepoLocation)
 	gitRepoCreationError := gitRepo.Create()
 	if gitRepoCreationError != nil {
 		panic(gitRepoCreationError)
@@ -48,13 +48,13 @@ func (testSuite *localGitRepoTestSuite) TestLocationDoesntExist() {
 
 func (testSuite *localGitRepoTestSuite) TestLocationDoesntHaveRepo() {
 	testSuite.removeRepoDir()
-	gitRepo := NewLocalGitRepository(testRepoLocation, localGitRepoTestLogger)
+	gitRepo := NewLocalGitRepository(testRepoLocation)
 	testSuite.Equal(false, gitRepo.locationHasRepo())
 }
 
 func (testSuite *localGitRepoTestSuite) TestLocationHasRepo() {
 	testSuite.removeRepoDir()
-	gitRepo := NewLocalGitRepository(testRepoLocation, localGitRepoTestLogger)
+	gitRepo := NewLocalGitRepository(testRepoLocation)
 	err := gitRepo.Delete()
 	if err != nil {
 		panic(err)

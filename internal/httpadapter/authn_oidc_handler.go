@@ -29,11 +29,12 @@ func checkOIDCAuthentication(log zerolog.Logger) func(c *gin.Context) {
 		session := sessions.Default(c)
 		user := session.Get(UserKey)
 		if user == nil {
-			logger.Debug().Msgf("Request not authenticated: %v", c.Request.URL)
+			if logger.GetLevel() == zerolog.DebugLevel {
+				logger.Debug().Interface("url", c.Request.URL).Msg("Unauthenticated request")
+			}
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
-		logger.Debug().Msgf("User session: %v", user)
 	}
 }
 
@@ -100,14 +101,12 @@ func (scheme *oidcScheme) createHandler(redirectToReferrer bool) gin.HandlerFunc
 
 	return func(c *gin.Context) {
 		logging.CreateMethodLogger(logger, "oidc-authn")
-		logger.Debug().Msgf("Incoming request %v...", c.Request.URL)
-
 		referer := c.Request.Header.Get("referer")
-		logger.Debug().Msgf("Incoming request's Referer: '%s'", referer)
+		logger.Debug().Str("path", c.Request.URL.Path).Str("referer", referer).Msg("request received")
 
 		queryError := c.Query("error")
 		if queryError != "" {
-			logger.Error().Msgf("callback error: %s", queryError)
+			logger.Error().Str("error", queryError).Msg("callback error")
 			c.Writer.WriteString("callback error")
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return
@@ -117,7 +116,7 @@ func (scheme *oidcScheme) createHandler(redirectToReferrer bool) gin.HandlerFunc
 		user := session.Get(UserKey)
 		if userSession, ok := user.(SessionData); ok {
 			if len(userSession.UserInfo.UserId.IDInDomain) > 0 {
-				logger.Debug().Msgf("session '%s' already authenticated", session.ID())
+				logger.Debug().Str("session-id", session.ID()).Msg("session authenticated found")
 				authnReferer := session.Get(authenticationRefererSessionKey)
 				if redirectToReferrer && authnReferer != nil {
 					if redirectTo, ok := authnReferer.(string); ok {
@@ -127,7 +126,7 @@ func (scheme *oidcScheme) createHandler(redirectToReferrer bool) gin.HandlerFunc
 							return
 						}
 					} else {
-						logger.Warn().Msgf("Value of %s in the session wasn't a string", authenticationRefererSessionKey)
+						logger.Warn().Str("session-key", authenticationRefererSessionKey).Msg("conversion failure")
 					}
 					session.Delete(authenticationRefererSessionKey)
 				}
@@ -140,17 +139,19 @@ func (scheme *oidcScheme) createHandler(redirectToReferrer bool) gin.HandlerFunc
 
 		authrCode := c.Query("code")
 		if authrCode != "" {
-			logger.Debug().Msgf("incoming user approval with autherization code %v", authrCode)
+			logger.Debug().Str("authorization-code", authrCode).Msg("user approval received")
 			state := session.Get(oidcTokenRequestStateKey)
 			storedState, ok := state.(string)
 			if !ok {
-				logger.Debug().Msgf("no suitable auth2-state stored for session '%s'", session.ID())
+				logger.Debug().Str("session-id", session.ID()).Msg("failed to retrieve suitable auth2-state")
 				c.AbortWithStatus(http.StatusUnauthorized)
 				return
 			}
 			claims, handleCallbackErr := handleOAuth2Callback(c, storedState)
 			if handleCallbackErr == nil && claims != nil {
-				logger.Info().Msgf("claims collected: %+v", claims)
+				if logger.GetLevel() == zerolog.DebugLevel {
+					logger.Info().Interface("claims", claims).Msg("claims collected")
+				}
 				// FIXME: Use other than local-domain
 				userId := authn.LocalDomain.CreateUserID(claims.Email)
 				if claims.Groups != nil {
@@ -164,7 +165,7 @@ func (scheme *oidcScheme) createHandler(redirectToReferrer bool) gin.HandlerFunc
 				return
 			}
 			if handleCallbackErr != nil {
-				logger.Error().Msgf("error while processing authorization code: %v", handleCallbackErr)
+				logger.Error().Err(handleCallbackErr).Msg("authorization code processing error")
 				c.AbortWithStatus(http.StatusUnauthorized)
 				return
 			}
@@ -178,7 +179,7 @@ func (scheme *oidcScheme) createHandler(redirectToReferrer bool) gin.HandlerFunc
 		session.Set(authenticationRefererSessionKey, referer)
 		session.Save()
 
-		logger.Debug().Msgf("new authn round started with state %v save'd 'to session '%s'", state, session.ID())
+		logger.Debug().Str("state", state).Str("session", session.ID()).Msg("new authn round started")
 
 		c.Abort()
 		c.Redirect(http.StatusFound, oauth2Config.AuthCodeURL(state))
@@ -199,28 +200,28 @@ func (scheme *oidcScheme) getOAuth2CallbackHandler(oauth2Config oauth2.Config, v
 
 		oauth2Token, err := oauth2Config.Exchange(context.TODO(), r.URL.Query().Get("code"))
 		if err != nil {
-			logger.Error().Msgf("failed to obtain OAuth2 token: %v", err)
+			logger.Error().Err(err).Msg("failed to obtain OAuth2 token")
 			return nil, fmt.Errorf("failed to obtain OAuth2 token: %w", err)
 		}
 
 		// Extract the ID Token from OAuth2 token.
 		rawIDToken, ok := oauth2Token.Extra("id_token").(string)
 		if !ok {
-			logger.Error().Msgf("failed to extract ID token: %v", err)
+			logger.Error().Err(err).Msg("failed to extract ID token")
 			return nil, fmt.Errorf("failed to extract ID token: %w", err)
 		}
 
 		// Parse and verify ID Token payload.
 		idToken, err := verifier.Verify(context.TODO(), rawIDToken)
 		if err != nil {
-			logger.Error().Msgf("failed to verify ID token: %v", err)
+			logger.Error().Err(err).Msg("failed to verify ID token")
 			return nil, fmt.Errorf("failed to verify ID token: %w", err)
 		}
 
 		// Extract custom claims
 		var claims claims
 		if err := idToken.Claims(&claims); err != nil {
-			logger.Error().Msgf("failed to extract claims from ID token: %v", err)
+			logger.Error().Err(err).Msg("failed to extract claims from ID token")
 			return nil, fmt.Errorf("failed to extract claims from ID token: %w", err)
 		}
 

@@ -12,6 +12,7 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 )
 
 const UserKey = "igo-user"
@@ -61,7 +62,7 @@ func getUserInfo(authnType authn.AuthenticationScheme) func(c *gin.Context) (aut
 func authenticationCheck(options config.Options, userService *services.UserService, log zerolog.Logger) gin.HandlerFunc {
 	switch options.AuthenticationType {
 	case authn.SchemeBasic:
-		return checkBasicAuthentication(basicConfig{PasswordCredentialsList: options.PasswordCredentials}, *userService, log)
+		return checkBasicAuthentication(basicConfig{PasswordCredentialsList: options.PasswordCredentials}, *userService)
 	case authn.SchemeOIDC:
 		return checkOIDCAuthentication(log)
 	case authn.SchemeOIDCProxy:
@@ -90,10 +91,10 @@ func authentication(options config.Options, userService *services.UserService, l
 	return nil
 }
 
-func logout(options config.Options, log zerolog.Logger) gin.HandlerFunc {
+func logout(options config.Options) gin.HandlerFunc {
 	return func(g *gin.Context) {
 		if options.AuthenticationType != authn.SchemeOIDC {
-			log.Info().Msgf("Logout is not currently supported with authentication scheme %#v", options.AuthenticationType)
+			log.Info().Str("authn-type", string(options.AuthenticationType)).Msg("Logout is not currently supported with authentication scheme")
 			g.AbortWithStatus(http.StatusBadRequest)
 		}
 		session := sessions.Default(g)

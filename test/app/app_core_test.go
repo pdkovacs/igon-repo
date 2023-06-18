@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-var appTestLogger = logging.CreateRootLogger(logging.DebugLevel)
+var appTestLogger = logging.Get()
 var appTestApiLogger = logging.CreateUnitLogger(appTestLogger, "app-test-api")
 
 func createUserInfo(withPerms []authr.PermissionID) authr.UserInfo {
@@ -56,7 +56,7 @@ func TestAppTestSuite(t *testing.T) {
 }
 
 func (s *appTestSuite) SetupSuite() {
-	services.RegisterSVGDecoder(logging.CreateUnitLogger(appTestLogger, "app-test-suite"))
+	services.RegisterSVGDecoder()
 }
 
 func (s *appTestSuite) TestCreateIconNoPerm() {
@@ -65,7 +65,7 @@ func (s *appTestSuite) TestCreateIconNoPerm() {
 	iconfile := getTestIconfile()
 	mockRepo := mocks.Repository{}
 	application := app.AppCore{Repository: &mockRepo}
-	api := application.GetAPI(appTestApiLogger)
+	api := application.GetAPI()
 	_, err := api.IconService.CreateIcon(iconName, iconfile.Content, testUser)
 	s.True(errors.Is(err, authr.ErrPermission))
 	mockRepo.AssertExpectations(s.t)
@@ -86,7 +86,7 @@ func (s *appTestSuite) TestCreateIcon() {
 	mockRepo := mocks.Repository{}
 	mockRepo.On("CreateIcon", iconName, iconfile, testUser).Return(nil)
 	application := app.AppCore{Repository: &mockRepo}
-	api := application.GetAPI(appTestApiLogger)
+	api := application.GetAPI()
 	icon, err := api.IconService.CreateIcon(iconName, iconfile.Content, testUser)
 	s.NoError(err)
 	s.Equal(expectedResponseIcon, icon)

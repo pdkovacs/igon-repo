@@ -32,11 +32,11 @@ type iconService struct {
 	logger     zerolog.Logger
 }
 
-func NewIconService(repo Repository, logger zerolog.Logger) *iconService {
-	RegisterSVGDecoder(logging.CreateUnitLogger(logger, "svg-decoder"))
+func NewIconService(repo Repository) *iconService {
+	RegisterSVGDecoder()
 	return &iconService{
 		Repository: repo,
-		logger:     logger,
+		logger:     logging.Get().With().Str(logging.ServiceLogger, "icon-service").Logger(),
 	}
 }
 
@@ -62,7 +62,9 @@ func (service *iconService) CreateIcon(iconName string, initialIconfileContent [
 	if err != nil {
 		return domain.Icon{}, fmt.Errorf("failed to create icon %v: %w", iconName, err)
 	}
-	logger.Info().Msgf("iconName: %s, initialIconfileContent: %v encoded bytes, modifiedBy: %s", iconName, len(initialIconfileContent), modifiedBy)
+
+	logger.Debug().Str("icon_name", iconName).Int("encoded_bytes", len(initialIconfileContent)).Str("modified_by", modifiedBy.UserId.IDInDomain).Msg("creating icon")
+
 	config, format, err := image.DecodeConfig(bytes.NewReader(initialIconfileContent))
 	if err != nil {
 		return domain.Icon{}, fmt.Errorf("failed to decode iconfile: %w", err)
@@ -74,15 +76,13 @@ func (service *iconService) CreateIcon(iconName string, initialIconfileContent [
 		},
 		Content: initialIconfileContent,
 	}
-	logger.Info().Msgf(
-		"iconName: %s, iconfile: %v, initialIconfileContent size: %d, modifiedBy: %s",
-		iconName, iconfile, len(initialIconfileContent), modifiedBy,
-	)
 
 	errCreate := service.Repository.CreateIcon(iconName, iconfile, modifiedBy)
 	if errCreate != nil {
 		return domain.Icon{}, errCreate
 	}
+
+	logger.Debug().Str("icon_name", iconName).Int("encoded_bytes", len(initialIconfileContent)).Str("modified_by", modifiedBy.UserId.IDInDomain).Msg("icon created")
 
 	return domain.Icon{
 		IconAttributes: domain.IconAttributes{
@@ -111,12 +111,15 @@ func (service *iconService) AddIconfile(iconName string, initialIconfileContent 
 		authr.ADD_ICONFILE,
 	})
 	if err != nil {
-		return domain.IconfileDescriptor{}, fmt.Errorf("failed to add iconfile %v: %w", iconName, err)
+		return domain.IconfileDescriptor{}, fmt.Errorf("not enough permissions to add iconfile %v: %w", iconName, err)
 	}
+
+	logger.Debug().Str("icon_name", iconName).Int("content_size", len(initialIconfileContent)).Str("modified_by", modifiedBy.UserId.IDInDomain).Msg("adding icon file")
+
 	reader := bytes.NewReader(initialIconfileContent)
 	config, format, err := image.DecodeConfig(reader)
 	if err != nil {
-		logger.Error().Msgf("failed to decode image configuration of iconfile for %s: %v", iconName, err)
+		logger.Error().Err(err).Str("icon_name", iconName).Msg("failed to decode image configuration of iconfile")
 		return domain.IconfileDescriptor{}, fmt.Errorf("failed to decode image configuration of iconfile for %s: %w", iconName, err)
 	}
 	iconfile := domain.Iconfile{
@@ -126,15 +129,12 @@ func (service *iconService) AddIconfile(iconName string, initialIconfileContent 
 		},
 		Content: initialIconfileContent,
 	}
-	logger.Info().Msgf(
-		"iconName: %s, iconfile: %v, content of iconfile to add size: %d, modifiedBy: %s",
-		iconName, iconfile, len(initialIconfileContent), modifiedBy,
-	)
 	errAddIconfile := service.Repository.AddIconfile(iconName, iconfile, modifiedBy)
 	if errAddIconfile != nil {
 		return domain.IconfileDescriptor{}, errAddIconfile
 	}
 
+	logger.Debug().Str("icon_name", iconName).Int("content_size", len(initialIconfileContent)).Str("modified_by", modifiedBy.UserId.IDInDomain).Msg("icon file added")
 	return iconfile.IconfileDescriptor, nil
 }
 

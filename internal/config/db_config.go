@@ -18,9 +18,8 @@ type DbConnectionProperties struct {
 func CreateDbProperties(options Options, dbSchema string, logger zerolog.Logger) DbConnectionProperties {
 	checkDefined := func(value string, name string) {
 		if value == "" {
-			msg := fmt.Sprintf("Connection property %s undefined", name)
-			logger.Error().Msgf(msg)
-			panic(msg)
+			logger.Error().Str("prop_name", name).Msg("undefined connection property")
+			panic(fmt.Sprintf("connection property undefined: %s", name))
 		}
 	}
 

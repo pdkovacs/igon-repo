@@ -18,3 +18,5 @@ deployments/dev/app/config.json
 bundle.js
 index.html
 internal/config/buildinfo.txt
+iconrepo.log
+iconrepo*.log.gz

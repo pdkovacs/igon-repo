@@ -13,7 +13,7 @@ import (
 
 const testSequenceId = "gitlabtests"
 
-var gitlabRepoTestLogger = logging.CreateUnitLogger(logging.CreateRootLogger(logging.DebugLevel), "repositories.gitlabRepoTestSuite")
+var gitlabRepoTestLogger = logging.CreateUnitLogger(logging.Get(), "repositories.gitlabRepoTestSuite")
 
 type gitlabRepoTestSuite struct {
 	suite.Suite
@@ -38,7 +38,6 @@ func (testSuite *gitlabRepoTestSuite) BeforeTest(suiteName string, testName stri
 		conf.GitlabProjectPath+"_"+testSequenceId,
 		conf.GitlabMainBranch,
 		conf.GitlabAccessToken,
-		gitlabRepoTestLogger,
 	)
 	if err != nil {
 		panic(err)

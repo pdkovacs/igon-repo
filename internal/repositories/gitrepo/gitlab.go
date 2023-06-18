@@ -128,7 +128,7 @@ type projectProperties struct {
 	InitializeWithReadme string `json:"initialize_with_readme"`
 }
 
-func NewGitlabRepositoryClient(namespacePath string, projectPath string, branch string, apikey string, logger zerolog.Logger) (Gitlab, error) {
+func NewGitlabRepositoryClient(namespacePath string, projectPath string, branch string, apikey string) (Gitlab, error) {
 	if len(apikey) == 0 {
 		return Gitlab{}, fmt.Errorf("no API token for GitLab repository")
 	}
@@ -139,7 +139,6 @@ func NewGitlabRepositoryClient(namespacePath string, projectPath string, branch 
 		},
 		mainBranch: branch,
 		apikey:     apikey,
-		logger:     logger,
 		client: http.Client{
 			Timeout: time.Second * 15,
 		},
@@ -190,12 +189,11 @@ func (g Gitlab) Create() error {
 			if readRequestBodyErr != nil {
 				return fmt.Errorf("failed to read create project request body: %w", readRequestBodyErr)
 			}
-			g.logger.Debug().Msgf(
-				"Transient error (%s) while creating repository using %s (%s), sleeping %d ms then retrying",
-				responseBody,
-				requestBodyStr,
-				g.project.String(),
-				sleepBeforeRetryMs)
+			g.logger.Debug().Err(requestBodyErr).
+				Str("request-body", string(requestBodyStr)).
+				Str("project", g.project.String()).
+				Int("sleep-ms-before-retry", sleepBeforeRetryMs).
+				Msg("Transient error while creating repository")
 			time.Sleep(time.Duration(sleepBeforeRetryMs) * time.Millisecond)
 			if strings.Contains(responseBody, gitlabRepoHasAlreadyBeenTaken) {
 				g.Delete()
@@ -203,7 +201,7 @@ func (g Gitlab) Create() error {
 			}
 			continue
 		}
-		g.logger.Info().Msgf("GitLab repository created: %s", g.project.String())
+		g.logger.Info().Str("project", g.project.String()).Msg("GitLab repository created")
 		return nil
 	}
 }
@@ -213,7 +211,7 @@ func (g Gitlab) Delete() error {
 	if err != nil || (statusCode != 202 && statusCode != 404) {
 		return fmt.Errorf("failed to create gitlab repository: (%d) %s -- %w", statusCode, body, err)
 	}
-	g.logger.Info().Msgf("GitLab repository deleted: %s", g.project.String())
+	g.logger.Info().Str("project", g.project.String()).Msg("GitLab repository deleted")
 	return nil
 }
 
@@ -377,7 +375,7 @@ func (g Gitlab) AddIconfile(iconName string, iconfile domain.Iconfile, modifiedB
 	if commitErr != nil {
 		return fmt.Errorf("failed to add iconfile to GitLab repo %s::%s: %w", iconName, iconfile.String(), commitErr)
 	}
-	g.logger.Info().Msgf("Iconfile added to GitLab repository: %s::%s", iconName, iconfile.String())
+	g.logger.Info().Str("icon-name", iconName).Str("icon-file", iconfile.String()).Msg("Iconfile added to GitLab repository")
 	return nil
 }
 
@@ -394,7 +392,7 @@ func (g Gitlab) DeleteIcon(iconDesc domain.IconDescriptor, modifiedBy authn.User
 	if commitErr != nil {
 		return fmt.Errorf("failed to delete iconfile from GitLab repo %s: %w", iconDesc.Name, commitErr)
 	}
-	g.logger.Info().Msgf("Iconfile deleted from GitLab repository: %s", iconDesc.Name)
+	g.logger.Info().Str("icon-name", iconDesc.Name).Msg("Iconfile deleted from GitLab repository")
 	return nil
 }
 
@@ -410,7 +408,7 @@ func (g Gitlab) DeleteIconfile(iconName string, iconfileDesc domain.IconfileDesc
 	if commitErr != nil {
 		return fmt.Errorf("failed to delete iconfile from GitLab repo %s::%s: %w", iconName, iconfileDesc.String(), commitErr)
 	}
-	g.logger.Info().Msgf("Iconfile deleted from GitLab repository: %s::%s", iconName, iconfileDesc.String())
+	g.logger.Info().Str("icon-name", iconName).Str("icon-file", iconfileDesc.String()).Msg("Iconfile deleted from GitLab repository")
 	return nil
 }
 
@@ -475,7 +473,7 @@ func (g Gitlab) commit(authorName string, commitMessage string, actions []commit
 func (g Gitlab) sendRequest(method string, apiCallPath string, body io.Reader) (int, http.Header, string, error) {
 	urlString := fmt.Sprintf("https://gitlab.com/api/v4%s", apiCallPath)
 
-	g.logger.Debug().Msgf("%s %s", method, urlString)
+	g.logger.Debug().Str("method", method).Str("url", urlString).Msg("send request")
 	request, requestCreationError := http.NewRequest(
 		method,
 		urlString,
@@ -505,7 +503,7 @@ func (g Gitlab) sendRequest(method string, apiCallPath string, body io.Reader) (
 		return resp.StatusCode, nil, "", fmt.Errorf("failed to parse %s header", "RateLimit-Remaining")
 	}
 	if rateLimitRemainning < 5 {
-		g.logger.Warn().Msgf("Rate limit remaining to low: %d", rateLimitRemainning)
+		g.logger.Warn().Int64("rateLimitRemainning", rateLimitRemainning).Msg("Rate limit remaining to low")
 	}
 
 	return resp.StatusCode, resp.Header, string(respBody), nil
