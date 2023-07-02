@@ -199,7 +199,7 @@ func (repo Repository) CreateIcon(iconName string, iconfile domain.Iconfile, mod
 		return fmt.Errorf("failed to create icon %v: %w", iconName, reportErr)
 	}
 
-	err = insertIconfile(tx, iconName, iconfile, modifiedBy)
+	err = insertIconfile(tx, iconName, iconfile)
 	if err != nil {
 		return fmt.Errorf("failed to create iconfile for %v: %w", iconName, err)
 	}
@@ -234,7 +234,7 @@ func (repo Repository) AddIconfileToIcon(iconName string, iconfile domain.Iconfi
 	}
 	defer tx.Rollback()
 
-	err = insertIconfile(tx, iconName, iconfile, modifiedBy)
+	err = insertIconfile(tx, iconName, iconfile)
 	if err != nil {
 		return fmt.Errorf("failed to create iconfile %v: %w", iconName, err)
 	}
@@ -255,7 +255,7 @@ func (repo Repository) AddIconfileToIcon(iconName string, iconfile domain.Iconfi
 	return nil
 }
 
-func insertIconfile(tx *sql.Tx, iconName string, iconfile domain.Iconfile, modifiedBy string) error {
+func insertIconfile(tx *sql.Tx, iconName string, iconfile domain.Iconfile) error {
 	const insertIconfileSQL = "INSERT INTO icon_file(icon_id, file_format, icon_size, content) " +
 		"SELECT id, $2, $3, $4 FROM icon WHERE name = $1 RETURNING id"
 	_, err := tx.Exec(insertIconfileSQL, iconName, iconfile.Format, iconfile.Size, iconfile.Content)
