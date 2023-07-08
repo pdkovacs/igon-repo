@@ -7,6 +7,7 @@ require (
 	github.com/gin-contrib/sessions v0.0.5
 	github.com/gin-gonic/gin v1.8.1
 	github.com/jackc/pgx/v4 v4.17.0
+	github.com/rs/xid v1.5.0
 	github.com/rs/zerolog v1.29.1
 	github.com/stretchr/testify v1.8.0
 	golang.org/x/oauth2 v0.0.0-20220722155238-128564f6959c
@@ -17,7 +18,6 @@ require (
 	github.com/antonlindstrom/pgstore v0.0.0-20200229204646-b08ebf1105e0 // indirect
 	github.com/lib/pq v1.10.3 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/rs/xid v1.5.0 // indirect
 )
 
 require (
