@@ -13,6 +13,7 @@ type GitRepository interface {
 	fmt.Stringer
 	Create() error
 	AddIconfile(iconName string, iconfile domain.Iconfile, modifiedBy string) error
+	GetIconfile(iconName string, iconfile domain.IconfileDescriptor) ([]byte, error)
 	DeleteIcon(iconDesc domain.IconDescriptor, modifiedBy authn.UserID) error
 	DeleteIconfile(iconName string, iconfileDesc domain.IconfileDescriptor, modifiedBy authn.UserID) error
 }
@@ -31,7 +32,7 @@ func (combo *RepoCombo) DescribeIcon(iconName string) (domain.IconDescriptor, er
 }
 
 func (combo *RepoCombo) CreateIcon(iconName string, iconfile domain.Iconfile, modifiedBy authr.UserInfo) error {
-	return combo.DB.CreateIcon(iconName, iconfile, modifiedBy.UserId.String(), func() error {
+	return combo.DB.CreateIcon(iconName, iconfile.IconfileDescriptor, modifiedBy.UserId.String(), func() error {
 		return combo.Git.AddIconfile(iconName, iconfile, modifiedBy.UserId.String())
 	})
 }
@@ -48,13 +49,13 @@ func (combo *RepoCombo) DeleteIcon(iconName string, modifiedBy authr.UserInfo) e
 }
 
 func (combo *RepoCombo) AddIconfile(iconName string, iconfile domain.Iconfile, modifiedBy authr.UserInfo) error {
-	return combo.DB.AddIconfileToIcon(iconName, iconfile, modifiedBy.UserId.String(), func() error {
+	return combo.DB.AddIconfileToIcon(iconName, iconfile.IconfileDescriptor, modifiedBy.UserId.String(), func() error {
 		return combo.Git.AddIconfile(iconName, iconfile, modifiedBy.UserId.String())
 	})
 }
 
 func (combo *RepoCombo) GetIconfile(iconName string, iconfile domain.IconfileDescriptor) ([]byte, error) {
-	return combo.DB.GetIconfile(iconName, iconfile)
+	return combo.Git.GetIconfile(iconName, iconfile)
 }
 
 func (combo *RepoCombo) DeleteIconfile(iconName string, iconfile domain.IconfileDescriptor, modifiedBy authr.UserInfo) error {

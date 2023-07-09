@@ -23,10 +23,10 @@ func (s *addIconfileToDBTestSuite) TestErrorOnDuplicateIconfile() {
 	var icon = test_commons.TestData[0]
 	var iconfile = icon.Iconfiles[0]
 
-	err = s.dbRepo.CreateIcon(icon.Name, iconfile, icon.ModifiedBy, nil)
+	err = s.dbRepo.CreateIcon(icon.Name, iconfile.IconfileDescriptor, icon.ModifiedBy, nil)
 	s.NoError(err)
 
-	err = s.dbRepo.AddIconfileToIcon(icon.Name, iconfile, icon.ModifiedBy, nil)
+	err = s.dbRepo.AddIconfileToIcon(icon.Name, iconfile.IconfileDescriptor, icon.ModifiedBy, nil)
 	s.True(errors.Is(err, domain.ErrIconfileAlreadyExists))
 }
 
@@ -36,10 +36,10 @@ func (s *addIconfileToDBTestSuite) TestSecondIconfile() {
 	var iconfile1 = icon.Iconfiles[0]
 	var iconfile2 = icon.Iconfiles[1]
 
-	err = s.dbRepo.CreateIcon(icon.Name, iconfile1, icon.ModifiedBy, nil)
+	err = s.dbRepo.CreateIcon(icon.Name, iconfile1.IconfileDescriptor, icon.ModifiedBy, nil)
 	s.NoError(err)
 
-	err = s.dbRepo.AddIconfileToIcon(icon.Name, iconfile2, icon.ModifiedBy, nil)
+	err = s.dbRepo.AddIconfileToIcon(icon.Name, iconfile2.IconfileDescriptor, icon.ModifiedBy, nil)
 	s.NoError(err)
 
 	var iconDesc domain.IconDescriptor
@@ -56,10 +56,10 @@ func (s *addIconfileToDBTestSuite) TestAddSecondIconfileBySecondUser() {
 
 	var secondUser = "sedat"
 
-	err = s.dbRepo.CreateIcon(icon.Name, iconfile1, icon.ModifiedBy, nil)
+	err = s.dbRepo.CreateIcon(icon.Name, iconfile1.IconfileDescriptor, icon.ModifiedBy, nil)
 	s.NoError(err)
 
-	err = s.dbRepo.AddIconfileToIcon(icon.Name, iconfile2, secondUser, nil)
+	err = s.dbRepo.AddIconfileToIcon(icon.Name, iconfile2.IconfileDescriptor, secondUser, nil)
 	s.NoError(err)
 
 	var iconDesc domain.IconDescriptor

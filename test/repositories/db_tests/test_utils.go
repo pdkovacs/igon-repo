@@ -105,13 +105,3 @@ func (s *DBTestSuite) getIconCount() (int, error) {
 	}
 	return count, nil
 }
-
-func (s *DBTestSuite) getIconfile(iconName string, iconfile domain.Iconfile) ([]byte, error) {
-	return s.dbRepo.GetIconfile(iconName, iconfile.IconfileDescriptor)
-}
-
-func (s *DBTestSuite) getIconfileChecked(iconName string, iconfile domain.Iconfile) {
-	content, err := s.getIconfile(iconName, iconfile)
-	s.NoError(err)
-	s.Equal(iconfile.Content, content)
-}

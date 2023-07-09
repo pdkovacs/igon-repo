@@ -180,7 +180,7 @@ func (repo Repository) DescribeAllIcons() ([]domain.IconDescriptor, error) {
 
 type CreateSideEffect func() error
 
-func (repo Repository) CreateIcon(iconName string, iconfile domain.Iconfile, modifiedBy string, createSideEffect CreateSideEffect) error {
+func (repo Repository) CreateIcon(iconName string, iconfile domain.IconfileDescriptor, modifiedBy string, createSideEffect CreateSideEffect) error {
 	var tx *sql.Tx
 	var err error
 	tx, err = repo.Conn.Pool.Begin()
@@ -224,7 +224,7 @@ func updateModifier(tx *sql.Tx, iconName string, modifiedBy string) error {
 	return nil
 }
 
-func (repo Repository) AddIconfileToIcon(iconName string, iconfile domain.Iconfile, modifiedBy string, createSideEffect CreateSideEffect) error {
+func (repo Repository) AddIconfileToIcon(iconName string, iconfile domain.IconfileDescriptor, modifiedBy string, createSideEffect CreateSideEffect) error {
 	var tx *sql.Tx
 	var err error
 
@@ -255,10 +255,10 @@ func (repo Repository) AddIconfileToIcon(iconName string, iconfile domain.Iconfi
 	return nil
 }
 
-func insertIconfile(tx *sql.Tx, iconName string, iconfile domain.Iconfile) error {
-	const insertIconfileSQL = "INSERT INTO icon_file(icon_id, file_format, icon_size, content) " +
-		"SELECT id, $2, $3, $4 FROM icon WHERE name = $1 RETURNING id"
-	_, err := tx.Exec(insertIconfileSQL, iconName, iconfile.Format, iconfile.Size, iconfile.Content)
+func insertIconfile(tx *sql.Tx, iconName string, iconfile domain.IconfileDescriptor) error {
+	const insertIconfileSQL = "INSERT INTO icon_file(icon_id, file_format, icon_size) " +
+		"SELECT id, $2, $3 FROM icon WHERE name = $1 RETURNING id"
+	_, err := tx.Exec(insertIconfileSQL, iconName, iconfile.Format, iconfile.Size)
 	if err != nil {
 		if IsDBError(err, ErrDuplicateRows) {
 			return domain.ErrIconfileAlreadyExists
@@ -266,25 +266,6 @@ func insertIconfile(tx *sql.Tx, iconName string, iconfile domain.Iconfile) error
 		return fmt.Errorf("failed to insert iconfile %v: %w", iconName, err)
 	}
 	return nil
-}
-
-func (repo Repository) GetIconfile(iconName string, iconfileDesc domain.IconfileDescriptor) ([]byte, error) {
-	const getIconfileSQL = "SELECT content FROM icon, icon_file " +
-		"WHERE icon_id = icon.id AND " +
-		"file_format = $2 AND " +
-		"icon_size = $3 AND " +
-		"icon.name = $1"
-
-	var err error
-	var content = []byte{}
-	err = repo.Conn.Pool.QueryRow(getIconfileSQL, iconName, iconfileDesc.Format, iconfileDesc.Size).Scan(&content)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return content, fmt.Errorf("iconfile %v for icon %s not found %w", iconfileDesc, iconName, domain.ErrIconfileNotFound)
-		}
-		return []byte{}, fmt.Errorf("failed to get iconfile %v: %w", iconName, err)
-	}
-	return content, nil
 }
 
 func (repo Repository) GetExistingTags() ([]string, error) {

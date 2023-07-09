@@ -20,7 +20,7 @@ func (s *deleteIconFromDBTestSuite) TestDeleteAllAssociatedEntries() {
 
 	icon := test_commons.TestData[0]
 
-	err = s.dbRepo.CreateIcon(icon.Name, icon.Iconfiles[0], icon.ModifiedBy, nil)
+	err = s.dbRepo.CreateIcon(icon.Name, icon.Iconfiles[0].IconfileDescriptor, icon.ModifiedBy, nil)
 	s.NoError(err)
 	err = s.dbRepo.AddTag(icon.Name, icon.Tags[0], icon.ModifiedBy)
 	s.NoError(err)

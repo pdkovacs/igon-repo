@@ -24,7 +24,7 @@ func (s *addTagTestSuite) TestCreateAssociateNonExistingTag() {
 	var icon = test_commons.TestData[0]
 	const tag = "used-in-marvinjs"
 
-	err = s.dbRepo.CreateIcon(icon.Name, icon.Iconfiles[0], icon.ModifiedBy, nil)
+	err = s.dbRepo.CreateIcon(icon.Name, icon.Iconfiles[0].IconfileDescriptor, icon.ModifiedBy, nil)
 	s.NoError(err)
 	tags, err = s.dbRepo.GetExistingTags()
 	s.NoError(err)
@@ -57,9 +57,9 @@ func (s *addTagTestSuite) TestReuseExistingTag() {
 	var icon2 = test_commons.TestData[1]
 	const tag = "used-in-marvinjs"
 
-	err = s.dbRepo.CreateIcon(icon1.Name, icon1.Iconfiles[0], icon1.ModifiedBy, nil)
+	err = s.dbRepo.CreateIcon(icon1.Name, icon1.Iconfiles[0].IconfileDescriptor, icon1.ModifiedBy, nil)
 	s.NoError(err)
-	err = s.dbRepo.CreateIcon(icon2.Name, icon2.Iconfiles[0], icon2.ModifiedBy, nil)
+	err = s.dbRepo.CreateIcon(icon2.Name, icon2.Iconfiles[0].IconfileDescriptor, icon2.ModifiedBy, nil)
 	s.NoError(err)
 
 	err = s.dbRepo.AddTag(icon1.Name, tag, icon1.ModifiedBy)

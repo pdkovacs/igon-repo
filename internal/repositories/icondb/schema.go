@@ -45,6 +45,12 @@ var upgradeSteps = []upgradeStep{
 				")",
 		},
 	},
+	{
+		version: "2023-07-09/1 - content in git only",
+		sqls: []string{
+			"ALTER TABLE icon_file DROP content",
+		},
+	},
 }
 
 type dbSchema struct {
@@ -197,16 +203,6 @@ func (schema *dbSchema) create() error {
 	_, errCreate := db.Exec("create schema " + schemaName)
 	if errCreate != nil {
 		return fmt.Errorf("failed to create schema '%s': %w", schemaName, errCreate)
-	}
-	return nil
-}
-
-func (schema *dbSchema) delete() error {
-	db := schema.conn.Pool
-	schemaName := schema.conn.schemaName
-	_, errDelete := db.Exec("drop schema " + schemaName + " cascade")
-	if errDelete != nil {
-		return fmt.Errorf("failed to delete schema '%s': %w", schemaName, errDelete)
 	}
 	return nil
 }

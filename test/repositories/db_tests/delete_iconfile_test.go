@@ -23,7 +23,7 @@ func (s *deleteIconfileFromDBTestSuite) TestDeleteTheOnlyIconfile() {
 	icon := test_commons.TestData[0]
 	iconfile := icon.Iconfiles[0]
 
-	err = s.dbRepo.CreateIcon(icon.Name, iconfile, icon.ModifiedBy, nil)
+	err = s.dbRepo.CreateIcon(icon.Name, iconfile.IconfileDescriptor, icon.ModifiedBy, nil)
 	s.NoError(err)
 	err = s.dbRepo.AddTag(icon.Name, icon.ModifiedBy, icon.Tags[0])
 	s.NoError(err)
@@ -53,11 +53,11 @@ func (s *deleteIconfileFromDBTestSuite) TestDeleteNextToLastIconfile() {
 	iconfile1 := icon.Iconfiles[0]
 	iconfile2 := icon.Iconfiles[1]
 
-	err = s.dbRepo.CreateIcon(icon.Name, iconfile1, icon.ModifiedBy, nil)
+	err = s.dbRepo.CreateIcon(icon.Name, iconfile1.IconfileDescriptor, icon.ModifiedBy, nil)
 	s.NoError(err)
 	err = s.dbRepo.AddTag(icon.Name, icon.Tags[0], icon.ModifiedBy)
 	s.NoError(err)
-	err = s.dbRepo.AddIconfileToIcon(icon.Name, iconfile2, icon.ModifiedBy, nil)
+	err = s.dbRepo.AddIconfileToIcon(icon.Name, iconfile2.IconfileDescriptor, icon.ModifiedBy, nil)
 	s.NoError(err)
 
 	err = s.dbRepo.DeleteIconfile(icon.Name, iconfile1.IconfileDescriptor, icon.ModifiedBy, nil)
@@ -79,11 +79,11 @@ func (s *deleteIconfileFromDBTestSuite) TestDeleteNextToLastIconfileBySecondUser
 	iconfile1 := icon.Iconfiles[0]
 	iconfile2 := icon.Iconfiles[1]
 
-	err = s.dbRepo.CreateIcon(icon.Name, iconfile1, icon.ModifiedBy, nil)
+	err = s.dbRepo.CreateIcon(icon.Name, iconfile1.IconfileDescriptor, icon.ModifiedBy, nil)
 	s.NoError(err)
 	err = s.dbRepo.AddTag(icon.Name, icon.Tags[0], icon.ModifiedBy)
 	s.NoError(err)
-	err = s.dbRepo.AddIconfileToIcon(icon.Name, iconfile2, icon.ModifiedBy, nil)
+	err = s.dbRepo.AddIconfileToIcon(icon.Name, iconfile2.IconfileDescriptor, icon.ModifiedBy, nil)
 	s.NoError(err)
 
 	err = s.dbRepo.DeleteIconfile(icon.Name, iconfile1.IconfileDescriptor, secondUser, nil)

@@ -1,7 +1,6 @@
 package api_tests
 
 import (
-	"bytes"
 	"fmt"
 	"sort"
 	"strings"
@@ -36,27 +35,17 @@ func (s *IconTestSuite) assertAllFilesInDBAreInGitAsWell() []string {
 	db := s.testDBRepo
 	git := s.TestGitRepo
 
-	allIconDesc, descAllErr := db.DescribeAllIcons()
+	allIconDescInDb, descAllErr := db.DescribeAllIcons()
 	if descAllErr != nil {
 		panic(descAllErr)
 	}
 
-	for _, iconDesc := range allIconDesc {
-		for _, iconfileDesc := range iconDesc.Iconfiles {
-			fileContentInDB, contentReadError := db.GetIconfile(iconDesc.Name, iconfileDesc)
-			if contentReadError != nil {
-				panic(contentReadError)
-			}
-			fileContentInGit, readGitFileErr := git.GetIconfile(iconDesc.Name, iconfileDesc)
+	for _, iconDescInDb := range allIconDescInDb {
+		for _, iconfileDesc := range iconDescInDb.Iconfiles {
+			fileContentInGit, readGitFileErr := git.GetIconfile(iconDescInDb.Name, iconfileDesc)
 			s.NoError(readGitFileErr)
-
-			s.Equal(len(fileContentInDB), len(fileContentInGit))
-			if len(fileContentInDB) != len(fileContentInGit) {
-				s.logger.Error().Str("db-content", string(fileContentInDB)).Str("git-content", string(fileContentInGit)).Send()
-			}
-			s.True(bytes.Equal(fileContentInDB, fileContentInGit))
-
-			checkedGitFiles = append(checkedGitFiles, gitrepo.NewGitFilePaths("").GetPathToIconfileInRepo(iconDesc.Name, iconfileDesc))
+			s.Greater(len(fileContentInGit), 0)
+			checkedGitFiles = append(checkedGitFiles, gitrepo.NewGitFilePaths("").GetPathToIconfileInRepo(iconDescInDb.Name, iconfileDesc))
 		}
 	}
 
