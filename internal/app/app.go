@@ -5,22 +5,28 @@ import (
 	"iconrepo/internal/httpadapter"
 	"iconrepo/internal/repositories"
 	"iconrepo/internal/repositories/gitrepo"
-	"iconrepo/internal/repositories/icondb"
+	"iconrepo/internal/repositories/indexing/dynamodb"
+	"iconrepo/internal/repositories/indexing/pgdb"
 )
 
 func Start(conf config.Options, ready func(port int, stop func())) error {
 
-	connection, dbErr := icondb.NewDBConnection(conf)
+	connection, dbErr := pgdb.NewDBConnection(conf)
 	if dbErr != nil {
 		return dbErr
 	}
 
-	dbSchemaAlreadyThere, schemaErr := icondb.OpenSchema(conf, connection)
+	dbSchemaAlreadyThere, schemaErr := pgdb.OpenSchema(conf, connection)
 	if schemaErr != nil {
 		return schemaErr
 	}
 
-	db := icondb.NewDBRepository(connection)
+	var db repositories.DBRepository
+	if conf.DynamoDBURL == "" {
+		db = pgdb.NewDBRepository(connection)
+	} else {
+		db = dynamodb.NewDynDBRepository()
+	}
 
 	var git repositories.GitRepository
 	if len(conf.LocalGitRepo) > 0 {
@@ -46,7 +52,7 @@ func Start(conf config.Options, ready func(port int, stop func())) error {
 		}
 	}
 
-	combinedRepo := repositories.RepoCombo{DB: db, Git: git}
+	combinedRepo := repositories.RepoCombo{Db: db, Git: git}
 
 	appRef := &AppCore{Repository: &combinedRepo}
 

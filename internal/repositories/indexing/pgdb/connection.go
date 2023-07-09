@@ -1,4 +1,4 @@
-package icondb
+package pgdb
 
 import (
 	"database/sql"

@@ -32,7 +32,7 @@ func (s *IconTestSuite) getCheckIconfile(session *apiTestSession, iconName strin
 func (s *IconTestSuite) assertAllFilesInDBAreInGitAsWell() []string {
 	checkedGitFiles := []string{}
 
-	db := s.testDBRepo
+	db := s.testDbRepo
 	git := s.TestGitRepo
 
 	allIconDescInDb, descAllErr := db.DescribeAllIcons()

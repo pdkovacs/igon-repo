@@ -12,9 +12,9 @@ import (
 	"iconrepo/internal/config"
 	"iconrepo/internal/logging"
 	"iconrepo/internal/repositories/gitrepo"
-	"iconrepo/internal/repositories/icondb"
-	"iconrepo/test/repositories/db_tests"
+	"iconrepo/internal/repositories/indexing/pgdb"
 	"iconrepo/test/repositories/git_tests"
+	"iconrepo/test/repositories/indexing_tests"
 	"iconrepo/test/test_commons"
 	"iconrepo/test/testdata"
 
@@ -28,7 +28,7 @@ type ApiTestSuite struct {
 	*suite.Suite
 	config          config.Options
 	stopServer      func()
-	testDBRepo      icondb.Repository
+	testDbRepo      indexing_tests.TestIndexRepository
 	TestGitRepo     git_tests.GitTestRepo
 	Client          apiTestClient
 	logger          zerolog.Logger
@@ -48,7 +48,7 @@ func apiTestSuites(testSequenceName string, gitProviders []git_tests.GitTestRepo
 			suiteToEmbed,
 			conf,
 			nil,
-			icondb.Repository{},
+			nil,
 			repo,
 			apiTestClient{},
 			logging.Get().With().Str("test_sequence_name", testSequenceName).Logger(),
@@ -67,11 +67,12 @@ func (s *ApiTestSuite) SetupSuite() {
 	s.config.LogLevel = logging.DebugLevel
 
 	// testDBConn and testDBREpo will be only used to read for verification
-	testDBConn, testDBErr := icondb.NewDBConnection(s.config)
+	testDBConn, testDBErr := pgdb.NewDBConnection(s.config)
 	if testDBErr != nil {
 		panic(testDBErr)
 	}
-	s.testDBRepo = icondb.NewDBRepository(testDBConn)
+	testDbRepo := pgdb.NewDBRepository(testDBConn)
+	s.testDbRepo = indexing_tests.NewTestDbRepositoryFromSQLDB(&testDbRepo)
 
 	s.config.GitlabAccessToken = git_tests.GitTestGitlabAPIToken()
 
@@ -82,6 +83,10 @@ func (s *ApiTestSuite) SetupSuite() {
 	s.config.ServerPort = 0
 
 	s.logger = logging.CreateUnitLogger(s.logger, "apiTestSuite")
+}
+
+func (s *ApiTestSuite) TearDownSuite() {
+	s.testDbRepo.Close()
 }
 
 func (s *ApiTestSuite) initTestCaseConfig() config.Options {
@@ -105,7 +110,10 @@ func (s *ApiTestSuite) initTestCaseConfig() config.Options {
 	}
 
 	git_tests.MustResetTestGitRepo(s.TestGitRepo)
-	db_tests.ResetDBData(s.testDBRepo.Conn.Pool)
+	err := s.testDbRepo.ResetDBData()
+	if err != nil {
+		panic(err)
+	}
 	return conf
 }
 

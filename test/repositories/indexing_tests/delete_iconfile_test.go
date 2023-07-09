@@ -1,4 +1,4 @@
-package db_tests
+package indexing_tests
 
 import (
 	"testing"
@@ -35,13 +35,13 @@ func (s *deleteIconfileFromDBTestSuite) TestDeleteTheOnlyIconfile() {
 	s.Error(domain.ErrIconNotFound, err)
 
 	var rowCount int
-	err = s.dbRepo.Conn.Pool.QueryRow("select count(*) as row_count from icon").Scan(&rowCount)
+	rowCount, err = s.dbRepo.GetIconCount()
 	s.NoError(err)
 	s.Equal(0, rowCount)
-	err = s.dbRepo.Conn.Pool.QueryRow("select count(*) as row_count from icon_file").Scan(&rowCount)
+	rowCount, err = s.dbRepo.GetIconFileCount()
 	s.NoError(err)
 	s.Equal(0, rowCount)
-	err = s.dbRepo.Conn.Pool.QueryRow("select count(*) as row_count from icon_to_tags").Scan(&rowCount)
+	rowCount, err = s.dbRepo.GetTagRelationCount()
 	s.NoError(err)
 	s.Equal(0, rowCount)
 }

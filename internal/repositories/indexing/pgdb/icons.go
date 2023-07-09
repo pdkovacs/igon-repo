@@ -1,4 +1,4 @@
-package icondb
+package pgdb
 
 import (
 	"database/sql"
@@ -178,9 +178,7 @@ func (repo Repository) DescribeAllIcons() ([]domain.IconDescriptor, error) {
 	return result, nil
 }
 
-type CreateSideEffect func() error
-
-func (repo Repository) CreateIcon(iconName string, iconfile domain.IconfileDescriptor, modifiedBy string, createSideEffect CreateSideEffect) error {
+func (repo Repository) CreateIcon(iconName string, iconfile domain.IconfileDescriptor, modifiedBy string, createSideEffect func() error) error {
 	var tx *sql.Tx
 	var err error
 	tx, err = repo.Conn.Pool.Begin()
@@ -224,7 +222,7 @@ func updateModifier(tx *sql.Tx, iconName string, modifiedBy string) error {
 	return nil
 }
 
-func (repo Repository) AddIconfileToIcon(iconName string, iconfile domain.IconfileDescriptor, modifiedBy string, createSideEffect CreateSideEffect) error {
+func (repo Repository) AddIconfileToIcon(iconName string, iconfile domain.IconfileDescriptor, modifiedBy string, createSideEffect func() error) error {
 	var tx *sql.Tx
 	var err error
 
@@ -423,7 +421,7 @@ func deleteIconfileBare(tx *sql.Tx, iconName string, iconfile domain.IconfileDes
 	return sqlResult, nil
 }
 
-func (repo Repository) DeleteIcon(iconName string, modifiedBy string, createSideEffect CreateSideEffect) error {
+func (repo Repository) DeleteIcon(iconName string, modifiedBy string, createSideEffect func() error) error {
 	var tx *sql.Tx
 	var err error
 
@@ -457,7 +455,7 @@ func (repo Repository) DeleteIcon(iconName string, modifiedBy string, createSide
 	return nil
 }
 
-func (repo Repository) DeleteIconfile(iconName string, iconfile domain.IconfileDescriptor, modifiedBy string, createSideEffect CreateSideEffect) error {
+func (repo Repository) DeleteIconfile(iconName string, iconfile domain.IconfileDescriptor, modifiedBy string, createSideEffect func() error) error {
 	var err error
 	var tx *sql.Tx
 	var sqlResult sql.Result
