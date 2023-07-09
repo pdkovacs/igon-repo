@@ -2,8 +2,8 @@ package services
 
 import (
 	"context"
-	"igo-repo/internal/app/security/authn"
-	"igo-repo/internal/logging"
+	"iconrepo/internal/app/security/authn"
+	"iconrepo/internal/logging"
 	"sync"
 	"time"
 

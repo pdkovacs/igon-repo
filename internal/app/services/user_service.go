@@ -1,8 +1,8 @@
 package services
 
 import (
-	"igo-repo/internal/app/security/authn"
-	"igo-repo/internal/app/security/authr"
+	"iconrepo/internal/app/security/authn"
+	"iconrepo/internal/app/security/authr"
 )
 
 func NewUserService(authorizationService AuthorizationService) UserService {

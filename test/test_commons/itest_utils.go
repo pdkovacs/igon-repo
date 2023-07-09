@@ -3,7 +3,7 @@ package test_commons
 import (
 	"crypto/rand"
 
-	"igo-repo/internal/app/domain"
+	"iconrepo/internal/app/domain"
 )
 
 func createTestIconfile(format, size string) domain.Iconfile {

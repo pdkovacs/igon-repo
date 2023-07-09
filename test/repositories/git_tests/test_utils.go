@@ -6,11 +6,11 @@ import (
 	"regexp"
 	"time"
 
-	"igo-repo/internal/app/domain"
-	"igo-repo/internal/config"
-	"igo-repo/internal/repositories"
-	"igo-repo/internal/repositories/gitrepo"
-	"igo-repo/test/test_commons"
+	"iconrepo/internal/app/domain"
+	"iconrepo/internal/config"
+	"iconrepo/internal/repositories"
+	"iconrepo/internal/repositories/gitrepo"
+	"iconrepo/test/test_commons"
 
 	"github.com/stretchr/testify/suite"
 )

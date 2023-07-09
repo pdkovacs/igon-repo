@@ -2,7 +2,7 @@ package test_commons
 
 import (
 	"encoding/json"
-	"igo-repo/internal/config"
+	"iconrepo/internal/config"
 	"os"
 	"path/filepath"
 	"strconv"

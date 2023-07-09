@@ -1,7 +1,7 @@
 #!/bin/bash
 
 app_instance_count=2
-app_executable="igo-repo"
+app_executable="iconrepo"
 
 build_backend() {
   make app

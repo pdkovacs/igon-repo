@@ -1,11 +1,11 @@
 package sequential_tests
 
 import (
-	"igo-repo/internal/repositories/gitrepo"
-	api_tests "igo-repo/test/api"
-	"igo-repo/test/repositories/git_tests"
-	"igo-repo/test/test_commons"
-	"igo-repo/test/testdata"
+	"iconrepo/internal/repositories/gitrepo"
+	api_tests "iconrepo/test/api"
+	"iconrepo/test/repositories/git_tests"
+	"iconrepo/test/test_commons"
+	"iconrepo/test/testdata"
 	"os"
 	"testing"
 	"time"

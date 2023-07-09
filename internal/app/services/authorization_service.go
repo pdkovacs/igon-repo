@@ -1,9 +1,9 @@
 package services
 
 import (
-	"igo-repo/internal/app/security/authn"
-	"igo-repo/internal/app/security/authr"
-	"igo-repo/internal/config"
+	"iconrepo/internal/app/security/authn"
+	"iconrepo/internal/app/security/authr"
+	"iconrepo/internal/config"
 	"strings"
 
 	"github.com/rs/zerolog/log"

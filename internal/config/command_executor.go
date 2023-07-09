@@ -2,7 +2,7 @@ package config
 
 import (
 	"fmt"
-	"igo-repo/internal/logging"
+	"iconrepo/internal/logging"
 	"io"
 	"os/exec"
 

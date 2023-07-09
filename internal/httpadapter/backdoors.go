@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io"
 
-	"igo-repo/internal/app/security/authr"
+	"iconrepo/internal/app/security/authr"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"

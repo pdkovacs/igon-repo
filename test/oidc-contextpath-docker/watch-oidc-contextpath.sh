@@ -12,8 +12,8 @@ export DB_HOST="$MY_IP"
 export ICON_DATA_LOCATION_GIT="$PWD/tmp/data/git-repo"
 export ICON_DATA_CREATE_NEW="init"
 export AUTHENTICATION_TYPE="oidc"
-export OIDC_CLIENT_ID="igo-repo-1"
-export OIDC_CLIENT_SECRET="igo-repo-secret-1"
+export OIDC_CLIENT_ID="iconrepo-1"
+export OIDC_CLIENT_SECRET="iconrepo-secret-1"
 export OIDC_ACCESS_TOKEN_URL="http://$IDP_HOST:9001/token"
 export OIDC_USER_AUTHORIZATION_URL="http://$IDP_HOST:9001/authorize"
 export OIDC_CLIENT_REDIRECT_BACK_URL="http://$APP_HOST/icons/login"
@@ -32,16 +32,16 @@ while true
 do
   count=$((count++))
   echo "${count}th start..."
-  ./igo-repo -l debug &
+  ./iconrepo -l debug &
   sleep $settle_down_secs
   fswatch -r -1 \
     --event Created --event Updated --event Removed \
     -e '.*/[.]git/.*' \
     -e 'web/dist' \
     -e 'web/node_modules' \
-    -e '.*/igo-repo/igo-repo$' \
+    -e '.*/iconrepo/iconrepo$' \
     -e 'tmp/data' \
     .
-  pkill igo-repo && wait
+  pkill iconrepo && wait
   eval "$cmd"
 done

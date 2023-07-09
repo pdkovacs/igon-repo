@@ -1,9 +1,9 @@
 package api_tests
 
 import (
-	"igo-repo/internal/config"
-	"igo-repo/internal/repositories/gitrepo"
-	"igo-repo/test/repositories/git_tests"
+	"iconrepo/internal/config"
+	"iconrepo/internal/repositories/gitrepo"
+	"iconrepo/test/repositories/git_tests"
 	"testing"
 
 	"github.com/stretchr/testify/suite"

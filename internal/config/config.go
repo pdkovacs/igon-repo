@@ -3,7 +3,7 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"igo-repo/internal/app/security/authn"
+	"iconrepo/internal/app/security/authn"
 	"os"
 	"path/filepath"
 	"reflect"

@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"io"
 
-	"igo-repo/internal/app/domain"
-	"igo-repo/internal/app/security/authn"
-	"igo-repo/internal/app/security/authr"
-	"igo-repo/internal/app/services"
+	"iconrepo/internal/app/domain"
+	"iconrepo/internal/app/security/authn"
+	"iconrepo/internal/app/security/authr"
+	"iconrepo/internal/app/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"

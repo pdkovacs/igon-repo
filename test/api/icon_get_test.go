@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"igo-repo/test/testdata"
+	"iconrepo/test/testdata"
 
 	"github.com/stretchr/testify/suite"
 )

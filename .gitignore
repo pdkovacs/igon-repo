@@ -4,7 +4,7 @@
 /build/
 /docker/dist/
 /log
-/igo-repo
+/iconrepo
 /backend
 /deploy/dist/
 /output

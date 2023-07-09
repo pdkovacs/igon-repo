@@ -1,7 +1,7 @@
 package db_tests
 
 import (
-	"igo-repo/test/test_commons"
+	"iconrepo/test/test_commons"
 	"testing"
 
 	"github.com/stretchr/testify/suite"

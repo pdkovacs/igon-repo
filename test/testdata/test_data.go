@@ -5,10 +5,10 @@ import (
 	"os"
 	"path"
 
-	"igo-repo/internal/app/domain"
-	"igo-repo/internal/app/security/authn"
-	"igo-repo/internal/config"
-	"igo-repo/internal/httpadapter"
+	"iconrepo/internal/app/domain"
+	"iconrepo/internal/app/security/authn"
+	"iconrepo/internal/config"
+	"iconrepo/internal/httpadapter"
 )
 
 var backendSourceHome = os.Getenv("BACKEND_SOURCE_HOME")
@@ -22,7 +22,7 @@ func init() {
 		if homeDir == "" {
 			homeDir = os.Getenv("USERPROFILE")
 		}
-		backendSourceHome = fmt.Sprintf("%s/github/pdkovacs/igo-repo", homeDir)
+		backendSourceHome = fmt.Sprintf("%s/github/pdkovacs/iconrepo", homeDir)
 	}
 }
 

@@ -2,7 +2,7 @@ package gitrepo
 
 import (
 	"fmt"
-	"igo-repo/internal/app/domain"
+	"iconrepo/internal/app/domain"
 	"path/filepath"
 )
 

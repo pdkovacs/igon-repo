@@ -1,7 +1,7 @@
 package gitrepo
 
 import (
-	"igo-repo/internal/logging"
+	"iconrepo/internal/logging"
 	"os"
 	"testing"
 	"time"

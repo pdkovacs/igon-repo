@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"image"
 
-	"igo-repo/internal/app/domain"
-	"igo-repo/internal/app/security/authr"
-	"igo-repo/internal/logging"
+	"iconrepo/internal/app/domain"
+	"iconrepo/internal/app/security/authr"
+	"iconrepo/internal/logging"
 
 	"github.com/rs/zerolog"
 )

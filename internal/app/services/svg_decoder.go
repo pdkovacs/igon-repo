@@ -4,7 +4,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"igo-repo/internal/logging"
+	"iconrepo/internal/logging"
 	"image"
 	"io"
 	"strconv"

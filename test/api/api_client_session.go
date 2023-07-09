@@ -9,11 +9,11 @@ import (
 	"net/http"
 	"strings"
 
-	"igo-repo/internal/app/domain"
-	"igo-repo/internal/app/security/authn"
-	"igo-repo/internal/app/security/authr"
-	"igo-repo/internal/httpadapter"
-	"igo-repo/test/testdata"
+	"iconrepo/internal/app/domain"
+	"iconrepo/internal/app/security/authn"
+	"iconrepo/internal/app/security/authr"
+	"iconrepo/internal/httpadapter"
+	"iconrepo/test/testdata"
 )
 
 type apiTestSession struct {

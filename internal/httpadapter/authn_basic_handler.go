@@ -4,9 +4,9 @@ import (
 	"encoding/base64"
 	"strings"
 
-	"igo-repo/internal/app/security/authn"
-	"igo-repo/internal/app/services"
-	"igo-repo/internal/config"
+	"iconrepo/internal/app/security/authn"
+	"iconrepo/internal/app/services"
+	"iconrepo/internal/config"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"

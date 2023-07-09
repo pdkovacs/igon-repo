@@ -3,10 +3,10 @@ package repositories
 import (
 	"fmt"
 
-	"igo-repo/internal/app/domain"
-	"igo-repo/internal/app/security/authn"
-	"igo-repo/internal/app/security/authr"
-	"igo-repo/internal/repositories/icondb"
+	"iconrepo/internal/app/domain"
+	"iconrepo/internal/app/security/authn"
+	"iconrepo/internal/app/security/authr"
+	"iconrepo/internal/repositories/icondb"
 )
 
 type GitRepository interface {

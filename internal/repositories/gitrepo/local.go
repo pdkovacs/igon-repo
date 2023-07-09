@@ -5,10 +5,10 @@ import (
 	"os"
 	"strings"
 
-	"igo-repo/internal/app/domain"
-	"igo-repo/internal/app/security/authn"
-	"igo-repo/internal/config"
-	"igo-repo/internal/logging"
+	"iconrepo/internal/app/domain"
+	"iconrepo/internal/app/security/authn"
+	"iconrepo/internal/config"
+	"iconrepo/internal/logging"
 
 	"github.com/rs/zerolog"
 )

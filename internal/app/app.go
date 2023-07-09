@@ -1,11 +1,11 @@
 package app
 
 import (
-	"igo-repo/internal/config"
-	"igo-repo/internal/httpadapter"
-	"igo-repo/internal/repositories"
-	"igo-repo/internal/repositories/gitrepo"
-	"igo-repo/internal/repositories/icondb"
+	"iconrepo/internal/config"
+	"iconrepo/internal/httpadapter"
+	"iconrepo/internal/repositories"
+	"iconrepo/internal/repositories/gitrepo"
+	"iconrepo/internal/repositories/icondb"
 )
 
 func Start(conf config.Options, ready func(port int, stop func())) error {

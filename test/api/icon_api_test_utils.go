@@ -6,10 +6,10 @@ import (
 	"sort"
 	"strings"
 
-	"igo-repo/internal/app/domain"
-	"igo-repo/internal/httpadapter"
-	"igo-repo/internal/repositories/gitrepo"
-	"igo-repo/test/repositories/git_tests"
+	"iconrepo/internal/app/domain"
+	"iconrepo/internal/httpadapter"
+	"iconrepo/internal/repositories/gitrepo"
+	"iconrepo/test/repositories/git_tests"
 )
 
 type IconTestSuite struct {

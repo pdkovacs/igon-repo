@@ -1,4 +1,4 @@
-module igo-repo
+module iconrepo
 
 go 1.19
 

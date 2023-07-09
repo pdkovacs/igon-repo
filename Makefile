@@ -3,14 +3,14 @@ export BACKEND_SOURCE_HOME = $(dir $(mkfile_path))
 
 ui-bundle-dir = web/dist
 ui-bundle = $(ui-bundle-dir)/bundle.js
-app       = igo-repo
+app       = iconrepo
 frontend  = web/frontend/bundle.js
-backend   = igo-repo-backend
+backend   = iconrepo-backend
 
 define buildinfo =
 	echo VERSION=0.0.1 > internal/config/buildinfo.txt
 	printf "TIME=" >> internal/config/buildinfo.txt
-	date --rfc-3339=ns >> internal/config/buildinfo.txt
+	date +%Y-%m-%dT%H:%M:%S%z >> internal/config/buildinfo.txt
 	printf "COMMIT=" >> internal/config/buildinfo.txt
 	git rev-parse HEAD >> internal/config/buildinfo.txt
 endef
@@ -18,13 +18,13 @@ endef
 define build-go =
 	$(buildinfo)
 	echo "GOOS: ${GOOS} GOARCH: ${GOARCH}"
-		env GOOS=${GOOS} GOARCH=${GOARCH} go build -o igo-repo cmd/main.go
+	env GOOS=${GOOS} GOARCH=${GOARCH} go build -o $(app) cmd/main.go
 endef
 
 .PHONY: clean test run app
 clean:
 	go clean -testcache
-	rm -f igo-repo
+	rm -f iconrepo
 # example command line:
 #   export LOCAL_GIT_ONLY=yes; export ICONREPO_DB_HOST=postgres; make clean && time make test 2>&1 | tee ~/workspace/logs/icon-repo-test
 test: test-app test-api test-repos test-seq
@@ -65,4 +65,4 @@ backend-docker: $(backend)
 frontend-docker: $(frontend)
 	scripts/make.sh build_frontend_docker $(ui-bundle) $(ui-bundle-dir)
 watch:
-	./scripts/watch.sh $(ui-bundle) $(ui-bundle-dir) 2>&1 | tee ~/workspace/logs/igo-repo-watch-log
+	./scripts/watch.sh $(ui-bundle) $(ui-bundle-dir) 2>&1 | tee ~/workspace/logs/iconrepo-watch-log

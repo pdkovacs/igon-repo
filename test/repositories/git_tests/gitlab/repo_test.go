@@ -2,10 +2,10 @@ package gitlab_tests
 
 import (
 	"fmt"
-	"igo-repo/internal/logging"
-	"igo-repo/internal/repositories/gitrepo"
-	"igo-repo/test/repositories/git_tests"
-	"igo-repo/test/test_commons"
+	"iconrepo/internal/logging"
+	"iconrepo/internal/repositories/gitrepo"
+	"iconrepo/test/repositories/git_tests"
+	"iconrepo/test/test_commons"
 	"testing"
 
 	"github.com/stretchr/testify/suite"

@@ -1,9 +1,9 @@
 package app
 
 import (
-	"igo-repo/internal/app/domain"
-	"igo-repo/internal/app/security/authr"
-	"igo-repo/internal/app/services"
+	"iconrepo/internal/app/domain"
+	"iconrepo/internal/app/security/authr"
+	"iconrepo/internal/app/services"
 )
 
 type iconService interface {

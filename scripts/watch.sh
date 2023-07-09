@@ -64,7 +64,7 @@ set -x
       -e '.*/[.]git/.*' \
       -e 'web' \
       -e "$fswatch_pid_file"'$' \
-      -e '.*/igo-repo/igo-repo$' \
+      -e '.*/iconrepo/iconrepo$' \
       -e 'deployments' \
       . &
 set +x

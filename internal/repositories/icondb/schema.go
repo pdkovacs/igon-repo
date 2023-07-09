@@ -3,8 +3,8 @@ package icondb
 import (
 	"database/sql"
 	"fmt"
-	"igo-repo/internal/config"
-	"igo-repo/internal/logging"
+	"iconrepo/internal/config"
+	"iconrepo/internal/logging"
 	"sort"
 	"strings"
 )

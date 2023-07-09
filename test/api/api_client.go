@@ -10,10 +10,10 @@ import (
 	"net/http/cookiejar"
 	"os"
 
-	"igo-repo/internal/app/domain"
-	"igo-repo/internal/app/security/authn"
-	"igo-repo/internal/config"
-	"igo-repo/test/testdata"
+	"iconrepo/internal/app/domain"
+	"iconrepo/internal/app/security/authn"
+	"iconrepo/internal/config"
+	"iconrepo/test/testdata"
 )
 
 var errUnexpecteHTTPStatus = errors.New("unexpected HTTP status")

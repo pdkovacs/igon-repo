@@ -3,9 +3,9 @@ package api_tests
 import (
 	"testing"
 
-	"igo-repo/internal/app/domain"
-	"igo-repo/internal/app/security/authr"
-	"igo-repo/test/testdata"
+	"iconrepo/internal/app/domain"
+	"iconrepo/internal/app/security/authr"
+	"iconrepo/test/testdata"
 
 	"github.com/stretchr/testify/suite"
 )

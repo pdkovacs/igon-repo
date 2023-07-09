@@ -2,7 +2,7 @@ package web
 
 import (
 	"embed"
-	"igo-repo/internal/logging"
+	"iconrepo/internal/logging"
 	"io/fs"
 	"net/http"
 	"os"

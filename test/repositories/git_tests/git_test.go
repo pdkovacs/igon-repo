@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"igo-repo/test/test_commons"
+	"iconrepo/test/test_commons"
 
 	"github.com/stretchr/testify/suite"
 )

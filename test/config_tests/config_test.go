@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"igo-repo/internal/config"
+	"iconrepo/internal/config"
 	"io/fs"
 	"os"
 	"testing"

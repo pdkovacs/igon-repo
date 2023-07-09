@@ -4,11 +4,11 @@ import (
 	"database/sql"
 	"fmt"
 
-	"igo-repo/internal/app/domain"
-	"igo-repo/internal/config"
-	"igo-repo/internal/logging"
-	"igo-repo/internal/repositories/icondb"
-	"igo-repo/test/test_commons"
+	"iconrepo/internal/app/domain"
+	"iconrepo/internal/config"
+	"iconrepo/internal/logging"
+	"iconrepo/internal/repositories/icondb"
+	"iconrepo/test/test_commons"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/rs/zerolog"

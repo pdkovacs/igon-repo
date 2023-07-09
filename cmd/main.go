@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	"igo-repo/internal/app"
-	"igo-repo/internal/config"
+	"iconrepo/internal/app"
+	"iconrepo/internal/config"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
 )

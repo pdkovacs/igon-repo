@@ -6,10 +6,10 @@ import (
 	"math/rand"
 	"net/http"
 
-	"igo-repo/internal/app/security/authn"
-	"igo-repo/internal/app/security/authr"
-	"igo-repo/internal/app/services"
-	"igo-repo/internal/logging"
+	"iconrepo/internal/app/security/authn"
+	"iconrepo/internal/app/security/authr"
+	"iconrepo/internal/app/services"
+	"iconrepo/internal/logging"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 	"github.com/gin-contrib/sessions"

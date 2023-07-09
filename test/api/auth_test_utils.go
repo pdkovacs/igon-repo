@@ -3,7 +3,7 @@ package api_tests
 import (
 	"encoding/base64"
 	"fmt"
-	"igo-repo/internal/app/security/authn"
+	"iconrepo/internal/app/security/authn"
 )
 
 func makeRequestCredentials(authnScheme authn.AuthenticationScheme, usernameOrToken string, password string) (requestCredentials, error) {

@@ -55,7 +55,7 @@ redeploy_service() {
 
 deploy_backend() {
   deploy_app_config
-  build_image_cmd="scripts/make.sh build_backend_docker igo-repo"
+  build_image_cmd="scripts/make.sh build_backend_docker iconrepo"
   # redeploy_service iconrepo-backend "$build_image_cmd" iconrepo iconrepo
   build_image "$build_image_cmd"
   kubectl delete pod $(kubectl get pod -l app=iconrepo -o jsonpath='{.items[0].metadata.name}')

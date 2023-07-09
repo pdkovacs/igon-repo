@@ -3,8 +3,8 @@ package db_tests
 import (
 	"testing"
 
-	"igo-repo/internal/app/domain"
-	"igo-repo/test/test_commons"
+	"iconrepo/internal/app/domain"
+	"iconrepo/test/test_commons"
 
 	"github.com/stretchr/testify/suite"
 )

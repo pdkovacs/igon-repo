@@ -1,6 +1,6 @@
 package authr
 
-import "igo-repo/internal/app/security/authn"
+import "iconrepo/internal/app/security/authn"
 
 func GroupNamesToGroupIDs(groups []string) []GroupID {
 	memberIn := []GroupID{}

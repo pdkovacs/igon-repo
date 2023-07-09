@@ -3,8 +3,8 @@ package httpadapter
 import (
 	"context"
 	"errors"
-	"igo-repo/internal/app/security/authr"
-	"igo-repo/internal/app/services"
+	"iconrepo/internal/app/security/authr"
+	"iconrepo/internal/app/services"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"

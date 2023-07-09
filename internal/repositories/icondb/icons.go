@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"igo-repo/internal/app/domain"
+	"iconrepo/internal/app/domain"
 
 	"github.com/jackc/pgconn"
 	"github.com/rs/zerolog"

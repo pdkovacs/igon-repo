@@ -20,8 +20,8 @@ create_oidc_config() {
 {
     "clients": [
         {
-            "client_id": "igo-repo-1",
-            "client_secret": "igo-repo-secret-1",
+            "client_id": "iconrepo-1",
+            "client_secret": "iconrepo-secret-1",
             "redirect_uris": [
                 "http://$IDP_HOST/icons/login"
             ],

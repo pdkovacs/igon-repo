@@ -7,14 +7,14 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 
-	"igo-repo/internal/app"
-	"igo-repo/internal/app/domain"
-	"igo-repo/internal/app/security/authn"
-	"igo-repo/internal/app/security/authr"
-	"igo-repo/internal/app/services"
-	"igo-repo/internal/logging"
-	"igo-repo/test/mocks"
-	"igo-repo/test/testdata"
+	"iconrepo/internal/app"
+	"iconrepo/internal/app/domain"
+	"iconrepo/internal/app/security/authn"
+	"iconrepo/internal/app/security/authr"
+	"iconrepo/internal/app/services"
+	"iconrepo/internal/logging"
+	"iconrepo/test/mocks"
+	"iconrepo/test/testdata"
 
 	"github.com/stretchr/testify/suite"
 )
