@@ -7,8 +7,8 @@ import (
 
 	"iconrepo/internal/app/domain"
 	"iconrepo/internal/httpadapter"
-	"iconrepo/internal/repositories/gitrepo"
-	"iconrepo/test/repositories/git_tests"
+	"iconrepo/internal/repositories/blobstore/git"
+	"iconrepo/test/repositories/blobstore_tests/git_tests"
 )
 
 type IconTestSuite struct {
@@ -32,20 +32,20 @@ func (s *IconTestSuite) getCheckIconfile(session *apiTestSession, iconName strin
 func (s *IconTestSuite) assertAllFilesInDBAreInGitAsWell() []string {
 	checkedGitFiles := []string{}
 
-	db := s.testDbRepo
-	git := s.TestGitRepo
+	index := s.indexRepo
+	blob := s.TestBlobstore
 
-	allIconDescInDb, descAllErr := db.DescribeAllIcons()
+	allIconDescInDb, descAllErr := index.DescribeAllIcons()
 	if descAllErr != nil {
 		panic(descAllErr)
 	}
 
 	for _, iconDescInDb := range allIconDescInDb {
 		for _, iconfileDesc := range iconDescInDb.Iconfiles {
-			fileContentInGit, readGitFileErr := git.GetIconfile(iconDescInDb.Name, iconfileDesc)
+			fileContentInGit, readGitFileErr := blob.GetIconfile(iconDescInDb.Name, iconfileDesc)
 			s.NoError(readGitFileErr)
 			s.Greater(len(fileContentInGit), 0)
-			checkedGitFiles = append(checkedGitFiles, gitrepo.NewGitFilePaths("").GetPathToIconfileInRepo(iconDescInDb.Name, iconfileDesc))
+			checkedGitFiles = append(checkedGitFiles, git.NewGitFilePaths("").GetPathToIconfileInRepo(iconDescInDb.Name, iconfileDesc))
 		}
 	}
 
@@ -57,7 +57,7 @@ func (s *IconTestSuite) createIconfilePaths(iconName string, iconfileDescriptor 
 }
 
 func (s *IconTestSuite) assertAllFilesInGitAreInDBAsWell(iconfilesWithPeerInDB []string) {
-	iconfiles, err := s.TestGitRepo.GetIconfiles()
+	iconfiles, err := s.TestBlobstore.GetIconfiles()
 	s.NoError(err)
 	for _, gitFile := range iconfiles {
 		found := false
@@ -79,7 +79,7 @@ func (s *IconTestSuite) assertReposInSync() {
 }
 
 func (s *IconTestSuite) AssertEndState() {
-	ok, err := s.TestGitRepo.CheckStatus()
+	ok, err := s.TestBlobstore.CheckStatus()
 	s.NoError(err)
 	s.True(ok)
 	s.assertReposInSync()

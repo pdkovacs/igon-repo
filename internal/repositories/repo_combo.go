@@ -8,7 +8,7 @@ import (
 	"iconrepo/internal/app/security/authr"
 )
 
-type DBRepository interface {
+type IndexRepository interface {
 	DescribeAllIcons() ([]domain.IconDescriptor, error)
 	DescribeIcon(iconName string) (domain.IconDescriptor, error)
 	GetExistingTags() ([]string, error)
@@ -20,7 +20,7 @@ type DBRepository interface {
 	DeleteIconfile(iconName string, iconfile domain.IconfileDescriptor, modifiedBy string, createSideEffect func() error) error
 }
 
-type GitRepository interface {
+type BlobstoreRepository interface {
 	fmt.Stringer
 	Create() error
 	AddIconfile(iconName string, iconfile domain.Iconfile, modifiedBy string) error
@@ -30,59 +30,59 @@ type GitRepository interface {
 }
 
 type RepoCombo struct {
-	Db  DBRepository
-	Git GitRepository
+	Index     IndexRepository
+	Blobstore BlobstoreRepository
 }
 
 func (combo *RepoCombo) DescribeAllIcons() ([]domain.IconDescriptor, error) {
-	return combo.Db.DescribeAllIcons()
+	return combo.Index.DescribeAllIcons()
 }
 
 func (combo *RepoCombo) DescribeIcon(iconName string) (domain.IconDescriptor, error) {
-	return combo.Db.DescribeIcon(iconName)
+	return combo.Index.DescribeIcon(iconName)
 }
 
 func (combo *RepoCombo) CreateIcon(iconName string, iconfile domain.Iconfile, modifiedBy authr.UserInfo) error {
-	return combo.Db.CreateIcon(iconName, iconfile.IconfileDescriptor, modifiedBy.UserId.String(), func() error {
-		return combo.Git.AddIconfile(iconName, iconfile, modifiedBy.UserId.String())
+	return combo.Index.CreateIcon(iconName, iconfile.IconfileDescriptor, modifiedBy.UserId.String(), func() error {
+		return combo.Blobstore.AddIconfile(iconName, iconfile, modifiedBy.UserId.String())
 	})
 }
 
 func (combo *RepoCombo) DeleteIcon(iconName string, modifiedBy authr.UserInfo) error {
-	iconDesc, describeErr := combo.Db.DescribeIcon(iconName)
+	iconDesc, describeErr := combo.Index.DescribeIcon(iconName)
 	if describeErr != nil {
 		return fmt.Errorf("failed to have to-be-deleted icon \"%s\" described: %w", iconName, describeErr)
 	}
 
-	return combo.Db.DeleteIcon(iconName, modifiedBy.UserId.String(), func() error {
-		return combo.Git.DeleteIcon(iconDesc, modifiedBy.UserId)
+	return combo.Index.DeleteIcon(iconName, modifiedBy.UserId.String(), func() error {
+		return combo.Blobstore.DeleteIcon(iconDesc, modifiedBy.UserId)
 	})
 }
 
 func (combo *RepoCombo) AddIconfile(iconName string, iconfile domain.Iconfile, modifiedBy authr.UserInfo) error {
-	return combo.Db.AddIconfileToIcon(iconName, iconfile.IconfileDescriptor, modifiedBy.UserId.String(), func() error {
-		return combo.Git.AddIconfile(iconName, iconfile, modifiedBy.UserId.String())
+	return combo.Index.AddIconfileToIcon(iconName, iconfile.IconfileDescriptor, modifiedBy.UserId.String(), func() error {
+		return combo.Blobstore.AddIconfile(iconName, iconfile, modifiedBy.UserId.String())
 	})
 }
 
 func (combo *RepoCombo) GetIconfile(iconName string, iconfile domain.IconfileDescriptor) ([]byte, error) {
-	return combo.Git.GetIconfile(iconName, iconfile)
+	return combo.Blobstore.GetIconfile(iconName, iconfile)
 }
 
 func (combo *RepoCombo) DeleteIconfile(iconName string, iconfile domain.IconfileDescriptor, modifiedBy authr.UserInfo) error {
-	return combo.Db.DeleteIconfile(iconName, iconfile, modifiedBy.UserId.String(), func() error {
-		return combo.Git.DeleteIconfile(iconName, iconfile, modifiedBy.UserId)
+	return combo.Index.DeleteIconfile(iconName, iconfile, modifiedBy.UserId.String(), func() error {
+		return combo.Blobstore.DeleteIconfile(iconName, iconfile, modifiedBy.UserId)
 	})
 }
 
 func (combo *RepoCombo) GetTags() ([]string, error) {
-	return combo.Db.GetExistingTags()
+	return combo.Index.GetExistingTags()
 }
 
 func (combo *RepoCombo) AddTag(iconName string, tag string, modifiedBy authr.UserInfo) error {
-	return combo.Db.AddTag(iconName, tag, modifiedBy.UserId.String())
+	return combo.Index.AddTag(iconName, tag, modifiedBy.UserId.String())
 }
 
 func (combo *RepoCombo) RemoveTag(iconName string, tag string, modifiedBy authr.UserInfo) error {
-	return combo.Db.RemoveTag(iconName, tag, modifiedBy.UserId.String())
+	return combo.Index.RemoveTag(iconName, tag, modifiedBy.UserId.String())
 }

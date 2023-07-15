@@ -9,18 +9,18 @@ import (
 	"iconrepo/internal/app/domain"
 	"iconrepo/internal/config"
 	"iconrepo/internal/repositories"
-	"iconrepo/internal/repositories/gitrepo"
+	"iconrepo/internal/repositories/blobstore/git"
 	"iconrepo/test/test_commons"
 
 	"github.com/stretchr/testify/suite"
 )
 
-func NewLocalGitTestRepo(conf config.Options) gitrepo.Local {
-	return gitrepo.NewLocalGitRepository(conf.LocalGitRepo)
+func NewLocalGitTestRepo(conf config.Options) git.Local {
+	return git.NewLocalGitRepository(conf.LocalGitRepo)
 }
 
-func NewGitlabTestRepoClient(conf config.Options) gitrepo.Gitlab {
-	gitlab, err := gitrepo.NewGitlabRepositoryClient(
+func NewGitlabTestRepoClient(conf config.Options) git.Gitlab {
+	gitlab, err := git.NewGitlabRepositoryClient(
 		conf.GitlabNamespacePath,
 		conf.GitlabProjectPath,
 		conf.GitlabMainBranch,
@@ -39,21 +39,21 @@ type gitRepoManagement interface {
 	GetIconfiles() ([]string, error)
 	GetIconfile(iconName string, iconfileDesc domain.IconfileDescriptor) ([]byte, error)
 	GetCommitIDFor(iconName string, iconfileDesc domain.IconfileDescriptor) (string, error)
-	GetCommitMetadata(commitId string) (gitrepo.CommitMetadata, error)
+	GetCommitMetadata(commitId string) (git.CommitMetadata, error)
 }
 
 type GitTestRepo interface {
-	repositories.GitRepository
+	repositories.BlobstoreRepository
 	gitRepoManagement
 }
 
 func GitProvidersToTest() []GitTestRepo {
 	if len(os.Getenv("LOCAL_GIT_ONLY")) > 0 {
-		return []GitTestRepo{gitrepo.Local{}}
+		return []GitTestRepo{git.Local{}}
 	}
 	return []GitTestRepo{
-		gitrepo.Local{},
-		gitrepo.Gitlab{},
+		git.Local{},
+		git.Gitlab{},
 	}
 }
 
@@ -66,7 +66,7 @@ func MustResetTestGitRepo(repo GitTestRepo) {
 	if createRepoErr != nil {
 		panic(createRepoErr)
 	}
-	os.Unsetenv(gitrepo.SimulateGitCommitFailureEnvvarName)
+	os.Unsetenv(git.SimulateGitCommitFailureEnvvarName)
 }
 
 const gitlabAPITokenLineRegexpString = "GITLAB_ACCESS_TOKEN=?(.+)"
@@ -106,9 +106,9 @@ func (s *GitTestSuite) BeforeTest(suiteName, testName string) {
 	conf.GitlabAccessToken = GitTestGitlabAPIToken()
 
 	switch s.Repo.(type) {
-	case gitrepo.Local:
+	case git.Local:
 		s.Repo = NewLocalGitTestRepo(conf)
-	case gitrepo.Gitlab:
+	case git.Gitlab:
 		conf.GitlabNamespacePath = "testing-with-repositories"
 		s.Repo = NewGitlabTestRepoClient(conf)
 	case nil:

@@ -4,7 +4,7 @@ import (
 	"iconrepo/internal/config"
 	"iconrepo/internal/httpadapter"
 	"iconrepo/internal/repositories"
-	"iconrepo/internal/repositories/gitrepo"
+	"iconrepo/internal/repositories/blobstore/git"
 	"iconrepo/internal/repositories/indexing/dynamodb"
 	"iconrepo/internal/repositories/indexing/pgdb"
 )
@@ -21,20 +21,20 @@ func Start(conf config.Options, ready func(port int, stop func())) error {
 		return schemaErr
 	}
 
-	var db repositories.DBRepository
+	var db repositories.IndexRepository
 	if conf.DynamoDBURL == "" {
 		db = pgdb.NewDBRepository(connection)
 	} else {
 		db = dynamodb.NewDynDBRepository()
 	}
 
-	var git repositories.GitRepository
+	var blobstore repositories.BlobstoreRepository
 	if len(conf.LocalGitRepo) > 0 {
-		git = gitrepo.NewLocalGitRepository(conf.LocalGitRepo)
+		blobstore = git.NewLocalGitRepository(conf.LocalGitRepo)
 	}
 	if len(conf.GitlabNamespacePath) > 0 {
 		var gitlabRepoErr error
-		git, gitlabRepoErr = gitrepo.NewGitlabRepositoryClient(
+		blobstore, gitlabRepoErr = git.NewGitlabRepositoryClient(
 			conf.GitlabNamespacePath,
 			conf.GitlabProjectPath,
 			conf.GitlabMainBranch,
@@ -46,13 +46,13 @@ func Start(conf config.Options, ready func(port int, stop func())) error {
 	}
 
 	if !dbSchemaAlreadyThere {
-		gitErr := git.Create()
+		gitErr := blobstore.Create()
 		if gitErr != nil {
 			return gitErr
 		}
 	}
 
-	combinedRepo := repositories.RepoCombo{Db: db, Git: git}
+	combinedRepo := repositories.RepoCombo{Index: db, Blobstore: blobstore}
 
 	appRef := &AppCore{Repository: &combinedRepo}
 

@@ -17,7 +17,7 @@ import (
 )
 
 type TestIndexRepository interface {
-	repositories.DBRepository
+	repositories.IndexRepository
 	Close() error
 	GetIconCount() (int, error)
 	GetIconFileCount() (int, error)
@@ -31,8 +31,8 @@ type TestIndexRepository interface {
 // 		return []TestDBRepository{pgdb.Repository{}}
 // 	}
 // 	return []GitTestRepo{
-// 		gitrepo.Local{},
-// 		gitrepo.Gitlab{},
+// 		blobstore.Local{},
+// 		blobstore.Gitlab{},
 // 	}
 // }
 

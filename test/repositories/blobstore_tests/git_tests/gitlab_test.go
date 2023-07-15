@@ -1,10 +1,8 @@
-package gitlab_tests
+package git_tests
 
 import (
 	"fmt"
-	"iconrepo/internal/logging"
-	"iconrepo/internal/repositories/gitrepo"
-	"iconrepo/test/repositories/git_tests"
+	"iconrepo/internal/repositories/blobstore/git"
 	"iconrepo/test/test_commons"
 	"testing"
 
@@ -13,12 +11,10 @@ import (
 
 const testSequenceId = "gitlabtests"
 
-var gitlabRepoTestLogger = logging.CreateUnitLogger(logging.Get(), "repositories.gitlabRepoTestSuite")
-
 type gitlabRepoTestSuite struct {
 	suite.Suite
 	t       *testing.T
-	gitRepo gitrepo.Gitlab
+	gitRepo git.Gitlab
 }
 
 func TestGitlabRepoTestSuite(t *testing.T) {
@@ -30,10 +26,10 @@ func (testSuite *gitlabRepoTestSuite) BeforeTest(suiteName string, testName stri
 	conf := test_commons.CloneConfig(defaultTestConfig)
 	conf.LocalGitRepo = fmt.Sprintf("%s_%s", conf.LocalGitRepo, testSequenceId)
 	conf.GitlabProjectPath = fmt.Sprintf("%s_%s", defaultTestConfig.GitlabProjectPath, testSequenceId)
-	conf.GitlabAccessToken = git_tests.GitTestGitlabAPIToken()
+	conf.GitlabAccessToken = GitTestGitlabAPIToken()
 	conf.GitlabNamespacePath = "testing-with-repositories"
 
-	repo, err := gitrepo.NewGitlabRepositoryClient(
+	repo, err := git.NewGitlabRepositoryClient(
 		conf.GitlabNamespacePath,
 		conf.GitlabProjectPath+"_"+testSequenceId,
 		conf.GitlabMainBranch,
@@ -42,7 +38,7 @@ func (testSuite *gitlabRepoTestSuite) BeforeTest(suiteName string, testName stri
 	if err != nil {
 		panic(err)
 	}
-	git_tests.MustResetTestGitRepo(repo)
+	MustResetTestGitRepo(repo)
 	testSuite.gitRepo = repo
 }
 

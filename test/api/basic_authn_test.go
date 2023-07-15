@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"iconrepo/internal/app/security/authn"
-	"iconrepo/internal/repositories/gitrepo"
-	"iconrepo/test/repositories/git_tests"
+	"iconrepo/internal/repositories/blobstore/git"
+	"iconrepo/test/repositories/blobstore_tests/git_tests"
 	"iconrepo/test/testdata"
 
 	"github.com/stretchr/testify/suite"
@@ -16,7 +16,7 @@ type basicAuthnTestSuite struct {
 }
 
 func TestBasicAuthnTestSuite(t *testing.T) {
-	suite.Run(t, &basicAuthnTestSuite{ApiTestSuite: apiTestSuites("apitests_basicauthn", []git_tests.GitTestRepo{gitrepo.Local{}})[0]})
+	suite.Run(t, &basicAuthnTestSuite{ApiTestSuite: apiTestSuites("apitests_basicauthn", []git_tests.GitTestRepo{git.Local{}})[0]})
 }
 
 func (s *basicAuthnTestSuite) TestShouldFailWith401WithoutCredentials() {

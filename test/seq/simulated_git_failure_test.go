@@ -1,9 +1,9 @@
 package sequential_tests
 
 import (
-	"iconrepo/internal/repositories/gitrepo"
+	"iconrepo/internal/repositories/blobstore/git"
 	api_tests "iconrepo/test/api"
-	"iconrepo/test/repositories/git_tests"
+	"iconrepo/test/repositories/blobstore_tests/git_tests"
 	"iconrepo/test/test_commons"
 	"iconrepo/test/testdata"
 	"os"
@@ -32,7 +32,7 @@ func (s *gitTests) TestRemainsConsistentAfterAddingIconfileFails() {
 	errorWhenAddingFirstIconFile := s.Repo.AddIconfile(icon.Name, iconfile1, icon.ModifiedBy)
 	s.NoError(errorWhenAddingFirstIconFile)
 
-	os.Setenv(gitrepo.SimulateGitCommitFailureEnvvarName, "true")
+	os.Setenv(git.SimulateGitCommitFailureEnvvarName, "true")
 
 	lastGoodSha1, errorWhenGettingLastGoodSha1 := s.GetStateID()
 	s.Equal(len("8e9b80b5155dea01e5175bc819bbe364dbc07a66"), len(lastGoodSha1))
@@ -65,15 +65,15 @@ func (s *iconCreateTests) TestRollbackToLastConsistentStateOnError() {
 	session := s.Client.MustLoginSetAllPerms()
 	session.MustAddTestData(dataIn)
 
-	lastStableSHA1, beforeIncidentGitErr := s.TestGitRepo.GetStateID()
+	lastStableSHA1, beforeIncidentGitErr := s.TestBlobstore.GetStateID()
 	s.NoError(beforeIncidentGitErr)
 
-	os.Setenv(gitrepo.SimulateGitCommitFailureEnvvarName, "true")
+	os.Setenv(git.SimulateGitCommitFailureEnvvarName, "true")
 
 	statusCode, _, _ := session.CreateIcon(moreDataIn[1].Name, moreDataIn[1].Iconfiles[0].Content)
 	s.Equal(409, statusCode)
 
-	afterIncidentSHA1, afterIncidentGitErr := s.TestGitRepo.GetStateID()
+	afterIncidentSHA1, afterIncidentGitErr := s.TestBlobstore.GetStateID()
 	s.NoError(afterIncidentGitErr)
 
 	s.Equal(lastStableSHA1, afterIncidentSHA1)
