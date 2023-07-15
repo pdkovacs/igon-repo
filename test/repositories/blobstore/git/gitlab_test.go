@@ -1,4 +1,4 @@
-package git_tests
+package git
 
 import (
 	"fmt"

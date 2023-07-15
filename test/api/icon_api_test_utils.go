@@ -8,7 +8,7 @@ import (
 	"iconrepo/internal/app/domain"
 	"iconrepo/internal/httpadapter"
 	"iconrepo/internal/repositories/blobstore/git"
-	"iconrepo/test/repositories/blobstore_tests/git_tests"
+	git_tests "iconrepo/test/repositories/blobstore/git"
 )
 
 type IconTestSuite struct {

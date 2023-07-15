@@ -1,4 +1,4 @@
-package indexing_tests
+package pg
 
 import (
 	"database/sql"

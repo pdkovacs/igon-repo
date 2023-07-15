@@ -3,7 +3,7 @@ package api_tests
 import (
 	"iconrepo/internal/config"
 	"iconrepo/internal/repositories/blobstore/git"
-	"iconrepo/test/repositories/blobstore_tests/git_tests"
+	git_tests "iconrepo/test/repositories/blobstore/git"
 	"testing"
 
 	"github.com/stretchr/testify/suite"

@@ -13,8 +13,8 @@ import (
 	"iconrepo/internal/logging"
 	"iconrepo/internal/repositories/blobstore/git"
 	"iconrepo/internal/repositories/indexing/pgdb"
-	"iconrepo/test/repositories/blobstore_tests/git_tests"
-	"iconrepo/test/repositories/indexing_tests"
+	git_tests "iconrepo/test/repositories/blobstore/git"
+	"iconrepo/test/repositories/indexing/pg"
 	"iconrepo/test/test_commons"
 	"iconrepo/test/testdata"
 
@@ -28,7 +28,7 @@ type ApiTestSuite struct {
 	*suite.Suite
 	config          config.Options
 	stopServer      func()
-	indexRepo       indexing_tests.TestIndexRepository
+	indexRepo       pg.TestIndexRepository
 	TestBlobstore   git_tests.GitTestRepo
 	Client          apiTestClient
 	logger          zerolog.Logger
@@ -72,7 +72,7 @@ func (s *ApiTestSuite) SetupSuite() {
 		panic(testDBErr)
 	}
 	testDbRepo := pgdb.NewDBRepository(testDBConn)
-	s.indexRepo = indexing_tests.NewTestDbRepositoryFromSQLDB(&testDbRepo)
+	s.indexRepo = pg.NewTestDbRepositoryFromSQLDB(&testDbRepo)
 
 	s.config.GitlabAccessToken = git_tests.GitTestGitlabAPIToken()
 

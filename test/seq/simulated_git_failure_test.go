@@ -3,7 +3,7 @@ package sequential_tests
 import (
 	"iconrepo/internal/repositories/blobstore/git"
 	api_tests "iconrepo/test/api"
-	"iconrepo/test/repositories/blobstore_tests/git_tests"
+	git_tests "iconrepo/test/repositories/blobstore/git"
 	"iconrepo/test/test_commons"
 	"iconrepo/test/testdata"
 	"os"

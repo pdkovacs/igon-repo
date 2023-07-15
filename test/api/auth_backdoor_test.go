@@ -6,7 +6,7 @@ import (
 	"iconrepo/internal/app/security/authn"
 	"iconrepo/internal/app/security/authr"
 	"iconrepo/internal/repositories/blobstore/git"
-	"iconrepo/test/repositories/blobstore_tests/git_tests"
+	git_tests "iconrepo/test/repositories/blobstore/git"
 	"iconrepo/test/testdata"
 
 	"github.com/stretchr/testify/suite"
