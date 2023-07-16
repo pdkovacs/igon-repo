@@ -8,7 +8,7 @@ import (
 	"iconrepo/internal/app/domain"
 	"iconrepo/internal/httpadapter"
 	"iconrepo/internal/repositories/blobstore/git"
-	git_tests "iconrepo/test/repositories/blobstore/git"
+	blobstore_tests "iconrepo/test/repositories/blobstore"
 )
 
 type IconTestSuite struct {
@@ -17,7 +17,7 @@ type IconTestSuite struct {
 
 func IconTestSuites(testSequenceId string) []IconTestSuite {
 	all := []IconTestSuite{}
-	for _, apiSuite := range apiTestSuites(testSequenceId, git_tests.GitProvidersToTest()) {
+	for _, apiSuite := range apiTestSuites(testSequenceId, blobstore_tests.BlobstoreProvidersToTest()) {
 		all = append(all, IconTestSuite{ApiTestSuite: apiSuite})
 	}
 	return all
@@ -33,11 +33,11 @@ func (s *IconTestSuite) assertAllFilesInDBAreInGitAsWell() []string {
 	checkedGitFiles := []string{}
 
 	index := s.indexRepo
-	blob := s.TestBlobstore
+	blob := s.TestBlobstoreController
 
 	allIconDescInDb, descAllErr := index.DescribeAllIcons()
 	if descAllErr != nil {
-		panic(descAllErr)
+		s.FailNow("%v", descAllErr)
 	}
 
 	for _, iconDescInDb := range allIconDescInDb {
@@ -57,7 +57,7 @@ func (s *IconTestSuite) createIconfilePaths(iconName string, iconfileDescriptor 
 }
 
 func (s *IconTestSuite) assertAllFilesInGitAreInDBAsWell(iconfilesWithPeerInDB []string) {
-	iconfiles, err := s.TestBlobstore.GetIconfiles()
+	iconfiles, err := s.TestBlobstoreController.GetIconfiles()
 	s.NoError(err)
 	for _, gitFile := range iconfiles {
 		found := false
@@ -79,7 +79,7 @@ func (s *IconTestSuite) assertReposInSync() {
 }
 
 func (s *IconTestSuite) AssertEndState() {
-	ok, err := s.TestBlobstore.CheckStatus()
+	ok, err := s.TestBlobstoreController.CheckStatus()
 	s.NoError(err)
 	s.True(ok)
 	s.assertReposInSync()

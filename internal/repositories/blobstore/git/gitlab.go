@@ -128,7 +128,7 @@ type projectProperties struct {
 	InitializeWithReadme string `json:"initialize_with_readme"`
 }
 
-func NewGitlabRepositoryClient(namespacePath string, projectPath string, branch string, apikey string) (Gitlab, error) {
+func NewGitlabRepositoryClient(namespacePath string, projectPath string, branch string, apikey string, logger zerolog.Logger) (Gitlab, error) {
 	if len(apikey) == 0 {
 		return Gitlab{}, fmt.Errorf("no API token for GitLab repository")
 	}
@@ -142,6 +142,7 @@ func NewGitlabRepositoryClient(namespacePath string, projectPath string, branch 
 		client: http.Client{
 			Timeout: time.Second * 15,
 		},
+		logger: logger,
 	}
 
 	namespaceId, err := getNamespaceID(gitlab)
@@ -153,7 +154,7 @@ func NewGitlabRepositoryClient(namespacePath string, projectPath string, branch 
 	return gitlab, nil
 }
 
-func (g Gitlab) createCreateProjectBody() (io.Reader, error) {
+func (g *Gitlab) createCreateProjectBody() (io.Reader, error) {
 	projectProps := projectProperties{
 		NamespaceId: g.project.namespaceId,
 		Path:        g.project.path,
@@ -165,7 +166,7 @@ func (g Gitlab) createCreateProjectBody() (io.Reader, error) {
 	return bytes.NewReader(jsonInBytes), nil
 }
 
-func (g Gitlab) Create() error {
+func (g *Gitlab) CreateRepository() error {
 	sleepBeforeRetryMs := 1000
 	maxRetryCount := 20
 
@@ -196,7 +197,7 @@ func (g Gitlab) Create() error {
 				Msg("Transient error while creating repository")
 			time.Sleep(time.Duration(sleepBeforeRetryMs) * time.Millisecond)
 			if strings.Contains(responseBody, gitlabRepoHasAlreadyBeenTaken) {
-				g.Delete()
+				g.DeleteRepository()
 				time.Sleep(time.Duration(sleepBeforeRetryMs) * time.Millisecond)
 			}
 			continue
@@ -206,16 +207,24 @@ func (g Gitlab) Create() error {
 	}
 }
 
-func (g Gitlab) Delete() error {
+func (g *Gitlab) ResetRepository() error {
+	deleteRepoErr := g.DeleteRepository()
+	if deleteRepoErr != nil {
+		panic(deleteRepoErr)
+	}
+	return g.CreateRepository()
+}
+
+func (g *Gitlab) DeleteRepository() error {
 	statusCode, _, body, err := g.sendRequest("DELETE", fmt.Sprintf("/projects/%s", url.PathEscape(g.project.String())), nil)
 	if err != nil || (statusCode != 202 && statusCode != 404) {
-		return fmt.Errorf("failed to create gitlab repository: (%d) %s -- %w", statusCode, body, err)
+		return fmt.Errorf("failed to delete gitlab repository: (%d) %s -- %w", statusCode, body, err)
 	}
 	g.logger.Info().Str("project", g.project.String()).Msg("GitLab repository deleted")
 	return nil
 }
 
-func (g Gitlab) GetIconfiles() ([]string, error) {
+func (g *Gitlab) GetIconfiles() ([]string, error) {
 	statusCode, _, body, err := g.sendRequest("GET", fmt.Sprintf("/projects/%s/repository/tree?ref=%s&recursive=true", url.PathEscape(g.project.String()), g.mainBranch), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request to get repository tree from GitLab repo: %w", err)
@@ -241,7 +250,7 @@ func (g Gitlab) GetIconfiles() ([]string, error) {
 	return fileList, nil
 }
 
-func (g Gitlab) createCommitBody(authorName string, commitMessage string, actionsIn []commitActionOnByteSlice) (io.Reader, error) {
+func (g *Gitlab) createCommitBody(authorName string, commitMessage string, actionsIn []commitActionOnByteSlice) (io.Reader, error) {
 	commActs := make([]commitAction, len(actionsIn))
 
 	for index, actionIn := range actionsIn {
@@ -275,7 +284,7 @@ func (Gitlab) GetAbsolutePathToIconfile(string, domain.IconfileDescriptor) strin
 }
 
 // GetStateID implements repositories_tests.gitTestRepo
-func (g Gitlab) GetStateID() (string, error) {
+func (g *Gitlab) GetStateID() (string, error) {
 	statusCode, _, body, err := g.sendRequest(
 		"GET",
 		fmt.Sprintf(
@@ -310,9 +319,9 @@ func (Gitlab) CheckStatus() (bool, error) {
 	return true, nil
 }
 
-// GetCommitIDFor returns the commit ID of the iconfile specified by the method paramters.
+// GetVersionFor returns the commit ID of the iconfile specified by the method paramters.
 // Return empty string in case the file doesn't exist in the repository
-func (g Gitlab) GetCommitIDFor(iconName string, iconfileDesc domain.IconfileDescriptor) (string, error) {
+func (g *Gitlab) GetVersionFor(iconName string, iconfileDesc domain.IconfileDescriptor) (string, error) {
 	commitIdHeaderKey := "X-Gitlab-Commit-Id"
 
 	filePath := paths.getPathComponents(iconName, iconfileDesc).pathToIconfile
@@ -338,7 +347,7 @@ func (g Gitlab) GetCommitIDFor(iconName string, iconfileDesc domain.IconfileDesc
 	return header.Get(commitIdHeaderKey), nil
 }
 
-func (g Gitlab) GetCommitMetadata(commitId string) (CommitMetadata, error) {
+func (g *Gitlab) GetVersionMetadata(commitId string) (CommitMetadata, error) {
 	commitMetadata := CommitMetadata{}
 
 	statusCode, _, body, err := g.sendRequest("GET", fmt.Sprintf("/projects/%s/repository/commits/%s", url.PathEscape(g.project.String()), commitId), nil)
@@ -363,7 +372,7 @@ func (g Gitlab) GetCommitMetadata(commitId string) (CommitMetadata, error) {
 	return commitMetadata, nil
 }
 
-func (g Gitlab) AddIconfile(iconName string, iconfile domain.Iconfile, modifiedBy string) error {
+func (g *Gitlab) AddIconfile(iconName string, iconfile domain.Iconfile, modifiedBy string) error {
 	filePath := paths.getPathComponents(iconName, iconfile.IconfileDescriptor).pathToIconfile
 	commitErr := g.commit(modifiedBy, fmt.Sprintf("Adding iconfile: %s", filePath), []commitActionOnByteSlice{
 		{
@@ -379,7 +388,7 @@ func (g Gitlab) AddIconfile(iconName string, iconfile domain.Iconfile, modifiedB
 	return nil
 }
 
-func (g Gitlab) DeleteIcon(iconDesc domain.IconDescriptor, modifiedBy authn.UserID) error {
+func (g *Gitlab) DeleteIcon(iconDesc domain.IconDescriptor, modifiedBy authn.UserID) error {
 	actionList := make([]commitActionOnByteSlice, len(iconDesc.Iconfiles))
 
 	for index, ifDesc := range iconDesc.Iconfiles {
@@ -396,7 +405,7 @@ func (g Gitlab) DeleteIcon(iconDesc domain.IconDescriptor, modifiedBy authn.User
 	return nil
 }
 
-func (g Gitlab) DeleteIconfile(iconName string, iconfileDesc domain.IconfileDescriptor, modifiedBy authn.UserID) error {
+func (g *Gitlab) DeleteIconfile(iconName string, iconfileDesc domain.IconfileDescriptor, modifiedBy authn.UserID) error {
 	filePath := paths.getPathComponents(iconName, iconfileDesc).pathToIconfile
 
 	commitErr := g.commit(modifiedBy.String(), fmt.Sprintf("Deleting iconfile: %s", filePath), []commitActionOnByteSlice{
@@ -412,7 +421,7 @@ func (g Gitlab) DeleteIconfile(iconName string, iconfileDesc domain.IconfileDesc
 	return nil
 }
 
-func (g Gitlab) GetIconfile(iconName string, iconfileDesc domain.IconfileDescriptor) ([]byte, error) {
+func (g *Gitlab) GetIconfile(iconName string, iconfileDesc domain.IconfileDescriptor) ([]byte, error) {
 	filePath := paths.getPathComponents(iconName, iconfileDesc).pathToIconfile
 	statusCode, _, body, err := g.sendRequest(
 		"GET",
@@ -449,7 +458,7 @@ func (g Gitlab) GetIconfile(iconName string, iconfileDesc domain.IconfileDescrip
 	return content, nil
 }
 
-func (g Gitlab) commit(authorName string, commitMessage string, actions []commitActionOnByteSlice) error {
+func (g *Gitlab) commit(authorName string, commitMessage string, actions []commitActionOnByteSlice) error {
 	if os.Getenv(SimulateGitCommitFailureEnvvarName) == "true" {
 		return fmt.Errorf("simulate git commit failure")
 	}
@@ -470,7 +479,7 @@ func (g Gitlab) commit(authorName string, commitMessage string, actions []commit
 	return nil
 }
 
-func (g Gitlab) sendRequest(method string, apiCallPath string, body io.Reader) (int, http.Header, string, error) {
+func (g *Gitlab) sendRequest(method string, apiCallPath string, body io.Reader) (int, http.Header, string, error) {
 	urlString := fmt.Sprintf("https://gitlab.com/api/v4%s", apiCallPath)
 
 	g.logger.Debug().Str("method", method).Str("url", urlString).Msg("send request")
@@ -514,8 +523,8 @@ type namespaceInfo struct {
 	Path string `json:"path"`
 }
 
-func getNamespaceID(gitlab Gitlab) (int, error) {
-	statusCode, _, body, err := gitlab.sendRequest("GET", "/namespaces?owned_only=true", nil)
+func getNamespaceID(gitlabCli Gitlab) (int, error) {
+	statusCode, _, body, err := gitlabCli.sendRequest("GET", "/namespaces?owned_only=true", nil)
 	if err != nil || statusCode != 200 {
 		return 0, fmt.Errorf("failed to retreive GitLab namespaces (%d) %s -- %w", statusCode, body, err)
 	}
@@ -527,10 +536,10 @@ func getNamespaceID(gitlab Gitlab) (int, error) {
 	}
 
 	for _, info := range namespaceInfoList {
-		if info.Path == gitlab.project.namespacePath {
+		if info.Path == gitlabCli.project.namespacePath {
 			return info.Id, nil
 		}
 	}
 
-	return 0, fmt.Errorf("no namespace found with path %s", gitlab.project.namespacePath)
+	return 0, fmt.Errorf("no namespace found with path %s", gitlabCli.project.namespacePath)
 }

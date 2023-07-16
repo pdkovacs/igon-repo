@@ -23,10 +23,11 @@ func (repo Local) String() string {
 	return fmt.Sprintf("Local git repository at %s", repo.Location)
 }
 
-func NewLocalGitRepository(location string) Local {
+func NewLocalGitRepository(location string, logger zerolog.Logger) Local {
 	git := Local{
 		Location:  location,
 		FilePaths: NewGitFilePaths(location),
+		Logger:    logger,
 	}
 	return git
 }
@@ -40,19 +41,27 @@ const fileDeleteSuccessMessage = "iconfile for icon \"%s\" deleted:\n\n%s"
 
 const cleanStatusMessageTail = "nothing to commit, working tree clean"
 
-func (repo Local) Create() error {
+func (repo *Local) CreateRepository() error {
 	return repo.initMaybe()
 }
 
-func (repo Local) Delete() error {
+func (repo *Local) ResetRepository() error {
+	deleteRepoErr := repo.DeleteRepository()
+	if deleteRepoErr != nil {
+		panic(deleteRepoErr)
+	}
+	return repo.CreateRepository()
+}
+
+func (repo *Local) DeleteRepository() error {
 	return os.RemoveAll(repo.Location)
 }
 
-func (repo Local) GetAbsolutePathToIconfile(iconName string, iconfileDescriptor domain.IconfileDescriptor) string {
+func (repo *Local) GetAbsolutePathToIconfile(iconName string, iconfileDescriptor domain.IconfileDescriptor) string {
 	return repo.FilePaths.GetAbsolutePathToIconfile(iconName, iconfileDescriptor)
 }
 
-func (repo Local) ExecuteGitCommand(args []string) (string, error) {
+func (repo *Local) ExecuteGitCommand(args []string) (string, error) {
 	return config.ExecuteCommand(config.ExecCmdParams{
 		Name: "git",
 		Args: args,
@@ -110,13 +119,13 @@ var rollbackCommands = [][]string{
 	{"clean", "-qfdx"},
 }
 
-func (repo Local) rollback() {
+func (repo *Local) rollback() {
 	for _, rollbackCmd := range rollbackCommands {
 		_, _ = repo.ExecuteGitCommand(rollbackCmd)
 	}
 }
 
-func (repo Local) executeIconfileJob(iconfileOperation func() ([]string, error), messages gitJobTextProvider, userName string) error {
+func (repo *Local) executeIconfileJob(iconfileOperation func() ([]string, error), messages gitJobTextProvider, userName string) error {
 	logger := logging.CreateMethodLogger(repo.Logger, fmt.Sprintf("git: %s", messages.logContext))
 
 	var out string
@@ -150,7 +159,7 @@ func (repo Local) executeIconfileJob(iconfileOperation func() ([]string, error),
 	return err
 }
 
-func (repo Local) createIconfile(iconName string, iconfile domain.Iconfile, modifiedBy string) (string, error) {
+func (repo *Local) createIconfile(iconName string, iconfile domain.Iconfile, modifiedBy string) (string, error) {
 	pathComponents := repo.FilePaths.getPathComponents(iconName, iconfile.IconfileDescriptor)
 	var err error
 
@@ -175,7 +184,7 @@ func (repo Local) createIconfile(iconName string, iconfile domain.Iconfile, modi
 	return pathComponents.pathToIconfileInRepo, err
 }
 
-func (repo Local) AddIconfile(iconName string, iconfile domain.Iconfile, modifiedBy string) error {
+func (repo *Local) AddIconfile(iconName string, iconfile domain.Iconfile, modifiedBy string) error {
 	iconfileOperation := func() ([]string, error) {
 		pathToIconfileInRepo, err := repo.createIconfile(iconName, iconfile, modifiedBy)
 		if err != nil {
@@ -195,12 +204,12 @@ func (repo Local) AddIconfile(iconName string, iconfile domain.Iconfile, modifie
 	})
 
 	if err != nil {
-		return fmt.Errorf("failed to add iconfile %v for %s to git repository: %w", iconfile, iconName, err)
+		return fmt.Errorf("failed to add iconfile %v for %s to git repository at %s: %w", iconfile, iconName, repo.Location, err)
 	}
 	return nil
 }
 
-func (repo Local) GetIconfile(iconName string, iconfileDesc domain.IconfileDescriptor) ([]byte, error) {
+func (repo *Local) GetIconfile(iconName string, iconfileDesc domain.IconfileDescriptor) ([]byte, error) {
 	pathToFile := repo.GetAbsolutePathToIconfile(iconName, iconfileDesc)
 	bytes, err := os.ReadFile(pathToFile)
 	if err != nil {
@@ -209,7 +218,7 @@ func (repo Local) GetIconfile(iconName string, iconfileDesc domain.IconfileDescr
 	return bytes, nil
 }
 
-func (repo Local) deleteIconfileFile(iconName string, iconfileDesc domain.IconfileDescriptor) (string, error) {
+func (repo *Local) deleteIconfileFile(iconName string, iconfileDesc domain.IconfileDescriptor) (string, error) {
 	pathCompos := repo.FilePaths.getPathComponents(iconName, iconfileDesc)
 	removeFileErr := os.Remove(pathCompos.pathToIconfile)
 	if removeFileErr != nil {
@@ -221,7 +230,7 @@ func (repo Local) deleteIconfileFile(iconName string, iconfileDesc domain.Iconfi
 	return pathCompos.pathToIconfileInRepo, nil
 }
 
-func (repo Local) DeleteIcon(iconDesc domain.IconDescriptor, modifiedBy authn.UserID) error {
+func (repo *Local) DeleteIcon(iconDesc domain.IconDescriptor, modifiedBy authn.UserID) error {
 	iconfileOperation := func() ([]string, error) {
 		var opError error
 		var fileList []string
@@ -255,7 +264,7 @@ func (repo Local) DeleteIcon(iconDesc domain.IconDescriptor, modifiedBy authn.Us
 	return nil
 }
 
-func (repo Local) DeleteIconfile(iconName string, iconfileDesc domain.IconfileDescriptor, modifiedBy authn.UserID) error {
+func (repo *Local) DeleteIconfile(iconName string, iconfileDesc domain.IconfileDescriptor, modifiedBy authn.UserID) error {
 	iconfileOperation := func() ([]string, error) {
 		filePath, deletionError := repo.deleteIconfileFile(iconName, iconfileDesc)
 		return []string{filePath}, deletionError
@@ -313,9 +322,9 @@ func (repo Local) GetIconfiles() ([]string, error) {
 	return fileList, nil
 }
 
-// GetCommitIDFor returns the commit ID of the iconfile specified by the method paramters.
+// GetVersionFor returns the commit ID of the iconfile specified by the method paramters.
 // Return empty string in case the file doesn't exist in the repository
-func (repo Local) GetCommitIDFor(iconName string, iconfileDesc domain.IconfileDescriptor) (string, error) {
+func (repo Local) GetVersionFor(iconName string, iconfileDesc domain.IconfileDescriptor) (string, error) {
 	printCommitIDArgs := []string{"log", "-n", "1", "--pretty=format:%H", "--", repo.FilePaths.GetPathToIconfileInRepo(iconName, iconfileDesc)}
 	output, execErr := repo.ExecuteGitCommand(printCommitIDArgs)
 	if execErr != nil {
@@ -324,8 +333,8 @@ func (repo Local) GetCommitIDFor(iconName string, iconfileDesc domain.IconfileDe
 	return output, nil
 }
 
-func (repo Local) GetCommitMetadata(commitId string) (CommitMetadata, error) {
-	logger := logging.CreateMethodLogger(repo.Logger, fmt.Sprintf("git: GetCommitMetadata: %s", commitId))
+func (repo Local) GetVersionMetadata(commitId string) (CommitMetadata, error) {
+	logger := logging.CreateMethodLogger(repo.Logger, fmt.Sprintf("git: GetVersionMetadata: %s", commitId))
 
 	printCommitMetadataArgs := []string{"show", "--quiet", "--format=fuller", "--date=format:%Y-%m-%dT%H:%M:%S%z"}
 	output, execErr := repo.ExecuteGitCommand(printCommitMetadataArgs)

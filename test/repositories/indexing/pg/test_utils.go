@@ -22,7 +22,7 @@ type TestIndexRepository interface {
 	GetIconCount() (int, error)
 	GetIconFileCount() (int, error)
 	GetTagRelationCount() (int, error)
-	ResetDBData() error
+	ResetData() error
 }
 
 // TODO:
@@ -74,7 +74,7 @@ func (sqlDb *PostgresTestRepository) GetTagRelationCount() (int, error) {
 	return rowCount, nil
 }
 
-func (sqlDb *PostgresTestRepository) ResetDBData() error {
+func (sqlDb *PostgresTestRepository) ResetData() error {
 	var tx *sql.Tx
 	var err error
 
@@ -117,17 +117,17 @@ func (s *DBTestSuite) NewTestDBRepo() {
 	config := test_commons.GetTestConfig()
 	connection, err := pgdb.NewDBConnection(config)
 	if err != nil {
-		panic(fmt.Sprintf("failed to create test connection: %v", err))
+		s.FailNow("%v", fmt.Sprintf("failed to create test connection: %v", err))
 	}
 	_, schemaErr := pgdb.OpenSchema(config, connection)
 	if schemaErr != nil {
-		panic(schemaErr)
+		s.FailNow("%v", schemaErr)
 	}
 
 	sqlDb := pgdb.NewDBRepository(connection)
 	s.dbRepo = NewTestDbRepositoryFromSQLDB(&sqlDb)
 	if err != nil {
-		panic(err)
+		s.FailNow("%v", err)
 	}
 }
 
@@ -142,9 +142,9 @@ func (s *DBTestSuite) TearDownSuite() {
 }
 
 func (s *DBTestSuite) BeforeTest(suiteName, testName string) {
-	err := s.dbRepo.ResetDBData()
+	err := s.dbRepo.ResetData()
 	if err != nil {
-		panic(fmt.Sprintf("failed to delete test data: %v", err))
+		s.FailNow("%v", fmt.Sprintf("failed to delete test data: %v", err))
 	}
 }
 

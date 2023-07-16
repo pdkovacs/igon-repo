@@ -3,6 +3,7 @@ package app
 import (
 	"iconrepo/internal/config"
 	"iconrepo/internal/httpadapter"
+	"iconrepo/internal/logging"
 	"iconrepo/internal/repositories"
 	"iconrepo/internal/repositories/blobstore/git"
 	"iconrepo/internal/repositories/indexing/dynamodb"
@@ -30,23 +31,25 @@ func Start(conf config.Options, ready func(port int, stop func())) error {
 
 	var blobstore repositories.BlobstoreRepository
 	if len(conf.LocalGitRepo) > 0 {
-		blobstore = git.NewLocalGitRepository(conf.LocalGitRepo)
+		localGit := git.NewLocalGitRepository(conf.LocalGitRepo, logging.CreateUnitLogger(logging.Get(), "local git repository"))
+		blobstore = &localGit
 	}
 	if len(conf.GitlabNamespacePath) > 0 {
-		var gitlabRepoErr error
-		blobstore, gitlabRepoErr = git.NewGitlabRepositoryClient(
+		gitlabClient, gitlabRepoErr := git.NewGitlabRepositoryClient(
 			conf.GitlabNamespacePath,
 			conf.GitlabProjectPath,
 			conf.GitlabMainBranch,
 			conf.GitlabAccessToken,
+			logging.CreateUnitLogger(logging.Get(), "Gitlab client"),
 		)
 		if gitlabRepoErr != nil {
 			return gitlabRepoErr
 		}
+		blobstore = &gitlabClient
 	}
 
 	if !dbSchemaAlreadyThere {
-		gitErr := blobstore.Create()
+		gitErr := blobstore.CreateRepository()
 		if gitErr != nil {
 			return gitErr
 		}

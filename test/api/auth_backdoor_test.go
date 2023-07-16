@@ -5,8 +5,7 @@ import (
 
 	"iconrepo/internal/app/security/authn"
 	"iconrepo/internal/app/security/authr"
-	"iconrepo/internal/repositories/blobstore/git"
-	git_tests "iconrepo/test/repositories/blobstore/git"
+	blobstore_tests "iconrepo/test/repositories/blobstore"
 	"iconrepo/test/testdata"
 
 	"github.com/stretchr/testify/suite"
@@ -17,11 +16,18 @@ type authBackDoorTestSuite struct {
 }
 
 func TestAuthBackDoorTestSuite(t *testing.T) {
-	suite.Run(t, &authBackDoorTestSuite{ApiTestSuite: apiTestSuites("apitests_backdoor", []git_tests.GitTestRepo{git.Local{}})[0]})
+	suite.Run(
+		t,
+		&authBackDoorTestSuite{
+			ApiTestSuite: apiTestSuites(
+				"apitests_backdoor",
+				[]blobstore_tests.TestBlobstoreController{blobstore_tests.DefaultBlobstoreController})[0],
+		},
+	)
 }
 
 func (s *authBackDoorTestSuite) BeforeTest(suiteName string, testName string) {
-	s.ApiTestSuite.config = s.ApiTestSuite.initTestCaseConfig()
+	s.ApiTestSuite.initTestCaseConfig(testName)
 	if suiteName != "authBackDoorTestSuite" {
 		return
 	}
@@ -44,7 +50,7 @@ func (s *authBackDoorTestSuite) BeforeTest(suiteName string, testName string) {
 	}
 	startErr := s.startApp(s.ApiTestSuite.config)
 	if startErr != nil {
-		panic(startErr)
+		s.FailNow("%v", startErr)
 	}
 }
 

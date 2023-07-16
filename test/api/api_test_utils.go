@@ -13,6 +13,7 @@ import (
 	"iconrepo/internal/logging"
 	"iconrepo/internal/repositories/blobstore/git"
 	"iconrepo/internal/repositories/indexing/pgdb"
+	blobstore_tests "iconrepo/test/repositories/blobstore"
 	git_tests "iconrepo/test/repositories/blobstore/git"
 	"iconrepo/test/repositories/indexing/pg"
 	"iconrepo/test/test_commons"
@@ -26,34 +27,34 @@ import (
 
 type ApiTestSuite struct {
 	*suite.Suite
-	config          config.Options
-	stopServer      func()
-	indexRepo       pg.TestIndexRepository
-	TestBlobstore   git_tests.GitTestRepo
-	Client          apiTestClient
-	logger          zerolog.Logger
-	testSequenceId  string
-	testCaseCounter int
-	xid             string
+	config                  config.Options
+	stopServer              func()
+	indexRepo               pg.TestIndexRepository
+	TestBlobstoreController blobstore_tests.TestBlobstoreController
+	Client                  apiTestClient
+	logger                  zerolog.Logger
+	testSequenceId          string
+	xid                     string
 }
 
-func apiTestSuites(testSequenceName string, gitProviders []git_tests.GitTestRepo) []ApiTestSuite {
+func apiTestSuites(testSequenceName string, gitProviders []blobstore_tests.TestBlobstoreController) []ApiTestSuite {
+	os.Setenv("LOG_LEVEL", "debug")
+
 	all := []ApiTestSuite{}
 	conf := test_commons.CloneConfig(test_commons.GetTestConfig())
 	conf.DBSchemaName = testSequenceName
 	conf.LocalGitRepo = fmt.Sprintf("%s_%s", conf.LocalGitRepo, testSequenceName)
-	for _, repo := range gitProviders {
+	for _, repoController := range gitProviders {
 		suiteToEmbed := new(suite.Suite)
 		all = append(all, ApiTestSuite{
 			suiteToEmbed,
 			conf,
 			nil,
 			nil,
-			repo,
+			repoController,
 			apiTestClient{},
 			logging.Get().With().Str("test_sequence_name", testSequenceName).Logger(),
 			testSequenceName,
-			0,
 			"",
 		})
 	}
@@ -62,19 +63,23 @@ func apiTestSuites(testSequenceName string, gitProviders []git_tests.GitTestRepo
 
 func (s *ApiTestSuite) SetupSuite() {
 	if s.config.DBSchemaName == "" {
-		panic("No config set by the suite extender")
+		s.FailNow("%v", "No config set by the suite extender")
 	}
 	s.config.LogLevel = logging.DebugLevel
 
 	// testDBConn and testDBREpo will be only used to read for verification
 	testDBConn, testDBErr := pgdb.NewDBConnection(s.config)
 	if testDBErr != nil {
-		panic(testDBErr)
+		s.FailNow("%v", testDBErr)
 	}
 	testDbRepo := pgdb.NewDBRepository(testDBConn)
 	s.indexRepo = pg.NewTestDbRepositoryFromSQLDB(&testDbRepo)
 
-	s.config.GitlabAccessToken = git_tests.GitTestGitlabAPIToken()
+	var apiTokenErr error
+	s.config.GitlabAccessToken, apiTokenErr = git_tests.GitTestGitlabAPIToken()
+	if apiTokenErr != nil {
+		s.FailNow("%v", apiTokenErr)
+	}
 
 	s.config.PasswordCredentials = []config.PasswordCredentials{
 		testdata.DefaultCredentials,
@@ -89,50 +94,38 @@ func (s *ApiTestSuite) TearDownSuite() {
 	s.indexRepo.Close()
 }
 
-func (s *ApiTestSuite) initTestCaseConfig() config.Options {
-	s.testCaseCounter++
+func (s *ApiTestSuite) initTestCaseConfig(testName string) {
 	s.xid = xid.New().String()
 	s.logger = s.logger.With().Str("app_xid", s.xid).Logger()
-	conf := test_commons.CloneConfig(s.config)
-	conf.GitlabProjectPath = fmt.Sprintf("%s_%s_%d", conf.GitlabProjectPath, s.testSequenceId, s.testCaseCounter)
-	switch s.TestBlobstore.(type) {
-	case git.Local:
-		conf.GitlabNamespacePath = "" // to guide the test app on which git provider to use
-		s.TestBlobstore = git_tests.NewLocalGitTestRepo(conf)
-	case git.Gitlab:
-		conf.GitlabNamespacePath = "testing-with-repositories"
-		conf.LocalGitRepo = "" // to guide the test app on which git provider to use
-		s.TestBlobstore = git_tests.NewGitlabTestRepoClient(conf)
-	case nil:
-		s.logger.Info().Msg("No testGitRepo set; using default")
-		conf.GitlabNamespacePath = "" // to guide the test app on which git provider to use
-		s.TestBlobstore = git_tests.NewLocalGitTestRepo(conf)
+
+	git_tests.SetupGitlabTestCaseConfig(&s.config, s.testSequenceId, s.xid)
+
+	createRepoErr := s.TestBlobstoreController.ResetRepository(&s.config)
+	if createRepoErr != nil {
+		s.FailNow("%v", createRepoErr)
 	}
 
-	git_tests.MustResetTestGitRepo(s.TestBlobstore)
-	err := s.indexRepo.ResetDBData()
+	err := s.indexRepo.ResetData()
 	if err != nil {
-		panic(err)
+		s.FailNow("%v", err)
 	}
-	return conf
 }
 
 func (s *ApiTestSuite) BeforeTest(suiteName string, testName string) {
-	conf := s.initTestCaseConfig()
-	conf.EnableBackdoors = true
-	startErr := s.startApp(conf)
+	s.initTestCaseConfig(testName)
+	s.config.EnableBackdoors = true
+	startErr := s.startApp(s.config)
 	if startErr != nil {
-		panic(startErr)
+		s.FailNow("%v", startErr)
 	}
 }
 
 func (s *ApiTestSuite) AfterTest(suiteName, testName string) {
 	s.terminateTestServer()
 	os.Unsetenv(git.SimulateGitCommitFailureEnvvarName)
-
-	deleteRepoErr := s.TestBlobstore.Delete()
+	deleteRepoErr := s.TestBlobstoreController.DeleteRepository()
 	if deleteRepoErr != nil {
-		s.logger.Error().Err(deleteRepoErr).Str("project", s.TestBlobstore.String()).Msg("failed to delete testGitRepo")
+		s.logger.Error().Err(deleteRepoErr).Str("project", s.TestBlobstoreController.String()).Msg("failed to delete testGitRepo")
 	}
 }
 

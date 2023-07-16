@@ -2,8 +2,7 @@ package api_tests
 
 import (
 	"iconrepo/internal/config"
-	"iconrepo/internal/repositories/blobstore/git"
-	git_tests "iconrepo/test/repositories/blobstore/git"
+	blobstore_tests "iconrepo/test/repositories/blobstore"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -15,7 +14,7 @@ type buildinfoAPITestSuite struct {
 }
 
 func TestBuildinfoAPITestSuite(t *testing.T) {
-	suite.Run(t, &buildinfoAPITestSuite{ApiTestSuite: apiTestSuites("apitests_buildinfo", []git_tests.GitTestRepo{git.Local{}})[0]})
+	suite.Run(t, &buildinfoAPITestSuite{ApiTestSuite: apiTestSuites("apitests_buildinfo", []blobstore_tests.TestBlobstoreController{blobstore_tests.DefaultBlobstoreController})[0]})
 }
 
 func (s *buildinfoAPITestSuite) TestMustIncludeVersionInfo() {

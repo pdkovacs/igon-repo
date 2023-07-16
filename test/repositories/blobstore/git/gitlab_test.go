@@ -1,7 +1,6 @@
 package git
 
 import (
-	"fmt"
 	"iconrepo/internal/repositories/blobstore/git"
 	"iconrepo/test/test_commons"
 	"testing"
@@ -9,12 +8,10 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-const testSequenceId = "gitlabtests"
-
 type gitlabRepoTestSuite struct {
 	suite.Suite
 	t       *testing.T
-	gitRepo git.Gitlab
+	gitRepo *git.Gitlab
 }
 
 func TestGitlabRepoTestSuite(t *testing.T) {
@@ -24,26 +21,19 @@ func TestGitlabRepoTestSuite(t *testing.T) {
 func (testSuite *gitlabRepoTestSuite) BeforeTest(suiteName string, testName string) {
 	defaultTestConfig := test_commons.GetTestConfig()
 	conf := test_commons.CloneConfig(defaultTestConfig)
-	conf.LocalGitRepo = fmt.Sprintf("%s_%s", conf.LocalGitRepo, testSequenceId)
-	conf.GitlabProjectPath = fmt.Sprintf("%s_%s", defaultTestConfig.GitlabProjectPath, testSequenceId)
-	conf.GitlabAccessToken = GitTestGitlabAPIToken()
-	conf.GitlabNamespacePath = "testing-with-repositories"
-
-	repo, err := git.NewGitlabRepositoryClient(
-		conf.GitlabNamespacePath,
-		conf.GitlabProjectPath+"_"+testSequenceId,
-		conf.GitlabMainBranch,
-		conf.GitlabAccessToken,
-	)
-	if err != nil {
-		panic(err)
+	var createClientErr error
+	testSuite.gitRepo, createClientErr = NewGitlabTestRepoClient(&conf)
+	if createClientErr != nil {
+		testSuite.FailNow("%v", createClientErr)
 	}
-	MustResetTestGitRepo(repo)
-	testSuite.gitRepo = repo
+	createRepoErr := testSuite.gitRepo.ResetRepository()
+	if createRepoErr != nil {
+		testSuite.FailNow("%v", createRepoErr)
+	}
 }
 
 func (testSuite *gitlabRepoTestSuite) AfterTest(suiteName string, testName string) {
-	testSuite.gitRepo.Delete()
+	testSuite.gitRepo.DeleteRepository()
 }
 
 func (testSuite *gitlabRepoTestSuite) TestAddIconfile() {

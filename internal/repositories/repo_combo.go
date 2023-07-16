@@ -22,7 +22,7 @@ type IndexRepository interface {
 
 type BlobstoreRepository interface {
 	fmt.Stringer
-	Create() error
+	CreateRepository() error
 	AddIconfile(iconName string, iconfile domain.Iconfile, modifiedBy string) error
 	GetIconfile(iconName string, iconfile domain.IconfileDescriptor) ([]byte, error)
 	DeleteIcon(iconDesc domain.IconDescriptor, modifiedBy authn.UserID) error

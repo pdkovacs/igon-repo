@@ -3,7 +3,7 @@ package sequential_tests
 import (
 	"iconrepo/internal/repositories/blobstore/git"
 	api_tests "iconrepo/test/api"
-	git_tests "iconrepo/test/repositories/blobstore/git"
+	blobstore_tests "iconrepo/test/repositories/blobstore"
 	"iconrepo/test/test_commons"
 	"iconrepo/test/testdata"
 	"os"
@@ -14,12 +14,12 @@ import (
 )
 
 type gitTests struct {
-	git_tests.GitTestSuite
+	blobstore_tests.BlobstoreTestSuite
 }
 
 func TestGitTestSuite(t *testing.T) {
-	for _, repo := range git_tests.GitProvidersToTest() {
-		suite.Run(t, &gitTests{GitTestSuite: git_tests.GitTestSuite{Repo: repo}})
+	for _, repoController := range blobstore_tests.BlobstoreProvidersToTest() {
+		suite.Run(t, &gitTests{BlobstoreTestSuite: blobstore_tests.BlobstoreTestSuite{RepoController: repoController, TestSequenceId: "simulated_git_failuer"}})
 	}
 }
 
@@ -29,7 +29,7 @@ func (s *gitTests) TestRemainsConsistentAfterAddingIconfileFails() {
 	iconfile2 := icon.Iconfiles[1]
 
 	now := time.Now()
-	errorWhenAddingFirstIconFile := s.Repo.AddIconfile(icon.Name, iconfile1, icon.ModifiedBy)
+	errorWhenAddingFirstIconFile := s.RepoController.AddIconfile(icon.Name, iconfile1, icon.ModifiedBy)
 	s.NoError(errorWhenAddingFirstIconFile)
 
 	os.Setenv(git.SimulateGitCommitFailureEnvvarName, "true")
@@ -37,15 +37,15 @@ func (s *gitTests) TestRemainsConsistentAfterAddingIconfileFails() {
 	lastGoodSha1, errorWhenGettingLastGoodSha1 := s.GetStateID()
 	s.Equal(len("8e9b80b5155dea01e5175bc819bbe364dbc07a66"), len(lastGoodSha1))
 	s.NoError(errorWhenGettingLastGoodSha1)
-	errorAddingSecondIconfile := s.Repo.AddIconfile(icon.Name, iconfile2, icon.ModifiedBy)
+	errorAddingSecondIconfile := s.RepoController.AddIconfile(icon.Name, iconfile2, icon.ModifiedBy)
 	s.Error(errorAddingSecondIconfile)
 	postSha1, errorWhenGettingPostSha1 := s.GetStateID()
 	s.Equal(len("8e9b80b5155dea01e5175bc819bbe364dbc07a66"), len(postSha1))
 	s.NoError(errorWhenGettingPostSha1)
 	s.Equal(lastGoodSha1, postSha1)
-	s.AssertGitCleanStatus()
-	s.AssertFileInRepo(icon.Name, iconfile1, now)
-	s.AssertFileNotInRepo(icon.Name, iconfile2)
+	s.AssertBlobstoreCleanStatus()
+	s.AssertFileInBlobstore(icon.Name, iconfile1, now)
+	s.AssertFileNotInBlobstore(icon.Name, iconfile2)
 }
 
 type iconCreateTests struct {
@@ -65,7 +65,7 @@ func (s *iconCreateTests) TestRollbackToLastConsistentStateOnError() {
 	session := s.Client.MustLoginSetAllPerms()
 	session.MustAddTestData(dataIn)
 
-	lastStableSHA1, beforeIncidentGitErr := s.TestBlobstore.GetStateID()
+	lastStableSHA1, beforeIncidentGitErr := s.TestBlobstoreController.GetStateID()
 	s.NoError(beforeIncidentGitErr)
 
 	os.Setenv(git.SimulateGitCommitFailureEnvvarName, "true")
@@ -73,7 +73,7 @@ func (s *iconCreateTests) TestRollbackToLastConsistentStateOnError() {
 	statusCode, _, _ := session.CreateIcon(moreDataIn[1].Name, moreDataIn[1].Iconfiles[0].Content)
 	s.Equal(409, statusCode)
 
-	afterIncidentSHA1, afterIncidentGitErr := s.TestBlobstore.GetStateID()
+	afterIncidentSHA1, afterIncidentGitErr := s.TestBlobstoreController.GetStateID()
 	s.NoError(afterIncidentGitErr)
 
 	s.Equal(lastStableSHA1, afterIncidentSHA1)

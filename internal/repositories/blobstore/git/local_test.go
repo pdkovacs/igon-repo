@@ -15,12 +15,12 @@ var localGitRepoTestLogger = logging.CreateUnitLogger(logging.Get(), "repositori
 
 type localGitRepoTestSuite struct {
 	suite.Suite
-	t       *testing.T
-	gitRepo Local
+	t             *testing.T
+	gitRepoClient Local
 }
 
 func TestLocalGitTestSuite(t *testing.T) {
-	suite.Run(t, &localGitRepoTestSuite{t: t})
+	suite.Run(t, &localGitRepoTestSuite{t: t, gitRepoClient: Local{}})
 }
 
 func (testSuite *localGitRepoTestSuite) removeRepoDir() {
@@ -32,12 +32,10 @@ func (testSuite *localGitRepoTestSuite) removeRepoDir() {
 
 func (testSuite *localGitRepoTestSuite) BeforeTest(suiteName string, testName string) {
 	testSuite.removeRepoDir()
-	gitRepo := NewLocalGitRepository(testRepoLocation)
-	gitRepoCreationError := gitRepo.Create()
+	gitRepoCreationError := testSuite.gitRepoClient.CreateRepository()
 	if gitRepoCreationError != nil {
 		panic(gitRepoCreationError)
 	}
-	testSuite.gitRepo = gitRepo
 }
 
 func (testSuite *localGitRepoTestSuite) TestLocationDoesntExist() {
@@ -48,22 +46,28 @@ func (testSuite *localGitRepoTestSuite) TestLocationDoesntExist() {
 
 func (testSuite *localGitRepoTestSuite) TestLocationDoesntHaveRepo() {
 	testSuite.removeRepoDir()
-	gitRepo := NewLocalGitRepository(testRepoLocation)
-	testSuite.Equal(false, gitRepo.locationHasRepo())
+	err := testSuite.gitRepoClient.CreateRepository()
+	if err != nil {
+		panic(err)
+	}
+	testSuite.Equal(false, testSuite.gitRepoClient.locationHasRepo())
 }
 
 func (testSuite *localGitRepoTestSuite) TestLocationHasRepo() {
 	testSuite.removeRepoDir()
-	gitRepo := NewLocalGitRepository(testRepoLocation)
-	err := gitRepo.Delete()
+	err := testSuite.gitRepoClient.CreateRepository()
 	if err != nil {
 		panic(err)
 	}
-	err = gitRepo.Create()
+	err = testSuite.gitRepoClient.DeleteRepository()
 	if err != nil {
 		panic(err)
 	}
-	testSuite.Equal(true, gitRepo.locationHasRepo())
+	err = testSuite.gitRepoClient.CreateRepository()
+	if err != nil {
+		panic(err)
+	}
+	testSuite.Equal(true, testSuite.gitRepoClient.locationHasRepo())
 }
 
 func (testSuite *localGitRepoTestSuite) TestParseCommitMetadata() {
