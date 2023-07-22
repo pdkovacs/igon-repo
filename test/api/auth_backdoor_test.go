@@ -6,6 +6,7 @@ import (
 	"iconrepo/internal/app/security/authn"
 	"iconrepo/internal/app/security/authr"
 	blobstore_tests "iconrepo/test/repositories/blobstore"
+	"iconrepo/test/repositories/indexing"
 	"iconrepo/test/testdata"
 
 	"github.com/stretchr/testify/suite"
@@ -21,7 +22,9 @@ func TestAuthBackDoorTestSuite(t *testing.T) {
 		&authBackDoorTestSuite{
 			ApiTestSuite: apiTestSuites(
 				"apitests_backdoor",
-				[]blobstore_tests.TestBlobstoreController{blobstore_tests.DefaultBlobstoreController})[0],
+				[]blobstore_tests.TestBlobstoreController{blobstore_tests.DefaultBlobstoreController},
+				[]indexing.IndexTestRepoController{indexing.DefaultIndexTestRepoController},
+			)[0],
 		},
 	)
 }

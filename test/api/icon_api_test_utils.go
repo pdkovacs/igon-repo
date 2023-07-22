@@ -9,6 +9,7 @@ import (
 	"iconrepo/internal/httpadapter"
 	"iconrepo/internal/repositories/blobstore/git"
 	blobstore_tests "iconrepo/test/repositories/blobstore"
+	"iconrepo/test/repositories/indexing"
 )
 
 type IconTestSuite struct {
@@ -17,7 +18,10 @@ type IconTestSuite struct {
 
 func IconTestSuites(testSequenceId string) []IconTestSuite {
 	all := []IconTestSuite{}
-	for _, apiSuite := range apiTestSuites(testSequenceId, blobstore_tests.BlobstoreProvidersToTest()) {
+	for _, apiSuite := range apiTestSuites(
+		testSequenceId, blobstore_tests.BlobstoreProvidersToTest(),
+		indexing.IndexProvidersToTest(),
+	) {
 		all = append(all, IconTestSuite{ApiTestSuite: apiSuite})
 	}
 	return all
@@ -32,7 +36,7 @@ func (s *IconTestSuite) getCheckIconfile(session *apiTestSession, iconName strin
 func (s *IconTestSuite) assertAllFilesInDBAreInGitAsWell() []string {
 	checkedGitFiles := []string{}
 
-	index := s.indexRepo
+	index := s.indexingController
 	blob := s.TestBlobstoreController
 
 	allIconDescInDb, descAllErr := index.DescribeAllIcons()

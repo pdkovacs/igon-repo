@@ -3,6 +3,7 @@ package api_tests
 import (
 	"iconrepo/internal/config"
 	blobstore_tests "iconrepo/test/repositories/blobstore"
+	"iconrepo/test/repositories/indexing"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -14,7 +15,14 @@ type buildinfoAPITestSuite struct {
 }
 
 func TestBuildinfoAPITestSuite(t *testing.T) {
-	suite.Run(t, &buildinfoAPITestSuite{ApiTestSuite: apiTestSuites("apitests_buildinfo", []blobstore_tests.TestBlobstoreController{blobstore_tests.DefaultBlobstoreController})[0]})
+	suite.Run(
+		t,
+		&buildinfoAPITestSuite{
+			ApiTestSuite: apiTestSuites(
+				"apitests_buildinfo",
+				[]blobstore_tests.TestBlobstoreController{blobstore_tests.DefaultBlobstoreController},
+				[]indexing.IndexTestRepoController{indexing.DefaultIndexTestRepoController},
+			)[0]})
 }
 
 func (s *buildinfoAPITestSuite) TestMustIncludeVersionInfo() {

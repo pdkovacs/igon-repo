@@ -1,4 +1,4 @@
-package pg
+package indexing
 
 import (
 	"testing"
@@ -10,11 +10,13 @@ import (
 )
 
 type addTagTestSuite struct {
-	DBTestSuite
+	IndexingTestSuite
 }
 
 func TestAddTagTestSuite(t *testing.T) {
-	suite.Run(t, &addTagTestSuite{})
+	for _, testSuite := range indexingTestSuites() {
+		suite.Run(t, &addTagTestSuite{testSuite})
+	}
 }
 
 func (s *addTagTestSuite) TestCreateAssociateNonExistingTag() {
@@ -24,26 +26,26 @@ func (s *addTagTestSuite) TestCreateAssociateNonExistingTag() {
 	var icon = test_commons.TestData[0]
 	const tag = "used-in-marvinjs"
 
-	err = s.dbRepo.CreateIcon(icon.Name, icon.Iconfiles[0].IconfileDescriptor, icon.ModifiedBy, nil)
+	err = s.testRepoController.CreateIcon(icon.Name, icon.Iconfiles[0].IconfileDescriptor, icon.ModifiedBy, nil)
 	s.NoError(err)
-	tags, err = s.dbRepo.GetExistingTags()
+	tags, err = s.testRepoController.GetExistingTags()
 	s.NoError(err)
 	s.Empty(tags)
 
 	var iconDesc domain.IconDescriptor
-	iconDesc, err = s.dbRepo.DescribeIcon(icon.Name)
+	iconDesc, err = s.testRepoController.DescribeIcon(icon.Name)
 	s.NoError(err)
 	s.Empty(iconDesc.Tags)
 
-	err = s.dbRepo.AddTag(icon.Name, tag, icon.ModifiedBy)
+	err = s.testRepoController.AddTag(icon.Name, tag, icon.ModifiedBy)
 	s.NoError(err)
 
-	tags, err = s.dbRepo.GetExistingTags()
+	tags, err = s.testRepoController.GetExistingTags()
 	s.NoError(err)
 	s.Equal(1, len(tags))
 	s.Contains(tags, tag)
 
-	iconDesc, err = s.dbRepo.DescribeIcon(icon.Name)
+	iconDesc, err = s.testRepoController.DescribeIcon(icon.Name)
 	s.NoError(err)
 	s.Equal(1, len(iconDesc.Tags))
 	s.Contains(iconDesc.Tags, tag)
@@ -57,40 +59,40 @@ func (s *addTagTestSuite) TestReuseExistingTag() {
 	var icon2 = test_commons.TestData[1]
 	const tag = "used-in-marvinjs"
 
-	err = s.dbRepo.CreateIcon(icon1.Name, icon1.Iconfiles[0].IconfileDescriptor, icon1.ModifiedBy, nil)
+	err = s.testRepoController.CreateIcon(icon1.Name, icon1.Iconfiles[0].IconfileDescriptor, icon1.ModifiedBy, nil)
 	s.NoError(err)
-	err = s.dbRepo.CreateIcon(icon2.Name, icon2.Iconfiles[0].IconfileDescriptor, icon2.ModifiedBy, nil)
-	s.NoError(err)
-
-	err = s.dbRepo.AddTag(icon1.Name, tag, icon1.ModifiedBy)
+	err = s.testRepoController.CreateIcon(icon2.Name, icon2.Iconfiles[0].IconfileDescriptor, icon2.ModifiedBy, nil)
 	s.NoError(err)
 
-	tags, err = s.dbRepo.GetExistingTags()
+	err = s.testRepoController.AddTag(icon1.Name, tag, icon1.ModifiedBy)
+	s.NoError(err)
+
+	tags, err = s.testRepoController.GetExistingTags()
 	s.NoError(err)
 	s.Equal([]string{tag}, tags)
 
 	var iconDesc1 domain.IconDescriptor
-	iconDesc1, err = s.dbRepo.DescribeIcon(icon1.Name)
+	iconDesc1, err = s.testRepoController.DescribeIcon(icon1.Name)
 	s.NoError(err)
 	s.Equal([]string{tag}, iconDesc1.Tags)
 
 	var iconDesc2 domain.IconDescriptor
-	iconDesc2, err = s.dbRepo.DescribeIcon(icon2.Name)
+	iconDesc2, err = s.testRepoController.DescribeIcon(icon2.Name)
 	s.NoError(err)
 	s.Empty(iconDesc2.Tags)
 
-	err = s.dbRepo.AddTag(icon2.Name, tag, icon2.ModifiedBy)
+	err = s.testRepoController.AddTag(icon2.Name, tag, icon2.ModifiedBy)
 	s.NoError(err)
 
-	iconDesc1, err = s.dbRepo.DescribeIcon(icon1.Name)
+	iconDesc1, err = s.testRepoController.DescribeIcon(icon1.Name)
 	s.NoError(err)
 	s.Equal([]string{tag}, iconDesc1.Tags)
 
-	iconDesc2, err = s.dbRepo.DescribeIcon(icon2.Name)
+	iconDesc2, err = s.testRepoController.DescribeIcon(icon2.Name)
 	s.NoError(err)
 	s.Equal([]string{tag}, iconDesc2.Tags)
 
-	tags, err = s.dbRepo.GetExistingTags()
+	tags, err = s.testRepoController.GetExistingTags()
 	s.NoError(err)
 	s.Equal([]string{tag}, tags)
 }

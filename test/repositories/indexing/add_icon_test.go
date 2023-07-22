@@ -1,4 +1,4 @@
-package pg
+package indexing
 
 import (
 	"errors"
@@ -11,45 +11,47 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type addIconToDBTestSuite struct {
-	DBTestSuite
+type addIconToIndexTestSuite struct {
+	IndexingTestSuite
 }
 
-func TestAddIconToDBTestSuite(t *testing.T) {
-	suite.Run(t, &addIconToDBTestSuite{})
+func TestAddIconToIndexTestSuite(t *testing.T) {
+	for _, testSuite := range indexingTestSuites() {
+		suite.Run(t, &addIconToIndexTestSuite{testSuite})
+	}
 }
 
-func (s *addIconToDBTestSuite) TestAddFirstIcon() {
+func (s *addIconToIndexTestSuite) TestAddFirstIconToIndex() {
 	var icon = test_commons.TestData[0]
 	fmt.Printf("Hello, First Icon %v\n", icon.Name)
-	err := s.dbRepo.CreateIcon(icon.Name, icon.Iconfiles[0].IconfileDescriptor, icon.ModifiedBy, nil)
+	err := s.testRepoController.CreateIcon(icon.Name, icon.Iconfiles[0].IconfileDescriptor, icon.ModifiedBy, nil)
 	s.NoError(err)
 	var iconDesc domain.IconDescriptor
-	iconDesc, err = s.dbRepo.DescribeIcon(icon.Name)
+	iconDesc, err = s.testRepoController.DescribeIcon(icon.Name)
 	s.NoError(err)
 	s.equalIconAttributes(icon, iconDesc, nil)
 }
 
-func (s *addIconToDBTestSuite) TestAddASecondIcon() {
+func (s *addIconToIndexTestSuite) TestAddASecondIconToIndex() {
 	var err error
 	var icon1 = test_commons.TestData[0]
 	var icon2 = test_commons.TestData[1]
-	err = s.dbRepo.CreateIcon(icon1.Name, icon1.Iconfiles[0].IconfileDescriptor, icon1.ModifiedBy, nil)
+	err = s.testRepoController.CreateIcon(icon1.Name, icon1.Iconfiles[0].IconfileDescriptor, icon1.ModifiedBy, nil)
 	s.NoError(err)
-	err = s.dbRepo.CreateIcon(icon2.Name, icon2.Iconfiles[1].IconfileDescriptor, icon2.ModifiedBy, nil)
+	err = s.testRepoController.CreateIcon(icon2.Name, icon2.Iconfiles[1].IconfileDescriptor, icon2.ModifiedBy, nil)
 	s.NoError(err)
 	var count int
 	count, err = s.getIconCount()
 	s.NoError(err)
 	s.Equal(2, count)
 	var iconDesc domain.IconDescriptor
-	iconDesc, err = s.dbRepo.DescribeIcon(icon2.Name)
+	iconDesc, err = s.testRepoController.DescribeIcon(icon2.Name)
 	s.NoError(err)
 	s.equalIconAttributes(icon2, iconDesc, nil)
 }
 
 // should rollback to last consistent state, in case an error occurs in sideEffect
-func (s *addIconToDBTestSuite) TestRollbackOnErrorInSideEffect() {
+func (s *addIconToIndexTestSuite) TestRollbackOnErrorInSideEffect() {
 	var count int
 	var err error
 
@@ -60,9 +62,9 @@ func (s *addIconToDBTestSuite) TestRollbackOnErrorInSideEffect() {
 
 	var icon1 = test_commons.TestData[0]
 	var icon2 = test_commons.TestData[1]
-	err = s.dbRepo.CreateIcon(icon1.Name, icon1.Iconfiles[0].IconfileDescriptor, icon1.ModifiedBy, nil)
+	err = s.testRepoController.CreateIcon(icon1.Name, icon1.Iconfiles[0].IconfileDescriptor, icon1.ModifiedBy, nil)
 	s.NoError(err)
-	err = s.dbRepo.CreateIcon(icon2.Name, icon2.Iconfiles[1].IconfileDescriptor, icon2.ModifiedBy, createSideEffect)
+	err = s.testRepoController.CreateIcon(icon2.Name, icon2.Iconfiles[1].IconfileDescriptor, icon2.ModifiedBy, createSideEffect)
 	s.True(errors.Is(err, sideEffectTestError))
 
 	count, err = s.getIconCount()
@@ -71,12 +73,12 @@ func (s *addIconToDBTestSuite) TestRollbackOnErrorInSideEffect() {
 
 	var iconDesc domain.IconDescriptor
 
-	iconDesc, err = s.dbRepo.DescribeIcon(icon1.Name)
+	iconDesc, err = s.testRepoController.DescribeIcon(icon1.Name)
 	s.NoError(err)
 	s.Equal(1, len(iconDesc.Iconfiles))
 	s.equalIconAttributes(icon1, iconDesc, nil)
 
-	_, err = s.dbRepo.DescribeIcon(icon2.Name)
+	_, err = s.testRepoController.DescribeIcon(icon2.Name)
 	s.Error(err)
 	s.True(errors.Is(err, domain.ErrIconNotFound))
 	if !errors.Is(err, domain.ErrIconNotFound) {

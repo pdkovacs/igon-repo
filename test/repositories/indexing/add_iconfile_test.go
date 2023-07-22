@@ -1,4 +1,4 @@
-package pg
+package indexing
 
 import (
 	"errors"
@@ -11,11 +11,13 @@ import (
 )
 
 type addIconfileToDBTestSuite struct {
-	DBTestSuite
+	IndexingTestSuite
 }
 
 func TestAddIconfileToDBTestSuite(t *testing.T) {
-	suite.Run(t, &addIconfileToDBTestSuite{})
+	for _, testSuite := range indexingTestSuites() {
+		suite.Run(t, &addIconfileToDBTestSuite{testSuite})
+	}
 }
 
 func (s *addIconfileToDBTestSuite) TestErrorOnDuplicateIconfile() {
@@ -23,10 +25,10 @@ func (s *addIconfileToDBTestSuite) TestErrorOnDuplicateIconfile() {
 	var icon = test_commons.TestData[0]
 	var iconfile = icon.Iconfiles[0]
 
-	err = s.dbRepo.CreateIcon(icon.Name, iconfile.IconfileDescriptor, icon.ModifiedBy, nil)
+	err = s.testRepoController.CreateIcon(icon.Name, iconfile.IconfileDescriptor, icon.ModifiedBy, nil)
 	s.NoError(err)
 
-	err = s.dbRepo.AddIconfileToIcon(icon.Name, iconfile.IconfileDescriptor, icon.ModifiedBy, nil)
+	err = s.testRepoController.AddIconfileToIcon(icon.Name, iconfile.IconfileDescriptor, icon.ModifiedBy, nil)
 	s.True(errors.Is(err, domain.ErrIconfileAlreadyExists))
 }
 
@@ -36,14 +38,14 @@ func (s *addIconfileToDBTestSuite) TestSecondIconfile() {
 	var iconfile1 = icon.Iconfiles[0]
 	var iconfile2 = icon.Iconfiles[1]
 
-	err = s.dbRepo.CreateIcon(icon.Name, iconfile1.IconfileDescriptor, icon.ModifiedBy, nil)
+	err = s.testRepoController.CreateIcon(icon.Name, iconfile1.IconfileDescriptor, icon.ModifiedBy, nil)
 	s.NoError(err)
 
-	err = s.dbRepo.AddIconfileToIcon(icon.Name, iconfile2.IconfileDescriptor, icon.ModifiedBy, nil)
+	err = s.testRepoController.AddIconfileToIcon(icon.Name, iconfile2.IconfileDescriptor, icon.ModifiedBy, nil)
 	s.NoError(err)
 
 	var iconDesc domain.IconDescriptor
-	iconDesc, err = s.dbRepo.DescribeIcon(icon.Name)
+	iconDesc, err = s.testRepoController.DescribeIcon(icon.Name)
 	s.NoError(err)
 	s.equalIconAttributes(icon, iconDesc, nil)
 }
@@ -56,14 +58,14 @@ func (s *addIconfileToDBTestSuite) TestAddSecondIconfileBySecondUser() {
 
 	var secondUser = "sedat"
 
-	err = s.dbRepo.CreateIcon(icon.Name, iconfile1.IconfileDescriptor, icon.ModifiedBy, nil)
+	err = s.testRepoController.CreateIcon(icon.Name, iconfile1.IconfileDescriptor, icon.ModifiedBy, nil)
 	s.NoError(err)
 
-	err = s.dbRepo.AddIconfileToIcon(icon.Name, iconfile2.IconfileDescriptor, secondUser, nil)
+	err = s.testRepoController.AddIconfileToIcon(icon.Name, iconfile2.IconfileDescriptor, secondUser, nil)
 	s.NoError(err)
 
 	var iconDesc domain.IconDescriptor
-	iconDesc, err = s.dbRepo.DescribeIcon(icon.Name)
+	iconDesc, err = s.testRepoController.DescribeIcon(icon.Name)
 	s.NoError(err)
 	clone := test_commons.CloneIcon(icon)
 	clone.ModifiedBy = secondUser

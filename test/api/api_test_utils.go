@@ -12,10 +12,9 @@ import (
 	"iconrepo/internal/config"
 	"iconrepo/internal/logging"
 	"iconrepo/internal/repositories/blobstore/git"
-	"iconrepo/internal/repositories/indexing/pgdb"
 	blobstore_tests "iconrepo/test/repositories/blobstore"
 	git_tests "iconrepo/test/repositories/blobstore/git"
-	"iconrepo/test/repositories/indexing/pg"
+	"iconrepo/test/repositories/indexing"
 	"iconrepo/test/test_commons"
 	"iconrepo/test/testdata"
 
@@ -29,7 +28,7 @@ type ApiTestSuite struct {
 	*suite.Suite
 	config                  config.Options
 	stopServer              func()
-	indexRepo               pg.TestIndexRepository
+	indexingController      indexing.IndexTestRepoController
 	TestBlobstoreController blobstore_tests.TestBlobstoreController
 	Client                  apiTestClient
 	logger                  zerolog.Logger
@@ -37,26 +36,32 @@ type ApiTestSuite struct {
 	xid                     string
 }
 
-func apiTestSuites(testSequenceName string, gitProviders []blobstore_tests.TestBlobstoreController) []ApiTestSuite {
+func apiTestSuites(
+	testSequenceName string,
+	blobstoreProviders []blobstore_tests.TestBlobstoreController,
+	indexingProviders []indexing.IndexTestRepoController,
+) []ApiTestSuite {
 	os.Setenv("LOG_LEVEL", "debug")
 
 	all := []ApiTestSuite{}
 	conf := test_commons.CloneConfig(test_commons.GetTestConfig())
 	conf.DBSchemaName = testSequenceName
 	conf.LocalGitRepo = fmt.Sprintf("%s_%s", conf.LocalGitRepo, testSequenceName)
-	for _, repoController := range gitProviders {
-		suiteToEmbed := new(suite.Suite)
-		all = append(all, ApiTestSuite{
-			suiteToEmbed,
-			conf,
-			nil,
-			nil,
-			repoController,
-			apiTestClient{},
-			logging.Get().With().Str("test_sequence_name", testSequenceName).Logger(),
-			testSequenceName,
-			"",
-		})
+	for _, repoController := range blobstoreProviders {
+		for _, indexinController := range indexingProviders {
+			suiteToEmbed := new(suite.Suite)
+			all = append(all, ApiTestSuite{
+				suiteToEmbed,
+				conf,
+				nil,
+				indexinController,
+				repoController,
+				apiTestClient{},
+				logging.Get().With().Str("test_sequence_name", testSequenceName).Logger(),
+				testSequenceName,
+				"",
+			})
+		}
 	}
 	return all
 }
@@ -66,14 +71,6 @@ func (s *ApiTestSuite) SetupSuite() {
 		s.FailNow("%v", "No config set by the suite extender")
 	}
 	s.config.LogLevel = logging.DebugLevel
-
-	// testDBConn and testDBREpo will be only used to read for verification
-	testDBConn, testDBErr := pgdb.NewDBConnection(s.config)
-	if testDBErr != nil {
-		s.FailNow("%v", testDBErr)
-	}
-	testDbRepo := pgdb.NewDBRepository(testDBConn)
-	s.indexRepo = pg.NewTestDbRepositoryFromSQLDB(&testDbRepo)
 
 	var apiTokenErr error
 	s.config.GitlabAccessToken, apiTokenErr = git_tests.GitTestGitlabAPIToken()
@@ -91,7 +88,7 @@ func (s *ApiTestSuite) SetupSuite() {
 }
 
 func (s *ApiTestSuite) TearDownSuite() {
-	s.indexRepo.Close()
+	s.indexingController.Close()
 }
 
 func (s *ApiTestSuite) initTestCaseConfig(testName string) {
@@ -105,7 +102,7 @@ func (s *ApiTestSuite) initTestCaseConfig(testName string) {
 		s.FailNow("%v", createRepoErr)
 	}
 
-	err := s.indexRepo.ResetData()
+	err := s.indexingController.ResetRepo(&s.config)
 	if err != nil {
 		s.FailNow("%v", err)
 	}
