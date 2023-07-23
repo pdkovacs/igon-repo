@@ -44,7 +44,7 @@ Enabling consumer-developers (users of the applicatioin) to give effective feed-
 
     `npm install && npm run dev`
 
-1. For testing with the GitLab as a git provider have a file with an appropriate GitLab authentication token:
+2. For testing with GitLab as a git provider have a file with an appropriate GitLab authentication token:
 
    ```bash
    $ cat ~/.icon-repo.secrets 
@@ -59,5 +59,21 @@ In case you end up having remnants of a largish number of test icon-repositories
 
 ```bash
 $ . ~/.icon-repo.secrets 
-$ curl --silent --request GET --url https://gitlab.com/api/v4/projects?owned=true --header "private-token: $GITLAB_ACCESS_TOKEN" | jq '.[] | select(.path_with_namespace | startswith("testing-with-repositories/icon-repo-gitrepo-test")) | .id' | while read id; do echo $id; curl --request DELETE   --url https://gitlab.com/api/v4/projects/$id   --header "private-token: $GITLAB_ACCESS_TOKEN"; done
+$ curl --silent \
+    --request GET \
+    --url https://gitlab.com/api/v4/projects?owned=true \
+    --header "private-token: $GITLAB_ACCESS_TOKEN" | \
+    jq '.[] | select(.path_with_namespace | startswith("testing-with-repositories/icon-repo-gitrepo-test")) | .id' | \
+    while read id;
+    do
+        echo $id;
+        curl --request DELETE --url https://gitlab.com/api/v4/projects/$id
+            --header "private-token: $GITLAB_ACCESS_TOKEN";
+    done
+```
+
+## Generate mocks
+
+```bash
+mockery --dir=internal/app/services --name=Repository --filename=repository.go --output=test/mocks
 ```

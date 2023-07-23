@@ -24,11 +24,11 @@ func (testSuite *gitlabRepoTestSuite) BeforeTest(suiteName string, testName stri
 	var createClientErr error
 	testSuite.gitRepo, createClientErr = NewGitlabTestRepoClient(&conf)
 	if createClientErr != nil {
-		testSuite.FailNow("%v", createClientErr)
+		testSuite.FailNow("", "%v", createClientErr)
 	}
 	createRepoErr := testSuite.gitRepo.ResetRepository()
 	if createRepoErr != nil {
-		testSuite.FailNow("%v", createRepoErr)
+		testSuite.FailNow("", "%v", createRepoErr)
 	}
 }
 

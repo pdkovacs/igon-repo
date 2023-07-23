@@ -1,7 +1,6 @@
 package api_tests
 
 import (
-	"errors"
 	"testing"
 
 	"iconrepo/internal/app/domain"
@@ -35,10 +34,11 @@ func (s *iconCreateTestSuite) TestFailsWith403WithoutPrivilege() {
 	session := s.Client.mustLogin(nil)
 	session.mustSetAllPermsExcept([]authr.PermissionID{authr.CREATE_ICON})
 	statusCode, _, err := session.CreateIcon(iconName, iconfileContent)
-	s.True(errors.Is(err, errJSONUnmarshal))
+	s.Error(err)
+	s.ErrorIs(err, errJSONUnmarshal)
 	s.Equal(403, statusCode)
 
-	icons, errDesc := session.DescribeAllIcons()
+	icons, errDesc := session.DescribeAllIcons(s.Ctx)
 	s.NoError(errDesc)
 	s.Equal(0, len(icons))
 }
@@ -75,7 +75,7 @@ func (s *iconCreateTestSuite) TestCompletesWithPrivilege() {
 	s.Equal(201, statusCode)
 	s.Equal(expectedResponse, resultIcon)
 
-	icons, errDesc := session.DescribeAllIcons()
+	icons, errDesc := session.DescribeAllIcons(s.Ctx)
 	s.NoError(errDesc)
 	s.Equal(1, len(icons))
 	s.Equal(expectedResponse, icons[0])
@@ -100,7 +100,7 @@ func (s *iconCreateTestSuite) TestAddMultipleIconsInARow() {
 	s.getCheckIconfile(session, sampleIconName1, sampleIconfileDesc1)
 	s.getCheckIconfile(session, sampleIconName2, sampleIconfileDesc2)
 
-	iconDescriptors, describeError := session.DescribeAllIcons()
+	iconDescriptors, describeError := session.DescribeAllIcons(s.Ctx)
 	s.NoError(describeError)
 	s.AssertResponseIconSetsEqual(testOutput, iconDescriptors)
 

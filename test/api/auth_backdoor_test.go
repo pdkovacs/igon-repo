@@ -53,7 +53,7 @@ func (s *authBackDoorTestSuite) BeforeTest(suiteName string, testName string) {
 	}
 	startErr := s.startApp(s.ApiTestSuite.config)
 	if startErr != nil {
-		s.FailNow("%v", startErr)
+		s.FailNow("", "%v", startErr)
 	}
 }
 

@@ -2,7 +2,6 @@ package config_tests
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"iconrepo/internal/config"
 	"io/fs"
@@ -105,7 +104,8 @@ func (s *readConfigurationTestSuite) TestGetDefaultConfiguration() {
 func (s *readConfigurationTestSuite) TestFailOnMissingConfigFile() {
 	clArgs := []string{}
 	_, err := config.ReadConfiguration("some non-existent file", clArgs)
-	s.True(errors.Is(err, fs.ErrNotExist))
+	s.Error(err)
+	s.ErrorIs(err, fs.ErrNotExist)
 }
 
 // TODO_MAYBE: "mergo" doesn't overwrite non-empty values

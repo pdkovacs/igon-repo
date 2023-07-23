@@ -2,6 +2,7 @@ package git
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -388,7 +389,7 @@ func (g *Gitlab) AddIconfile(iconName string, iconfile domain.Iconfile, modified
 	return nil
 }
 
-func (g *Gitlab) DeleteIcon(iconDesc domain.IconDescriptor, modifiedBy authn.UserID) error {
+func (g *Gitlab) DeleteIcon(ctx context.Context, iconDesc domain.IconDescriptor, modifiedBy authn.UserID) error {
 	actionList := make([]commitActionOnByteSlice, len(iconDesc.Iconfiles))
 
 	for index, ifDesc := range iconDesc.Iconfiles {
@@ -405,7 +406,7 @@ func (g *Gitlab) DeleteIcon(iconDesc domain.IconDescriptor, modifiedBy authn.Use
 	return nil
 }
 
-func (g *Gitlab) DeleteIconfile(iconName string, iconfileDesc domain.IconfileDescriptor, modifiedBy authn.UserID) error {
+func (g *Gitlab) DeleteIconfile(ctx context.Context, iconName string, iconfileDesc domain.IconfileDescriptor, modifiedBy authn.UserID) error {
 	filePath := paths.getPathComponents(iconName, iconfileDesc).pathToIconfile
 
 	commitErr := g.commit(modifiedBy.String(), fmt.Sprintf("Deleting iconfile: %s", filePath), []commitActionOnByteSlice{

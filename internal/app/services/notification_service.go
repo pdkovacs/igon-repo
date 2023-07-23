@@ -110,7 +110,7 @@ func (cs *Notification) Publish(msg NotificationMessage, initiator authn.UserID)
 	cs.subscribersMu.Lock()
 	defer cs.subscribersMu.Unlock()
 
-	cs.publishLimiter.Wait(context.Background())
+	cs.publishLimiter.Wait(context.TODO())
 
 	for s := range cs.subscribers {
 		if s.userId == initiator {

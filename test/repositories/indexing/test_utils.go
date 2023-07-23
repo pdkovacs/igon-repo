@@ -1,6 +1,7 @@
 package indexing
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -8,20 +9,20 @@ import (
 	"iconrepo/internal/config"
 	"iconrepo/internal/logging"
 	"iconrepo/internal/repositories"
+	"iconrepo/internal/repositories/indexing/dynamodb"
 	"iconrepo/internal/repositories/indexing/pgdb"
 	"iconrepo/test/test_commons"
 
 	_ "github.com/jackc/pgx/v4/stdlib"
-	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/suite"
 )
 
 type IndexRepoTestExtension interface {
 	Close() error
-	GetIconCount() (int, error)
-	GetIconFileCount() (int, error)
-	GetTagRelationCount() (int, error)
-	ResetData() error
+	GetIconCount(ctx context.Context) (int, error)
+	GetIconFileCount(ctx context.Context) (int, error)
+	GetTagRelationCount(ctx context.Context) (int, error)
+	ResetData(ctx context.Context) error
 }
 
 type TestIndexRepository interface {
@@ -36,7 +37,7 @@ type IndexTestRepoController struct {
 	repoFactory TestIndexRepositoryFactory
 }
 
-func (ctl *IndexTestRepoController) ResetRepo(conf *config.Options) error {
+func (ctl *IndexTestRepoController) ResetRepo(ctx context.Context, conf *config.Options) error {
 	if ctl.repo == nil {
 		var factoryErr error
 		ctl.repo, factoryErr = ctl.repoFactory(conf)
@@ -44,59 +45,61 @@ func (ctl *IndexTestRepoController) ResetRepo(conf *config.Options) error {
 			return factoryErr
 		}
 	}
-	return ctl.repo.ResetData()
+	return ctl.repo.ResetData(ctx)
 }
 
 func (ctl *IndexTestRepoController) Close() error {
-	return ctl.repo.Close()
+	if ctl.repo != nil {
+		return ctl.repo.Close()
+	}
+	return nil
 }
 
-func (ctl *IndexTestRepoController) GetIconCount() (int, error) {
-	return ctl.repo.GetIconCount()
+func (ctl *IndexTestRepoController) GetIconCount(ctx context.Context) (int, error) {
+	return ctl.repo.GetIconCount(ctx)
 }
 
-func (ctl *IndexTestRepoController) DescribeIcon(iconName string) (domain.IconDescriptor, error) {
-	return ctl.repo.DescribeIcon(iconName)
+func (ctl *IndexTestRepoController) DescribeIcon(ctx context.Context, iconName string) (domain.IconDescriptor, error) {
+	return ctl.repo.DescribeIcon(ctx, iconName)
 }
 
-func (ctl *IndexTestRepoController) DescribeAllIcons() ([]domain.IconDescriptor, error) {
-	return ctl.repo.DescribeAllIcons()
+func (ctl *IndexTestRepoController) DescribeAllIcons(ctx context.Context) ([]domain.IconDescriptor, error) {
+	return ctl.repo.DescribeAllIcons(ctx)
 }
 
-func (ctl *IndexTestRepoController) CreateIcon(iconName string, iconfile domain.IconfileDescriptor, modifiedBy string, createSideEffect func() error) error {
-	return ctl.repo.CreateIcon(iconName, iconfile, modifiedBy, createSideEffect)
+func (ctl *IndexTestRepoController) CreateIcon(ctx context.Context, iconName string, iconfile domain.IconfileDescriptor, modifiedBy string, createSideEffect func() error) error {
+	return ctl.repo.CreateIcon(ctx, iconName, iconfile, modifiedBy, createSideEffect)
 }
 
-func (ctl *IndexTestRepoController) AddIconfileToIcon(iconName string, iconfile domain.IconfileDescriptor, modifiedBy string, createSideEffect func() error) error {
-	return ctl.repo.AddIconfileToIcon(iconName, iconfile, modifiedBy, createSideEffect)
+func (ctl *IndexTestRepoController) AddIconfileToIcon(ctx context.Context, iconName string, iconfile domain.IconfileDescriptor, modifiedBy string, createSideEffect func() error) error {
+	return ctl.repo.AddIconfileToIcon(ctx, iconName, iconfile, modifiedBy, createSideEffect)
 }
 
-func (ctl *IndexTestRepoController) AddTag(iconName string, tag string, modifiedBy string) error {
-	return ctl.repo.AddTag(iconName, tag, modifiedBy)
+func (ctl *IndexTestRepoController) AddTag(ctx context.Context, iconName string, tag string, modifiedBy string) error {
+	return ctl.repo.AddTag(ctx, iconName, tag, modifiedBy)
 }
 
-func (ctl *IndexTestRepoController) GetExistingTags() ([]string, error) {
-	return ctl.repo.GetExistingTags()
+func (ctl *IndexTestRepoController) GetExistingTags(ctx context.Context) ([]string, error) {
+	return ctl.repo.GetExistingTags(ctx)
 }
 
-func (ctl *IndexTestRepoController) DeleteIcon(iconName string, modifiedBy string) error {
-	return ctl.repo.DeleteIcon(iconName, modifiedBy, nil)
+func (ctl *IndexTestRepoController) DeleteIcon(ctx context.Context, iconName string, modifiedBy string, createSideEffect func() error) error {
+	return ctl.repo.DeleteIcon(ctx, iconName, modifiedBy, createSideEffect)
 }
 
-func (ctl *IndexTestRepoController) GetIconFileCount() (int, error) {
-	return ctl.repo.GetIconFileCount()
+func (ctl *IndexTestRepoController) GetIconFileCount(ctx context.Context) (int, error) {
+	return ctl.repo.GetIconFileCount(ctx)
 }
 
-func (ctl *IndexTestRepoController) GetTagRelationCount() (int, error) {
-	return ctl.repo.GetTagRelationCount()
+func (ctl *IndexTestRepoController) GetTagRelationCount(ctx context.Context) (int, error) {
+	return ctl.repo.GetTagRelationCount(ctx)
 }
 
-func (ctl *IndexTestRepoController) DeleteIconfile(iconName string, iconfile domain.IconfileDescriptor, modifiedBy string, createSideEffect func() error) error {
-	return ctl.repo.DeleteIconfile(iconName, iconfile, modifiedBy, nil)
+func (ctl *IndexTestRepoController) DeleteIconfile(ctx context.Context, iconName string, iconfile domain.IconfileDescriptor, modifiedBy string, createSideEffect func() error) error {
+	return ctl.repo.DeleteIconfile(ctx, iconName, iconfile, modifiedBy, createSideEffect)
 }
 
 func NewTestPgRepo(conf *config.Options) (TestIndexRepository, error) {
-	var err error
 	connection, err := pgdb.NewDBConnection(*conf)
 	if err != nil {
 		return nil, err
@@ -106,24 +109,33 @@ func NewTestPgRepo(conf *config.Options) (TestIndexRepository, error) {
 		return nil, schemaErr
 	}
 
-	sqlDb := pgdb.NewDBRepository(connection)
+	sqlDb := pgdb.NewPgRepository(connection)
 	return &PgTestRepository{
-		Repository: &sqlDb,
+		PgRepository: &sqlDb,
 	}, nil
+}
+
+func NewTestDynamodbRepo(conf *config.Options) (TestIndexRepository, error) {
+	connection, err := dynamodb.NewDynamodbRepository(*conf)
+	if err != nil {
+		return nil, err
+	}
+
+	return &DynamodbTestRepository{connection}, nil
 }
 
 type IndexingTestSuite struct {
 	*suite.Suite
 	config             config.Options
 	testRepoController IndexTestRepoController
-	logger             zerolog.Logger
+	ctx                context.Context
 }
 
 func (s *IndexingTestSuite) SetupSuite() {
 	conf := test_commons.CloneConfig(test_commons.GetTestConfig())
 	s.config = conf
 	s.config.DBSchemaName = "itest_repositories"
-	s.logger = logging.Get()
+	s.ctx = logging.Get().WithContext(context.TODO())
 	NewTestPgRepo(&conf)
 }
 
@@ -132,9 +144,9 @@ func (s *IndexingTestSuite) TearDownSuite() {
 }
 
 func (s *IndexingTestSuite) BeforeTest(suiteName, testName string) {
-	err := s.testRepoController.ResetRepo(&s.config)
+	err := s.testRepoController.ResetRepo(s.ctx, &s.config)
 	if err != nil {
-		panic(fmt.Sprintf("failed to delete test data: %v", err))
+		s.FailNow("", "failed to reset test data: %v", err)
 	}
 }
 
@@ -146,8 +158,8 @@ func (s *IndexingTestSuite) equalIconAttributes(icon1 domain.Icon, icon2 domain.
 	}
 }
 
-func (s *IndexingTestSuite) getIconCount() (int, error) {
-	return s.testRepoController.GetIconCount()
+func (s *IndexingTestSuite) getIconCount(ctx context.Context) (int, error) {
+	return s.testRepoController.GetIconCount(ctx)
 }
 
 var DefaultIndexTestRepoController IndexTestRepoController = IndexTestRepoController{
@@ -156,10 +168,22 @@ var DefaultIndexTestRepoController IndexTestRepoController = IndexTestRepoContro
 	},
 }
 
+var DynamodbIndexTestRepoController IndexTestRepoController = IndexTestRepoController{
+	repoFactory: func(conf *config.Options) (TestIndexRepository, error) {
+		return NewTestDynamodbRepo(conf)
+	},
+}
+
 func IndexProvidersToTest() []IndexTestRepoController {
 	if len(os.Getenv("PG_ONLY")) > 0 {
+		fmt.Print(">>>>>>>>>>> Indexing provider: PG_ONLY\n")
 		return []IndexTestRepoController{DefaultIndexTestRepoController}
 	}
+	if len(os.Getenv("DYNAMODB_ONLY")) > 0 {
+		fmt.Print(">>>>>>>>>>> Indexing provider: DYNAMODB_ONLY\n")
+		return []IndexTestRepoController{DynamodbIndexTestRepoController}
+	}
+	fmt.Print(">>>>>>>>>>> Indexing provider: ALL\n")
 	return []IndexTestRepoController{
 		DefaultIndexTestRepoController,
 	}
@@ -175,7 +199,7 @@ func indexingTestSuites() []IndexingTestSuite {
 			suiteToEmbed,
 			conf,
 			provider,
-			logging.Get().With().Str("test_sequence_name", "indexing tests").Logger(),
+			logging.Get().With().Str("test_sequence_name", "indexing tests").Logger().WithContext(context.TODO()),
 		})
 	}
 

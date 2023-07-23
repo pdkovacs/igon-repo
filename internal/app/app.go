@@ -23,10 +23,14 @@ func Start(conf config.Options, ready func(port int, stop func())) error {
 	}
 
 	var db repositories.IndexRepository
-	if conf.DynamoDBURL == "" {
-		db = pgdb.NewDBRepository(connection)
+	if conf.DynamodbURL == "" {
+		db = pgdb.NewPgRepository(connection)
 	} else {
-		db = dynamodb.NewDynDBRepository()
+		dyndb, createDyndbErr := dynamodb.NewDynamodbRepository(conf)
+		if createDyndbErr != nil {
+			return createDyndbErr
+		}
+		db = dyndb
 	}
 
 	var blobstore repositories.BlobstoreRepository

@@ -4,6 +4,7 @@ import (
 	"iconrepo/internal/app/security/authn"
 	"iconrepo/internal/app/security/authr"
 	"iconrepo/internal/app/services"
+	"net/http"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -47,7 +48,7 @@ func userInfoHandler(authType authn.AuthenticationScheme, userService services.U
 		usession, ok := user.(SessionData)
 		if !ok {
 			logger.Error().Type("user", user).Msg("failed to cast user session")
-			g.AbortWithStatus(500)
+			g.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
 

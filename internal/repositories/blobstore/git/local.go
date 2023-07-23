@@ -1,6 +1,7 @@
 package git
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -230,7 +231,7 @@ func (repo *Local) deleteIconfileFile(iconName string, iconfileDesc domain.Iconf
 	return pathCompos.pathToIconfileInRepo, nil
 }
 
-func (repo *Local) DeleteIcon(iconDesc domain.IconDescriptor, modifiedBy authn.UserID) error {
+func (repo *Local) DeleteIcon(ctx context.Context, iconDesc domain.IconDescriptor, modifiedBy authn.UserID) error {
 	iconfileOperation := func() ([]string, error) {
 		var opError error
 		var fileList []string
@@ -264,7 +265,7 @@ func (repo *Local) DeleteIcon(iconDesc domain.IconDescriptor, modifiedBy authn.U
 	return nil
 }
 
-func (repo *Local) DeleteIconfile(iconName string, iconfileDesc domain.IconfileDescriptor, modifiedBy authn.UserID) error {
+func (repo *Local) DeleteIconfile(ctx context.Context, iconName string, iconfileDesc domain.IconfileDescriptor, modifiedBy authn.UserID) error {
 	iconfileOperation := func() ([]string, error) {
 		filePath, deletionError := repo.deleteIconfileFile(iconName, iconfileDesc)
 		return []string{filePath}, deletionError

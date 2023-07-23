@@ -5,6 +5,7 @@ import (
 	"errors"
 	"iconrepo/internal/app/security/authr"
 	"iconrepo/internal/app/services"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
@@ -37,7 +38,7 @@ func subscriptionHandler(getUserInfo func(c *gin.Context) authr.UserInfo, ns *se
 		if subsErr != nil {
 			logger.Error().Err(subsErr).Msg("Failed to accept WS connection request")
 			g.Error(subsErr)
-			g.AbortWithStatus(500)
+			g.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
 

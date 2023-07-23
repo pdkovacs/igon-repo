@@ -7,6 +7,8 @@ app       = iconrepo
 frontend  = web/frontend/bundle.js
 backend   = iconrepo-backend
 
+test-envs = LOG_LEVEL=debug APP_ENV=development
+
 define buildinfo =
 	echo VERSION=0.0.1 > internal/config/buildinfo.txt
 	printf "TIME=" >> internal/config/buildinfo.txt
@@ -29,15 +31,21 @@ clean:
 #   export LOCAL_GIT_ONLY=yes; export ICONREPO_DB_HOST=postgres; make clean && time make test 2>&1 | tee ~/workspace/logs/icon-repo-test
 test: test-app test-api test-repos test-seq
 test-app: $(app)
-	go test -parallel 10 -v -timeout 60s ./test/app/...
+	go test -parallel 1 -v -timeout 60s ./test/app/...
 test-api: $(app)
-	go test -parallel 10 -v -timeout 120s ./test/api/...
+	go test -parallel 1 -v -timeout 120s ./test/api/...
 test-repos: $(app)
-	go test -parallel 10 -v -timeout 60s ./test/repositories/...
+	go test -parallel 1 -v -timeout 60s ./test/repositories/...
 test-seq: $(app)
-	go test -parallel 10 -v -timeout 60s ./test/seq/...
+	go test -parallel 1 -v -timeout 60s ./test/seq/...
 test-single: $(app) # a sample test-case is used, replace it with whichever other test cases you need to run
-	go test -parallel 10 -v -timeout 60s ./... -run '^TestIconCreateTestSuite$$' -testify.m TestFailsWith403WithoutPrivilege#01
+	go test -parallel 1 -v -timeout 10s ./... -run '^TestIconCreateTestSuite$$' -testify.m TestFailsWith403WithoutPrivilege#01
+test-dynamodb: export DYNAMODB_ONLY = yes
+test-dynamodb: export AWS_REGION = eu-west-1
+test-dynamodb: backend
+	$(test-envs) go test -parallel 10 -v -timeout 5s ./test/repositories/indexing/...
+		# -run '(TestAddIconToIndexTestSuite|TestAddIconfileToIndexTestSuite|TestAddTagTestSuite|TestDeleteIconFromIndexTestSuite|TestDeleteIconfileFromIndexTestSuite)'
+		# -run TestDeleteIconfileFromIndexTestSuite -testify.m TestRollbackOnFailedSideEffect
 run:
 	go run cmd/main.go
 $(ui-bundle): $(shell find web/src -type f) web/webpack.config.js

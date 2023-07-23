@@ -29,7 +29,7 @@ func (s *deleteIconTestSuite) TestFailWith403WithoutPrivilege() {
 	statusCode, deleteError := session.deleteIcon(dataIn[0].Name)
 	s.NoError(deleteError)
 	s.Equal(403, statusCode)
-	respIcons, listError := session.DescribeAllIcons()
+	respIcons, listError := session.DescribeAllIcons(s.Ctx)
 	s.NoError((listError))
 	s.AssertResponseIconSetsEqual(dataOut, respIcons)
 
@@ -44,7 +44,7 @@ func (s *deleteIconTestSuite) TestSucceedsWithPrivilege() {
 	statusCode, deleteError := session.deleteIcon(dataIn[0].Name)
 	s.NoError(deleteError)
 	s.Equal(204, statusCode)
-	respIcons, listError := session.DescribeAllIcons()
+	respIcons, listError := session.DescribeAllIcons(s.Ctx)
 	s.NoError((listError))
 	s.AssertResponseIconSetsEqual([]httpadapter.IconDTO{dataOut[1]}, respIcons)
 

@@ -1,7 +1,6 @@
 package api_tests
 
 import (
-	"errors"
 	"testing"
 
 	"iconrepo/test/testdata"
@@ -24,7 +23,7 @@ func (s *iconGetTestSuite) TestReturnAllIconDescriptions() {
 	dataIn, dataOut := testdata.Get()
 	session := s.Client.MustLoginSetAllPerms()
 	session.MustAddTestData(dataIn)
-	all, err := session.DescribeAllIcons()
+	all, err := session.DescribeAllIcons(s.Ctx)
 	s.NoError(err)
 	s.AssertResponseIconSetsEqual(dataOut, all)
 
@@ -48,7 +47,8 @@ func (s *iconGetTestSuite) TestReturn404ForNonExistentIcon() {
 	session := s.Client.MustLoginSetAllPerms()
 	session.MustAddTestData(dataIn)
 	statusCode, _, err := session.describeIcon("somenonexistentname")
-	s.True(errors.Is(err, errJSONUnmarshal))
+	s.Error(err)
+	s.ErrorIs(err, errJSONUnmarshal)
 	s.Equal(404, statusCode)
 
 	s.AssertEndState()

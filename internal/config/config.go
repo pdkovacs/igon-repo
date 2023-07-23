@@ -58,7 +58,7 @@ type Options struct {
 	UsernameCookie              string                     `json:"usernameCookie" env:"USERNAME_COOKIE" long:"username-cookie" short:"" description:"The name of the cookie, if any, carrying username. Only OIDC for now."`
 	LogLevel                    string                     `json:"logLevel" env:"LOG_LEVEL" long:"log-level" short:"l" default:"info"`
 	AllowedClientURLsRegex      string                     `json:"allowedClientUrlsRegex" env:"ALLOWED_CLIENT_URLS_REGEX" long:"allowed-client-urls-regex" short:"" default:""`
-	DynamoDBURL                 string                     `json:"dynamoDbUrl" env:"DYNAMO_DB_URL" long:"dynamo-db-url" short:"" default:""`
+	DynamodbURL                 string                     `json:"dynamoDbUrl" env:"DYNAMODB_URL" long:"dynamodb-url" short:"" default:""`
 }
 
 var DefaultIconRepoHome = filepath.Join(os.Getenv("HOME"), ".ui-toolbox/icon-repo")

@@ -1,18 +1,19 @@
 package pgdb
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"iconrepo/internal/app/domain"
+	"iconrepo/internal/repositories/indexing"
 
 	"github.com/jackc/pgconn"
 	"github.com/rs/zerolog"
 )
 
 var (
-	ErrDuplicateRows  = errors.New("duplicat rows")
-	ErrMissingDBTable = errors.New("relation doesn't exists")
+	ErrDuplicateRows = errors.New("duplicat rows")
 )
 
 func MapDBError(err error) error {
@@ -25,7 +26,7 @@ func MapDBError(err error) error {
 		return ErrDuplicateRows
 	}
 	if pgErr.Code == "42P01" {
-		return ErrMissingDBTable
+		return indexing.ErrTableNotFound
 	}
 	return nil
 }
@@ -121,19 +122,19 @@ func describeIconInTx(tx *sql.Tx, iconName string, forUpdate bool) (domain.IconD
 	}, nil
 }
 
-type Repository struct {
+type PgRepository struct {
 	logger zerolog.Logger
 	Conn   connection
 }
 
-func NewDBRepository(conn connection) Repository {
-	return Repository{
+func NewPgRepository(conn connection) PgRepository {
+	return PgRepository{
 		Conn: conn,
 	}
 }
 
 // DescribeIcon returns the attributes of the icon having the specified name, "attributes" meaning here the entire icon without iconfiles' contents
-func (repo Repository) DescribeIcon(iconName string) (domain.IconDescriptor, error) {
+func (repo PgRepository) DescribeIcon(ctx context.Context, iconName string) (domain.IconDescriptor, error) {
 	tx, err := repo.Conn.Pool.Begin()
 	if err != nil {
 		return domain.IconDescriptor{}, err
@@ -142,7 +143,7 @@ func (repo Repository) DescribeIcon(iconName string) (domain.IconDescriptor, err
 	return describeIconInTx(tx, iconName, false)
 }
 
-func (repo Repository) DescribeAllIcons() ([]domain.IconDescriptor, error) {
+func (repo PgRepository) DescribeAllIcons(ctx context.Context) ([]domain.IconDescriptor, error) {
 	tx, err := repo.Conn.Pool.Begin()
 	if err != nil {
 		return []domain.IconDescriptor{}, err
@@ -178,7 +179,7 @@ func (repo Repository) DescribeAllIcons() ([]domain.IconDescriptor, error) {
 	return result, nil
 }
 
-func (repo Repository) CreateIcon(iconName string, iconfile domain.IconfileDescriptor, modifiedBy string, createSideEffect func() error) error {
+func (repo PgRepository) CreateIcon(ctx context.Context, iconName string, iconfile domain.IconfileDescriptor, modifiedBy string, createSideEffect func() error) error {
 	var tx *sql.Tx
 	var err error
 	tx, err = repo.Conn.Pool.Begin()
@@ -222,7 +223,7 @@ func updateModifier(tx *sql.Tx, iconName string, modifiedBy string) error {
 	return nil
 }
 
-func (repo Repository) AddIconfileToIcon(iconName string, iconfile domain.IconfileDescriptor, modifiedBy string, createSideEffect func() error) error {
+func (repo PgRepository) AddIconfileToIcon(ctx context.Context, iconName string, iconfile domain.IconfileDescriptor, modifiedBy string, createSideEffect func() error) error {
 	var tx *sql.Tx
 	var err error
 
@@ -266,7 +267,7 @@ func insertIconfile(tx *sql.Tx, iconName string, iconfile domain.IconfileDescrip
 	return nil
 }
 
-func (repo Repository) GetExistingTags() ([]string, error) {
+func (repo PgRepository) GetExistingTags(tx context.Context) ([]string, error) {
 	rows, err := repo.Conn.Pool.Query("SELECT text FROM tag")
 	if err != nil {
 		return nil, err
@@ -332,7 +333,7 @@ func GetTagId(tx *sql.Tx, tag string) (int64, error) {
 	return tagId, nil
 }
 
-func (repo Repository) AddTag(iconName string, tag string, modifiedBy string) error {
+func (repo PgRepository) AddTag(ctx context.Context, iconName string, tag string, modifiedBy string) error {
 	tx, trError := repo.Conn.Pool.Begin()
 	if trError != nil {
 		return fmt.Errorf("failed to obtain transaction for adding tag '%s' to '%s': %w", tag, iconName, trError)
@@ -357,7 +358,7 @@ func (repo Repository) AddTag(iconName string, tag string, modifiedBy string) er
 	return nil
 }
 
-func (repo Repository) RemoveTag(iconName string, tag string, modifiedBy string) error {
+func (repo PgRepository) RemoveTag(ctx context.Context, iconName string, tag string, modifiedBy string) error {
 	tx, trError := repo.Conn.Pool.Begin()
 	if trError != nil {
 		return fmt.Errorf("failed to obtain transaction for removing tag '%s' to '%s': %w", tag, iconName, trError)
@@ -421,7 +422,7 @@ func deleteIconfileBare(tx *sql.Tx, iconName string, iconfile domain.IconfileDes
 	return sqlResult, nil
 }
 
-func (repo Repository) DeleteIcon(iconName string, modifiedBy string, createSideEffect func() error) error {
+func (repo PgRepository) DeleteIcon(ctx context.Context, iconName string, modifiedBy string, createSideEffect func() error) error {
 	var tx *sql.Tx
 	var err error
 
@@ -455,7 +456,7 @@ func (repo Repository) DeleteIcon(iconName string, modifiedBy string, createSide
 	return nil
 }
 
-func (repo Repository) DeleteIconfile(iconName string, iconfile domain.IconfileDescriptor, modifiedBy string, createSideEffect func() error) error {
+func (repo PgRepository) DeleteIconfile(ctx context.Context, iconName string, iconfile domain.IconfileDescriptor, modifiedBy string, createSideEffect func() error) error {
 	var err error
 	var tx *sql.Tx
 	var sqlResult sql.Result

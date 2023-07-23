@@ -3,6 +3,7 @@ package httpadapter
 import (
 	"encoding/json"
 	"io"
+	"net/http"
 
 	"iconrepo/internal/app/security/authr"
 
@@ -35,7 +36,7 @@ func HandlePutIntoBackdoorRequest() func(c *gin.Context) {
 		sessionData, ok := user.(SessionData)
 		if !ok {
 			logger.Error().Type("session-data", user).Msg("failed to cast to SessionData")
-			g.AbortWithStatus(500)
+			g.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
 
@@ -56,7 +57,7 @@ func HandleGetIntoBackdoorRequest() func(g *gin.Context) {
 		sessionData, ok := user.(SessionData)
 		if !ok {
 			logger.Error().Type("session-data", user).Msg("failed to cast to SessionData")
-			g.AbortWithStatus(500)
+			g.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
 		g.JSON(200, sessionData.UserInfo)

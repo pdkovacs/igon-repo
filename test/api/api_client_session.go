@@ -2,6 +2,7 @@ package api_tests
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -52,6 +53,7 @@ func (client *apiTestClient) login(credentials *requestCredentials) (*apiTestSes
 	return &apiTestSession{
 		apiTestClient: apiTestClient{
 			serverPort: client.serverPort,
+			ctx:        context.TODO(),
 		},
 		cjar: cjar,
 	}, nil
@@ -146,7 +148,7 @@ func (session *apiTestSession) MustAddTestData(testData []domain.Icon) {
 	}
 }
 
-func (session *apiTestSession) DescribeAllIcons() ([]httpadapter.IconDTO, error) {
+func (session *apiTestSession) DescribeAllIcons(ctx context.Context) ([]httpadapter.IconDTO, error) {
 	resp, err := session.get(&testRequest{
 		path:          "/icon",
 		jar:           session.cjar,
@@ -166,7 +168,7 @@ func (session *apiTestSession) DescribeAllIcons() ([]httpadapter.IconDTO, error)
 }
 
 func (session *apiTestSession) mustDescribeAllIcons() []httpadapter.IconDTO {
-	respIcons, err := session.DescribeAllIcons()
+	respIcons, err := session.DescribeAllIcons(session.ctx)
 	if err != nil {
 		panic(err)
 	}

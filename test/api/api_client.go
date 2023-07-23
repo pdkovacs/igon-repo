@@ -2,6 +2,7 @@ package api_tests
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -23,6 +24,7 @@ var authenticationBackdoorPath = "/backdoor/authentication"
 
 type apiTestClient struct {
 	serverPort int
+	ctx        context.Context
 }
 
 type requestCredentials struct {

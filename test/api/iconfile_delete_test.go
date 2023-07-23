@@ -34,7 +34,7 @@ func (s *iconfileDeleteTestSuite) TestDeletingIconfileFailsWith403WithoutPermiss
 	s.NoError(errDelete)
 	s.Equal(403, statusCode)
 
-	resp, descError := session.DescribeAllIcons()
+	resp, descError := session.DescribeAllIcons(s.Ctx)
 	s.NoError(descError)
 	s.AssertResponseIconSetsEqual(dataOut, resp)
 
@@ -55,7 +55,7 @@ func (s *iconfileDeleteTestSuite) TestDeletingIconfileSucceedsWithRequiredPermis
 	s.NoError(errDelete)
 	s.Equal(204, statusCode)
 
-	resp, descError := session.DescribeAllIcons()
+	resp, descError := session.DescribeAllIcons(s.Ctx)
 	s.NoError(descError)
 	s.AssertResponseIconSetsEqual(dataOut, resp)
 
@@ -75,7 +75,7 @@ func (s *iconfileDeleteTestSuite) TestDeletingIconfileFailsWith404ForNonexistent
 	s.NoError(errDelete)
 	s.Equal(404, statusCode)
 
-	resp, descError := session.DescribeAllIcons()
+	resp, descError := session.DescribeAllIcons(s.Ctx)
 	s.NoError(descError)
 	s.AssertResponseIconSetsEqual(dataOut, resp)
 
@@ -95,7 +95,7 @@ func (s *iconfileDeleteTestSuite) TestDeletingIconfileFailsWith404ForNonexistent
 	s.NoError(errDelete)
 	s.Equal(404, statusCode)
 
-	resp, descError := session.DescribeAllIcons()
+	resp, descError := session.DescribeAllIcons(s.Ctx)
 	s.NoError(descError)
 	s.AssertResponseIconSetsEqual(dataOut, resp)
 
@@ -118,7 +118,7 @@ func (s *iconfileDeleteTestSuite) TestDeleteIconIfLastIconfileDeleted() {
 
 	newDataOut := append(dataOut[:0], dataOut[1:]...)
 
-	resp, descError := session.DescribeAllIcons()
+	resp, descError := session.DescribeAllIcons(s.Ctx)
 	s.NoError(descError)
 	s.AssertResponseIconSetsEqual(newDataOut, resp)
 

@@ -1,7 +1,6 @@
 package api_tests
 
 import (
-	"errors"
 	"testing"
 
 	"iconrepo/internal/app/security/authr"
@@ -34,10 +33,11 @@ func (s *iconUpdateTestSuite) TestAddingIconfileFailsWith403WithoutPermission() 
 
 	statusCode, _, updateError := session.addIconfile(iconName, moreDataIn[0].Iconfiles[1])
 
-	s.True(errors.Is(updateError, errJSONUnmarshal))
+	s.Error(updateError)
+	s.ErrorIs(updateError, errJSONUnmarshal)
 	s.Equal(403, statusCode)
 
-	resp, descError := session.DescribeAllIcons()
+	resp, descError := session.DescribeAllIcons(s.Ctx)
 	s.NoError(descError)
 	s.AssertResponseIconSetsEqual(dataOut, resp)
 
@@ -66,7 +66,7 @@ func (s *iconUpdateTestSuite) TestCanAddIconfilesWithProperPermission() {
 	expectedIconDesc := dataOut
 	expectedIconDesc[0].Paths = append(expectedIconDesc[0].Paths, iconfilePath)
 
-	iconDesc, descError := session.DescribeAllIcons()
+	iconDesc, descError := session.DescribeAllIcons(s.Ctx)
 	s.NoError(descError)
 
 	s.AssertResponseIconSetsEqual(dataOut, iconDesc)
@@ -87,10 +87,11 @@ func (s *iconUpdateTestSuite) TestAddingIconfilesWithExistingFormatSizeComboToFa
 
 	statusCode, _, updateError := session.addIconfile(iconName, newIconfile)
 
-	s.True(errors.Is(updateError, errJSONUnmarshal))
+	s.Error(updateError)
+	s.ErrorIs(updateError, errJSONUnmarshal)
 	s.Equal(409, statusCode)
 
-	iconDesc, descError := session.DescribeAllIcons()
+	iconDesc, descError := session.DescribeAllIcons(s.Ctx)
 	s.NoError(descError)
 
 	s.AssertResponseIconSetsEqual(dataOut, iconDesc)

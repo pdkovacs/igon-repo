@@ -6,6 +6,7 @@ import (
 	blobstore_tests "iconrepo/test/repositories/blobstore"
 	"iconrepo/test/test_commons"
 	"iconrepo/test/testdata"
+	"net/http"
 	"os"
 	"testing"
 	"time"
@@ -71,14 +72,14 @@ func (s *iconCreateTests) TestRollbackToLastConsistentStateOnError() {
 	os.Setenv(git.SimulateGitCommitFailureEnvvarName, "true")
 
 	statusCode, _, _ := session.CreateIcon(moreDataIn[1].Name, moreDataIn[1].Iconfiles[0].Content)
-	s.Equal(409, statusCode)
+	s.Equal(http.StatusConflict, statusCode)
 
 	afterIncidentSHA1, afterIncidentGitErr := s.TestBlobstoreController.GetStateID()
 	s.NoError(afterIncidentGitErr)
 
 	s.Equal(lastStableSHA1, afterIncidentSHA1)
 
-	iconDescriptors, describeError := session.DescribeAllIcons()
+	iconDescriptors, describeError := session.DescribeAllIcons(s.Ctx)
 	s.NoError(describeError)
 	s.AssertResponseIconSetsEqual(dataOut, iconDescriptors)
 

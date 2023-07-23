@@ -33,23 +33,23 @@ func (s *IconTestSuite) getCheckIconfile(session *apiTestSession, iconName strin
 	s.Equal(iconfile.Content, actualIconfile)
 }
 
-func (s *IconTestSuite) assertAllFilesInDBAreInGitAsWell() []string {
+func (s *IconTestSuite) assertAllFilesIndexedAreInTheBlobstore() []string {
 	checkedGitFiles := []string{}
 
 	index := s.indexingController
 	blob := s.TestBlobstoreController
 
-	allIconDescInDb, descAllErr := index.DescribeAllIcons()
+	allIconDescIndexed, descAllErr := index.DescribeAllIcons(s.Ctx)
 	if descAllErr != nil {
-		s.FailNow("%v", descAllErr)
+		s.FailNow("", "%v", descAllErr)
 	}
 
-	for _, iconDescInDb := range allIconDescInDb {
-		for _, iconfileDesc := range iconDescInDb.Iconfiles {
-			fileContentInGit, readGitFileErr := blob.GetIconfile(iconDescInDb.Name, iconfileDesc)
+	for _, iconDescIndexed := range allIconDescIndexed {
+		for _, iconfileDesc := range iconDescIndexed.Iconfiles {
+			fileContentInGit, readGitFileErr := blob.GetIconfile(iconDescIndexed.Name, iconfileDesc)
 			s.NoError(readGitFileErr)
 			s.Greater(len(fileContentInGit), 0)
-			checkedGitFiles = append(checkedGitFiles, git.NewGitFilePaths("").GetPathToIconfileInRepo(iconDescInDb.Name, iconfileDesc))
+			checkedGitFiles = append(checkedGitFiles, git.NewGitFilePaths("").GetPathToIconfileInRepo(iconDescIndexed.Name, iconfileDesc))
 		}
 	}
 
@@ -60,26 +60,26 @@ func (s *IconTestSuite) createIconfilePaths(iconName string, iconfileDescriptor 
 	return httpadapter.CreateIconPath("/icon", iconName, iconfileDescriptor)
 }
 
-func (s *IconTestSuite) assertAllFilesInGitAreInDBAsWell(iconfilesWithPeerInDB []string) {
+func (s *IconTestSuite) assertAllFilesInBlobstoreAreIndexed(iconfilesIndexed []string) {
 	iconfiles, err := s.TestBlobstoreController.GetIconfiles()
 	s.NoError(err)
 	for _, gitFile := range iconfiles {
 		found := false
-		for _, dbFile := range iconfilesWithPeerInDB {
+		for _, dbFile := range iconfilesIndexed {
 			if gitFile == dbFile {
 				found = true
 				break
 			}
 		}
 		if !found {
-			s.Fail(fmt.Sprintf("%s doesn't have a peer in DB (%#v)", gitFile, iconfilesWithPeerInDB))
+			s.Fail(fmt.Sprintf("%s are not indexed (%#v)", gitFile, iconfilesIndexed))
 		}
 	}
 }
 
 func (s *IconTestSuite) assertReposInSync() {
-	checkedGitFiles := s.assertAllFilesInDBAreInGitAsWell()
-	s.assertAllFilesInGitAreInDBAsWell(checkedGitFiles)
+	filesInBlobstore := s.assertAllFilesIndexedAreInTheBlobstore()
+	s.assertAllFilesInBlobstoreAreIndexed(filesInBlobstore)
 }
 
 func (s *IconTestSuite) AssertEndState() {

@@ -100,7 +100,7 @@ func (s *BlobstoreTestSuite) BeforeTest(suiteName, testName string) {
 	git_tests.SetupGitlabTestCaseConfig(&conf, s.TestSequenceId, strconv.Itoa(s.TestCaseId))
 	createRepoErr := s.RepoController.ResetRepository(&conf)
 	if createRepoErr != nil {
-		s.FailNow("%v", createRepoErr)
+		s.FailNow("", "%v", createRepoErr)
 	}
 }
 
@@ -108,7 +108,7 @@ func (s *BlobstoreTestSuite) AfterTest(suiteName, testName string) {
 	os.Unsetenv(git.SimulateGitCommitFailureEnvvarName)
 	err := s.RepoController.DeleteRepository()
 	if err != nil {
-		s.FailNow("%v", err)
+		s.FailNow("", "%v", err)
 	}
 }
 

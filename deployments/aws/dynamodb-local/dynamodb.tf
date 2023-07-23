@@ -1,6 +1,6 @@
 provider "aws" {
   access_key                  = "mockAccessKey"
-  region                      = "us-east-1"
+  region                      = "eu-west-1"
   secret_key                  = "mockSecretKey"
   skip_credentials_validation = true
   skip_metadata_api_check     = true
@@ -17,54 +17,25 @@ resource "aws_dynamodb_table" "icons" {
   read_capacity  = 20
   write_capacity = 20
   hash_key       = "IconName"
-  range_key      = "IconAttributes"
 
   attribute {
     name = "IconName" # <icon-id>#<icon-name>
     type = "S"
   }
 
-  attribute {
-    name = "IconAttributes" # <format>#<size>
-    type = "S"
-  }
-
-  ttl {
-    attribute_name = "TimeToExist"
-    enabled        = false
-  }
-
-  tags = {
-    Name        = "dynamodb-table-icons"
-    Environment = "dev"
-  }
 }
 
-resource "aws_dynamodb_table" "icon_files" {
-  name           = "icon_files"
+resource "aws_dynamodb_table" "icon_tags" {
+  name           = "icon_tags"
   billing_mode   = "PROVISIONED"
   read_capacity  = 20
   write_capacity = 20
   hash_key       = "Tag"
-  range_key      = "IconId"
+
 
   attribute {
     name = "Tag"
     type = "S"
   }
 
-  attribute {
-    name = "IconId"
-    type = "S"
-  }
-
-  ttl {
-    attribute_name = "TimeToExist"
-    enabled        = false
-  }
-
-  tags = {
-    Name        = "dynamodb-table-icon_files"
-    Environment = "dev"
-  }
 }

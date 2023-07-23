@@ -1,6 +1,7 @@
 package api_tests
 
 import (
+	"context"
 	"fmt"
 	_ "image/jpeg"
 	_ "image/png"
@@ -31,7 +32,7 @@ type ApiTestSuite struct {
 	indexingController      indexing.IndexTestRepoController
 	TestBlobstoreController blobstore_tests.TestBlobstoreController
 	Client                  apiTestClient
-	logger                  zerolog.Logger
+	Ctx                     context.Context
 	testSequenceId          string
 	xid                     string
 }
@@ -57,7 +58,7 @@ func apiTestSuites(
 				indexinController,
 				repoController,
 				apiTestClient{},
-				logging.Get().With().Str("test_sequence_name", testSequenceName).Logger(),
+				logging.Get().With().Str("test_sequence_name", testSequenceName).Logger().WithContext(context.TODO()),
 				testSequenceName,
 				"",
 			})
@@ -68,14 +69,14 @@ func apiTestSuites(
 
 func (s *ApiTestSuite) SetupSuite() {
 	if s.config.DBSchemaName == "" {
-		s.FailNow("%v", "No config set by the suite extender")
+		s.FailNow("", "%v", "No config set by the suite extender")
 	}
 	s.config.LogLevel = logging.DebugLevel
 
 	var apiTokenErr error
 	s.config.GitlabAccessToken, apiTokenErr = git_tests.GitTestGitlabAPIToken()
 	if apiTokenErr != nil {
-		s.FailNow("%v", apiTokenErr)
+		s.FailNow("", "%v", apiTokenErr)
 	}
 
 	s.config.PasswordCredentials = []config.PasswordCredentials{
@@ -84,7 +85,7 @@ func (s *ApiTestSuite) SetupSuite() {
 	s.config.AuthenticationType = authn.SchemeBasic
 	s.config.ServerPort = 0
 
-	s.logger = logging.CreateUnitLogger(s.logger, "apiTestSuite")
+	s.Ctx = logging.CreateUnitLogger(*zerolog.Ctx(s.Ctx), "apiTestSuite").WithContext(s.Ctx)
 }
 
 func (s *ApiTestSuite) TearDownSuite() {
@@ -93,18 +94,18 @@ func (s *ApiTestSuite) TearDownSuite() {
 
 func (s *ApiTestSuite) initTestCaseConfig(testName string) {
 	s.xid = xid.New().String()
-	s.logger = s.logger.With().Str("app_xid", s.xid).Logger()
+	s.Ctx = zerolog.Ctx(s.Ctx).With().Str("app_xid", s.xid).Logger().WithContext(s.Ctx)
 
 	git_tests.SetupGitlabTestCaseConfig(&s.config, s.testSequenceId, s.xid)
 
 	createRepoErr := s.TestBlobstoreController.ResetRepository(&s.config)
 	if createRepoErr != nil {
-		s.FailNow("%v", createRepoErr)
+		s.FailNow("", "%v", createRepoErr)
 	}
 
-	err := s.indexingController.ResetRepo(&s.config)
+	err := s.indexingController.ResetRepo(s.Ctx, &s.config)
 	if err != nil {
-		s.FailNow("%v", err)
+		s.FailNow("", "%v", err)
 	}
 }
 
@@ -113,7 +114,7 @@ func (s *ApiTestSuite) BeforeTest(suiteName string, testName string) {
 	s.config.EnableBackdoors = true
 	startErr := s.startApp(s.config)
 	if startErr != nil {
-		s.FailNow("%v", startErr)
+		s.FailNow("", "%v", startErr)
 	}
 }
 
@@ -122,7 +123,7 @@ func (s *ApiTestSuite) AfterTest(suiteName, testName string) {
 	os.Unsetenv(git.SimulateGitCommitFailureEnvvarName)
 	deleteRepoErr := s.TestBlobstoreController.DeleteRepository()
 	if deleteRepoErr != nil {
-		s.logger.Error().Err(deleteRepoErr).Str("project", s.TestBlobstoreController.String()).Msg("failed to delete testGitRepo")
+		zerolog.Ctx(s.Ctx).Error().Err(deleteRepoErr).Str("project", s.TestBlobstoreController.String()).Msg("failed to delete testGitRepo")
 	}
 }
 

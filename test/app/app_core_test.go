@@ -1,7 +1,7 @@
 package app_tests
 
 import (
-	"errors"
+	"context"
 	"testing"
 
 	_ "image/jpeg"
@@ -12,15 +12,12 @@ import (
 	"iconrepo/internal/app/security/authn"
 	"iconrepo/internal/app/security/authr"
 	"iconrepo/internal/app/services"
-	"iconrepo/internal/logging"
 	"iconrepo/test/mocks"
 	"iconrepo/test/testdata"
 
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 )
-
-var appTestLogger = logging.Get()
-var appTestApiLogger = logging.CreateUnitLogger(appTestLogger, "app-test-api")
 
 func createUserInfo(withPerms []authr.PermissionID) authr.UserInfo {
 	return authr.UserInfo{
@@ -48,11 +45,12 @@ func getTestIconfile() domain.Iconfile {
 
 type appTestSuite struct {
 	suite.Suite
-	t *testing.T
+	t   *testing.T
+	ctx context.Context
 }
 
 func TestAppTestSuite(t *testing.T) {
-	suite.Run(t, &appTestSuite{t: t})
+	suite.Run(t, &appTestSuite{t: t, ctx: context.TODO()})
 }
 
 func (s *appTestSuite) SetupSuite() {
@@ -66,8 +64,9 @@ func (s *appTestSuite) TestCreateIconNoPerm() {
 	mockRepo := mocks.Repository{}
 	application := app.AppCore{Repository: &mockRepo}
 	api := application.GetAPI()
-	_, err := api.IconService.CreateIcon(iconName, iconfile.Content, testUser)
-	s.True(errors.Is(err, authr.ErrPermission))
+	_, err := api.IconService.CreateIcon(s.ctx, iconName, iconfile.Content, testUser)
+	s.Error(err)
+	s.ErrorIs(err, authr.ErrPermission)
 	mockRepo.AssertExpectations(s.t)
 }
 
@@ -84,10 +83,10 @@ func (s *appTestSuite) TestCreateIcon() {
 		Iconfiles: []domain.Iconfile{iconfile},
 	}
 	mockRepo := mocks.Repository{}
-	mockRepo.On("CreateIcon", iconName, iconfile, testUser).Return(nil)
+	mockRepo.On("CreateIcon", mock.AnythingOfType("*context.emptyCtx"), iconName, iconfile, testUser).Return(nil)
 	application := app.AppCore{Repository: &mockRepo}
 	api := application.GetAPI()
-	icon, err := api.IconService.CreateIcon(iconName, iconfile.Content, testUser)
+	icon, err := api.IconService.CreateIcon(s.ctx, iconName, iconfile.Content, testUser)
 	s.NoError(err)
 	s.Equal(expectedResponseIcon, icon)
 	mockRepo.AssertExpectations(s.t)

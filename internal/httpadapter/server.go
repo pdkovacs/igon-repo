@@ -1,6 +1,7 @@
 package httpadapter
 
 import (
+	"context"
 	"database/sql"
 	"encoding/gob"
 	"fmt"
@@ -26,16 +27,16 @@ import (
 )
 
 type iconService interface {
-	DescribeAllIcons() ([]domain.IconDescriptor, error)
-	DescribeIcon(iconName string) (domain.IconDescriptor, error)
-	CreateIcon(iconName string, initialIconfileContent []byte, modifiedBy authr.UserInfo) (domain.Icon, error)
+	DescribeAllIcons(ctx context.Context) ([]domain.IconDescriptor, error)
+	DescribeIcon(ctx context.Context, iconName string) (domain.IconDescriptor, error)
+	CreateIcon(ctx context.Context, iconName string, initialIconfileContent []byte, modifiedBy authr.UserInfo) (domain.Icon, error)
 	GetIconfile(iconName string, iconfile domain.IconfileDescriptor) ([]byte, error)
-	AddIconfile(iconName string, initialIconfileContent []byte, modifiedBy authr.UserInfo) (domain.IconfileDescriptor, error)
-	DeleteIcon(iconName string, modifiedBy authr.UserInfo) error
-	DeleteIconfile(iconName string, iconfileDescriptor domain.IconfileDescriptor, modifiedBy authr.UserInfo) error
-	GetTags() ([]string, error)
-	AddTag(iconName string, tag string, userInfo authr.UserInfo) error
-	RemoveTag(iconName string, tag string, userInfo authr.UserInfo) error
+	AddIconfile(ctx context.Context, iconName string, initialIconfileContent []byte, modifiedBy authr.UserInfo) (domain.IconfileDescriptor, error)
+	DeleteIcon(ctx context.Context, iconName string, modifiedBy authr.UserInfo) error
+	DeleteIconfile(ctx context.Context, iconName string, iconfileDescriptor domain.IconfileDescriptor, modifiedBy authr.UserInfo) error
+	GetTags(ctx context.Context) ([]string, error)
+	AddTag(ctx context.Context, iconName string, tag string, userInfo authr.UserInfo) error
+	RemoveTag(ctx context.Context, iconName string, tag string, userInfo authr.UserInfo) error
 }
 
 type api struct {

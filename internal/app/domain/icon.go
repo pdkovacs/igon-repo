@@ -7,6 +7,10 @@ type IconfileDescriptor struct {
 	Size   string `json:"size"`
 }
 
+func (i IconfileDescriptor) Equals(other IconfileDescriptor) bool {
+	return i.Format == other.Format && i.Size == other.Size
+}
+
 func (i IconfileDescriptor) String() string {
 	return fmt.Sprintf("Format: %s, Size: %s", i.Format, i.Size)
 }
