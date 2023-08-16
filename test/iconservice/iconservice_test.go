@@ -1,4 +1,4 @@
-package app_tests
+package iconservice
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 
-	"iconrepo/internal/app"
 	"iconrepo/internal/app/domain"
 	"iconrepo/internal/app/security/authn"
 	"iconrepo/internal/app/security/authr"
@@ -62,9 +61,8 @@ func (s *appTestSuite) TestCreateIconNoPerm() {
 	iconName := "test-icon"
 	iconfile := getTestIconfile()
 	mockRepo := mocks.Repository{}
-	application := app.AppCore{Repository: &mockRepo}
-	api := application.GetAPI()
-	_, err := api.IconService.CreateIcon(s.ctx, iconName, iconfile.Content, testUser)
+	api := services.NewIconService(&mockRepo)
+	_, err := api.CreateIcon(s.ctx, iconName, iconfile.Content, testUser)
 	s.Error(err)
 	s.ErrorIs(err, authr.ErrPermission)
 	mockRepo.AssertExpectations(s.t)
@@ -84,9 +82,8 @@ func (s *appTestSuite) TestCreateIcon() {
 	}
 	mockRepo := mocks.Repository{}
 	mockRepo.On("CreateIcon", mock.AnythingOfType("*context.emptyCtx"), iconName, iconfile, testUser).Return(nil)
-	application := app.AppCore{Repository: &mockRepo}
-	api := application.GetAPI()
-	icon, err := api.IconService.CreateIcon(s.ctx, iconName, iconfile.Content, testUser)
+	api := services.NewIconService(&mockRepo)
+	icon, err := api.CreateIcon(s.ctx, iconName, iconfile.Content, testUser)
 	s.NoError(err)
 	s.Equal(expectedResponseIcon, icon)
 	mockRepo.AssertExpectations(s.t)

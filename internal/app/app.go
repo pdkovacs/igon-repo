@@ -1,6 +1,7 @@
 package app
 
 import (
+	"iconrepo/internal/app/services"
 	"iconrepo/internal/config"
 	"iconrepo/internal/httpadapter"
 	"iconrepo/internal/logging"
@@ -61,11 +62,9 @@ func Start(conf config.Options, ready func(port int, stop func())) error {
 
 	combinedRepo := repositories.RepoCombo{Index: db, Blobstore: blobstore}
 
-	appRef := &AppCore{Repository: &combinedRepo}
-
 	server := httpadapter.CreateServer(
 		conf,
-		httpadapter.CreateAPI(appRef.GetAPI().IconService),
+		*services.NewIconService(&combinedRepo),
 	)
 
 	server.SetupAndStart(conf, func(port int, stop func()) {

@@ -39,24 +39,14 @@ type iconService interface {
 	RemoveTag(ctx context.Context, iconName string, tag string, userInfo authr.UserInfo) error
 }
 
-type api struct {
-	iconService iconService
-}
-
-func CreateAPI(iconService iconService) api {
-	return api{
-		iconService: iconService,
-	}
-}
-
 type server struct {
 	listener      net.Listener
 	configuration config.Options
 	logger        zerolog.Logger
-	api           api
+	api           services.IconService
 }
 
-func CreateServer(configuration config.Options, api api) server {
+func CreateServer(configuration config.Options, api services.IconService) server {
 	return server{
 		configuration: configuration,
 		api:           api,
@@ -195,18 +185,18 @@ func (s *server) initEndpoints(options config.Options) *gin.Engine {
 			authorizedGroup.GET("/backdoor/authentication", HandleGetIntoBackdoorRequest())
 		}
 
-		authorizedGroup.GET("/icon", describeAllIcons(s.api.iconService.DescribeAllIcons))
-		authorizedGroup.GET("/icon/:name", describeIcon(s.api.iconService.DescribeIcon))
-		authorizedGroup.POST("/icon", createIcon(mustGetUserInfo, s.api.iconService.CreateIcon, notifService.Publish))
-		authorizedGroup.DELETE("/icon/:name", deleteIcon(mustGetUserInfo, s.api.iconService.DeleteIcon, notifService.Publish))
+		authorizedGroup.GET("/icon", describeAllIcons(s.api.DescribeAllIcons))
+		authorizedGroup.GET("/icon/:name", describeIcon(s.api.DescribeIcon))
+		authorizedGroup.POST("/icon", createIcon(mustGetUserInfo, s.api.CreateIcon, notifService.Publish))
+		authorizedGroup.DELETE("/icon/:name", deleteIcon(mustGetUserInfo, s.api.DeleteIcon, notifService.Publish))
 
-		authorizedGroup.POST("/icon/:name", addIconfile(mustGetUserInfo, s.api.iconService.AddIconfile, notifService.Publish))
-		authorizedGroup.GET("/icon/:name/format/:format/size/:size", getIconfile(s.api.iconService.GetIconfile))
-		authorizedGroup.DELETE("/icon/:name/format/:format/size/:size", deleteIconfile(mustGetUserInfo, s.api.iconService.DeleteIconfile, notifService.Publish))
+		authorizedGroup.POST("/icon/:name", addIconfile(mustGetUserInfo, s.api.AddIconfile, notifService.Publish))
+		authorizedGroup.GET("/icon/:name/format/:format/size/:size", getIconfile(s.api.GetIconfile))
+		authorizedGroup.DELETE("/icon/:name/format/:format/size/:size", deleteIconfile(mustGetUserInfo, s.api.DeleteIconfile, notifService.Publish))
 
-		authorizedGroup.GET("/tag", getTags(s.api.iconService.GetTags))
-		authorizedGroup.POST("/icon/:name/tag", addTag(mustGetUserInfo, s.api.iconService.AddTag))
-		authorizedGroup.DELETE("/icon/:name/tag/:tag", removeTag(mustGetUserInfo, s.api.iconService.RemoveTag))
+		authorizedGroup.GET("/tag", getTags(s.api.GetTags))
+		authorizedGroup.POST("/icon/:name/tag", addTag(mustGetUserInfo, s.api.AddTag))
+		authorizedGroup.DELETE("/icon/:name/tag/:tag", removeTag(mustGetUserInfo, s.api.RemoveTag))
 	}
 
 	return rootEngine

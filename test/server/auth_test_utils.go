@@ -1,4 +1,4 @@
-package api_tests
+package server
 
 import (
 	"encoding/base64"

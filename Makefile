@@ -29,11 +29,11 @@ clean:
 	rm -f iconrepo
 # example command line:
 #   export LOCAL_GIT_ONLY=yes; export ICONREPO_DB_HOST=postgres; make clean && time make test 2>&1 | tee ~/workspace/logs/icon-repo-test
-test: test-app test-api test-repos test-seq
-test-app: $(app)
-	go test -parallel 1 -v -timeout 60s ./test/app/...
-test-api: $(app)
-	go test -parallel 1 -v -timeout 120s ./test/api/...
+test: test-server test-iconservice test-repos test-seq
+	go test -parallel 1 -v -timeout 60s ./test/iconservice/...
+test-server: $(app)
+	go test -parallel 1 -v -timeout 120s ./test/server/...
+test-iconservice: $(iconservice)
 test-repos: $(app)
 	go test -parallel 1 -v -timeout 60s ./test/repositories/...
 test-seq: $(app)

@@ -2,8 +2,8 @@ package sequential_tests
 
 import (
 	"iconrepo/internal/repositories/blobstore/git"
-	api_tests "iconrepo/test/api"
 	blobstore_tests "iconrepo/test/repositories/blobstore"
+	server_test "iconrepo/test/server"
 	"iconrepo/test/test_commons"
 	"iconrepo/test/testdata"
 	"net/http"
@@ -50,11 +50,11 @@ func (s *gitTests) TestRemainsConsistentAfterAddingIconfileFails() {
 }
 
 type iconCreateTests struct {
-	api_tests.IconTestSuite
+	server_test.IconTestSuite
 }
 
 func TestIconCreateTestSuite(t *testing.T) {
-	for _, iconTestSuite := range api_tests.IconTestSuites("sequential_tests") {
+	for _, iconTestSuite := range server_test.IconTestSuites("tsequential_tests") {
 		suite.Run(t, &iconCreateTests{IconTestSuite: iconTestSuite})
 	}
 }
