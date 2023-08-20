@@ -3,6 +3,7 @@ package git
 import (
 	"iconrepo/internal/repositories/blobstore/git"
 	"iconrepo/test/test_commons"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -15,6 +16,9 @@ type gitlabRepoTestSuite struct {
 }
 
 func TestGitlabRepoTestSuite(t *testing.T) {
+	if len(os.Getenv("LOCAL_GIT_ONLY")) > 0 {
+		return
+	}
 	suite.Run(t, &gitlabRepoTestSuite{t: t})
 }
 

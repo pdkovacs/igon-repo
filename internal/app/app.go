@@ -27,7 +27,7 @@ func Start(conf config.Options, ready func(port int, stop func())) error {
 	if conf.DynamodbURL == "" {
 		db = pgdb.NewPgRepository(connection)
 	} else {
-		dyndb, createDyndbErr := dynamodb.NewDynamodbRepository(conf)
+		dyndb, createDyndbErr := dynamodb.NewDynamodbRepository(&conf)
 		if createDyndbErr != nil {
 			return createDyndbErr
 		}

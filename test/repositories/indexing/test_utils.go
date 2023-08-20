@@ -116,7 +116,7 @@ func NewTestPgRepo(conf *config.Options) (TestIndexRepository, error) {
 }
 
 func NewTestDynamodbRepo(conf *config.Options) (TestIndexRepository, error) {
-	connection, err := dynamodb.NewDynamodbRepository(*conf)
+	connection, err := dynamodb.NewDynamodbRepository(conf)
 	if err != nil {
 		return nil, err
 	}

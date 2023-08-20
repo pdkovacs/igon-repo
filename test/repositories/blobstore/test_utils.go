@@ -1,6 +1,7 @@
 package blobstore
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 	"time"
@@ -151,6 +152,7 @@ var DefaultBlobstoreController = TestBlobstoreController{
 
 func BlobstoreProvidersToTest() []TestBlobstoreController {
 
+	fmt.Printf(">>>>>>>>>>>> LOCAL_GIT_ONLY: %v\n", os.Getenv("LOCAL_GIT_ONLY"))
 	if len(os.Getenv("LOCAL_GIT_ONLY")) > 0 {
 		return []TestBlobstoreController{DefaultBlobstoreController}
 	}

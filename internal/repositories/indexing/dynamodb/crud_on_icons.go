@@ -9,144 +9,34 @@ import (
 	"iconrepo/internal/repositories/indexing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	aws_config "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/aws/smithy-go"
 	"github.com/rs/xid"
 	"github.com/rs/zerolog"
 
 	aws_dyndb "github.com/aws/aws-sdk-go-v2/service/dynamodb"
 )
 
-var IconsTableName = "icons"
-var iconNameAttribute = "IconName"
-var changeIdAttribute = "ChangeId"
-var IconTagsTableName = "icon_tags"
-var tagAttribute = "Tag"
-
-type DyndbIconfile struct {
-	Format string `dynamodbav:"Format"`
-	Size   string `dynamodbav:"Size"`
-}
-
-func (dyIconfile *DyndbIconfile) toIconfileDescriptor() domain.IconfileDescriptor {
-	return domain.IconfileDescriptor{
-		Format: dyIconfile.Format,
-		Size:   dyIconfile.Size,
-	}
-}
-
-func (dyIconfile *DyndbIconfile) fromIconfileDescriptor(descriptor domain.IconfileDescriptor) {
-	newIconfile := DyndbIconfile{
-		Format: descriptor.Format,
-		Size:   descriptor.Size,
-	}
-	*dyIconfile = newIconfile
-}
-
-func toIconfileDescriptorList(iconfiles []DyndbIconfile) []domain.IconfileDescriptor {
-	descList := []domain.IconfileDescriptor{}
-	for _, iconfile := range iconfiles {
-		descList = append(descList, iconfile.toIconfileDescriptor())
-	}
-	return descList
-}
-
-type DyndbIcon struct {
-	IconName   string          `dynamodbav:"IconName"`
-	ChangeId   string          `dynamodbav:"ChangeId"`
-	ModifiedBy string          `dynamodbav:"ModifiedBy"`
-	Iconfiles  []DyndbIconfile `dynamodbav:"Iconfiles"`
-	Tags       []string        `dynamodbav:"Tags"`
-}
-
-func (dyIcon DyndbIcon) GetKey() (map[string]types.AttributeValue, error) {
-	iconName, err := attributevalue.Marshal(dyIcon.IconName)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal dynamodb attribute `IconName`: %w", err)
-	}
-	return map[string]types.AttributeValue{iconNameAttribute: iconName}, nil
-}
-
-func (dyIcon DyndbIcon) toIconDescriptor() domain.IconDescriptor {
-	return domain.IconDescriptor{
-		IconAttributes: domain.IconAttributes{
-			Name:       dyIcon.IconName,
-			ModifiedBy: dyIcon.ModifiedBy,
-			Tags:       dyIcon.Tags,
-		},
-		Iconfiles: toIconfileDescriptorList(dyIcon.Iconfiles),
-	}
-}
-
-type DyndbTag struct {
-	Tag            string `dynamodbav:"Tag"`
-	ReferenceCount int64  `dynamodbav:"ReferenceCount"`
-	ChangeId       string `dynamodbav:"ChangeId"`
-}
-
-func (dyIcon DyndbTag) GetKey() (map[string]types.AttributeValue, error) {
-	tag, err := attributevalue.Marshal(dyIcon.Tag)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal dynamodb attribute `Tag`: %w", err)
-	}
-	return map[string]types.AttributeValue{tagAttribute: tag}, nil
-}
-
-func GetAllTableNames() []string {
-	return []string{IconsTableName, IconTagsTableName}
-}
-
-var getPrimaryKeys = func(tableName string, item map[string]types.AttributeValue) map[string]types.AttributeValue {
-	switch tableName {
-	case IconsTableName:
-		{
-			return map[string]types.AttributeValue{
-				iconNameAttribute: item[iconNameAttribute],
-			}
-		}
-	case IconTagsTableName:
-		{
-			return map[string]types.AttributeValue{
-				tagAttribute: item[tagAttribute],
-			}
-		}
-	}
-	return nil
-}
-
 type DynamodbRepository struct {
-	dbURL string
-	db    *aws_dyndb.Client
+	awsClient *aws_dyndb.Client
+}
+
+func (repo *DynamodbRepository) GetAwsClient() *aws_dyndb.Client {
+	return repo.awsClient
 }
 
 func (repo *DynamodbRepository) DescribeAllIcons(ctx context.Context) ([]domain.IconDescriptor, error) {
-	logger := zerolog.Ctx(ctx).With().Str("method", "DynamodbRepository.DescribeAllIcons").Logger()
-
-	scanResult, scanErr := repo.ScanTable(ctx, IconsTableName)
+	iconTable := DyndbIconsTable{awsClient: repo.awsClient}
+	items, scanErr := iconTable.GetItems(ctx)
 	if scanErr != nil {
-		return nil, fmt.Errorf("failed to scan %s: %w", IconsTableName, scanErr)
+		return nil, fmt.Errorf("failed to fetch icon items: %w", scanErr)
 	}
-	logger.Debug().Int("scan-result-count", len(scanResult)).Msg("found")
 
 	iconDescriptors := []domain.IconDescriptor{}
-
-	for _, scanItem := range scanResult {
-		var iconItem DyndbIcon
-		unmarshalErr := attributevalue.UnmarshalMap(scanItem, &iconItem)
-		if unmarshalErr != nil {
-			return nil, fmt.Errorf("failed to unmarshal %T: %w", iconItem, unmarshalErr)
-		}
-		if iconItem.Tags == nil {
-			iconItem.Tags = []string{}
-		}
-		iconDescriptors = append(iconDescriptors, iconItem.toIconDescriptor())
+	for _, item := range items {
+		iconDescriptors = append(iconDescriptors, item.toIconDescriptor())
 	}
-
-	logger.Debug().Int("icon-descriptor-count", len(scanResult)).Msg("returning")
-
 	return iconDescriptors, nil
 }
 
@@ -175,18 +65,17 @@ func (repo *DynamodbRepository) GetExistingTags(ctx context.Context) ([]string, 
 	input := &aws_dyndb.ScanInput{
 		TableName: &IconTagsTableName,
 	}
-	result, scanErr := repo.db.Scan(ctx, input)
+	result, scanErr := repo.awsClient.Scan(ctx, input)
 	if scanErr != nil {
 		return nil, fmt.Errorf("failed to scan %s: %w", IconTagsTableName, Unwrap(ctx, scanErr))
 	}
 	tags := []string{}
 	for _, tagItem := range result.Items {
-		var tag string
-		unmarshalErr := attributevalue.Unmarshal(tagItem[tagAttribute], &tag)
-		if unmarshalErr != nil {
+		dynTag := &DyndbTag{}
+		if unmarshalErr := dynTag.unmarshal(tagItem); unmarshalErr != nil {
 			return nil, fmt.Errorf("failed to unmarshal tag: %w", unmarshalErr)
 		}
-		tags = append(tags, tag)
+		tags = append(tags, dynTag.Tag)
 	}
 	return tags, nil
 }
@@ -493,39 +382,11 @@ func (repo *DynamodbRepository) DeleteIconfile(
 	return nil
 }
 
-func (repo *DynamodbRepository) ScanTable(ctx context.Context, tableName string) ([]map[string]types.AttributeValue, error) {
-	input := &aws_dyndb.ScanInput{
-		TableName: &tableName,
-	}
-	result, scanErr := repo.db.Scan(ctx, input)
-	if scanErr != nil {
-		return nil, fmt.Errorf("failed to scan %s: %w", tableName, Unwrap(ctx, scanErr))
-	}
-	return result.Items, nil
-}
-
-func (repo *DynamodbRepository) DeleteAll(ctx context.Context, tableName string, items []map[string]types.AttributeValue) error {
-	logger := zerolog.Ctx(ctx).With().Str("method", "DynamodbRepository.DeleteAll").Logger()
-	logger.Info().Msgf("deleting %d items from %s...", len(items), tableName)
-	for _, item := range items {
-		logger.Debug().Msgf("deleting item %v...", item)
-		input := &aws_dyndb.DeleteItemInput{
-			TableName: &tableName,
-			Key:       getPrimaryKeys(tableName, item),
-		}
-		_, deleteErr := repo.db.DeleteItem(ctx, input)
-		if deleteErr != nil {
-			return fmt.Errorf("failed to delete item %#v: %w", item, Unwrap(ctx, deleteErr))
-		}
-	}
-	return nil
-}
-
 func (repo *DynamodbRepository) getIconItem(ctx context.Context, iconName string, consistentRead bool) (*DyndbIcon, error) {
 	logger := zerolog.Ctx(ctx).With().Str("unit", "DynamodbRepository").Str("method", "getIconItem").Logger()
 
 	icon := &DyndbIcon{IconName: iconName}
-	key, keyErr := icon.GetKey()
+	key, keyErr := icon.GetKey(ctx)
 	if keyErr != nil {
 		return icon, keyErr
 	}
@@ -535,7 +396,7 @@ func (repo *DynamodbRepository) getIconItem(ctx context.Context, iconName string
 		Key:            key,
 		ConsistentRead: &consistentRead,
 	}
-	output, getItemErr := repo.db.GetItem(ctx, input)
+	output, getItemErr := repo.awsClient.GetItem(ctx, input)
 	if getItemErr != nil {
 		return icon, fmt.Errorf("failed to get icon item for %s: %w", iconName, Unwrap(ctx, getItemErr))
 	}
@@ -547,8 +408,7 @@ func (repo *DynamodbRepository) getIconItem(ctx context.Context, iconName string
 		return icon, domain.ErrIconNotFound
 	}
 
-	unmarshalErr := attributevalue.UnmarshalMap(output.Item, &icon)
-	if unmarshalErr != nil {
+	if unmarshalErr := icon.unmarshal(output.Item); unmarshalErr != nil {
 		return icon, fmt.Errorf("failed to unmarshal icon item for %s: %w", iconName, Unwrap(ctx, unmarshalErr))
 	}
 
@@ -583,7 +443,7 @@ func (repo *DynamodbRepository) updateIcon(ctx context.Context, icon *DyndbIcon,
 		ExpressionAttributeValues: conditionValues,
 		ReturnConsumedCapacity:    "TOTAL",
 	}
-	output, err := repo.db.PutItem(ctx, input)
+	output, err := repo.awsClient.PutItem(ctx, input)
 	if err != nil {
 		return fmt.Errorf("failed to update icon %s: %w", icon.IconName, Unwrap(ctx, err))
 	}
@@ -597,7 +457,7 @@ func (repo *DynamodbRepository) updateIcon(ctx context.Context, icon *DyndbIcon,
 func (repo *DynamodbRepository) deleteIcon(ctx context.Context, iconItem *DyndbIcon) error {
 	logger := zerolog.Ctx(ctx).With().Str("unit", "DynamodbRepository").Str("method", "deleteIcon").Logger()
 
-	pk, getKeyErr := iconItem.GetKey()
+	pk, getKeyErr := iconItem.GetKey(ctx)
 	if getKeyErr != nil {
 		return fmt.Errorf("failed to get key for deleting %s: %w", iconItem.IconName, getKeyErr)
 	}
@@ -615,7 +475,7 @@ func (repo *DynamodbRepository) deleteIcon(ctx context.Context, iconItem *DyndbI
 		ExpressionAttributeValues: conditionValues,
 		ReturnConsumedCapacity:    "TOTAL",
 	}
-	output, err := repo.db.DeleteItem(ctx, input)
+	output, err := repo.awsClient.DeleteItem(ctx, input)
 	if err != nil {
 		return fmt.Errorf("failed to delete icon %s: %w", iconItem.IconName, Unwrap(ctx, err))
 	}
@@ -631,7 +491,7 @@ func (repo *DynamodbRepository) getTagItem(ctx context.Context, tag string, cons
 	logger := zerolog.Ctx(ctx).With().Str("unit", "DynamodbRepository").Str("method", "getTagItem").Logger()
 
 	tagItem := &DyndbTag{Tag: tag}
-	key, keyErr := tagItem.GetKey()
+	key, keyErr := tagItem.GetKey(ctx)
 	if keyErr != nil {
 		return tagItem, keyErr
 	}
@@ -641,7 +501,7 @@ func (repo *DynamodbRepository) getTagItem(ctx context.Context, tag string, cons
 		Key:            key,
 		ConsistentRead: &consistentRead,
 	}
-	output, getItemErr := repo.db.GetItem(ctx, input)
+	output, getItemErr := repo.awsClient.GetItem(ctx, input)
 	if getItemErr != nil {
 		return tagItem, fmt.Errorf("failed to get tag item for %s: %w", tag, Unwrap(ctx, getItemErr))
 	}
@@ -653,7 +513,7 @@ func (repo *DynamodbRepository) getTagItem(ctx context.Context, tag string, cons
 		return nil, nil
 	}
 
-	unmarshalErr := attributevalue.UnmarshalMap(output.Item, &tagItem)
+	unmarshalErr := tagItem.unmarshal(output.Item)
 	if unmarshalErr != nil {
 		return tagItem, fmt.Errorf("failed to unmarshal tag item for %s: %w", tag, Unwrap(ctx, unmarshalErr))
 	}
@@ -700,7 +560,7 @@ func (repo *DynamodbRepository) updateTag(ctx context.Context, tag string, add b
 			ExpressionAttributeValues: conditionValues,
 			ReturnConsumedCapacity:    "TOTAL",
 		}
-		_, err := repo.db.PutItem(ctx, input)
+		_, err := repo.awsClient.PutItem(ctx, input)
 		if err != nil {
 			return fmt.Errorf("failed to update icon %s: %w", tag, Unwrap(ctx, err))
 		}
@@ -708,7 +568,7 @@ func (repo *DynamodbRepository) updateTag(ctx context.Context, tag string, add b
 		return nil
 	}
 
-	pk, getKeyErr := oldTagItem.GetKey()
+	pk, getKeyErr := oldTagItem.GetKey(ctx)
 	if getKeyErr != nil {
 		return fmt.Errorf("failed to generate PK of %v for removal: %w", oldTagItem, getKeyErr)
 	}
@@ -721,7 +581,7 @@ func (repo *DynamodbRepository) updateTag(ctx context.Context, tag string, add b
 		ExpressionAttributeValues: conditionValues,
 		ReturnConsumedCapacity:    "TOTAL",
 	}
-	_, deleteErr := repo.db.DeleteItem(ctx, input)
+	_, deleteErr := repo.awsClient.DeleteItem(ctx, input)
 	if deleteErr != nil {
 		return fmt.Errorf("failed to delete tag %v: %w", oldTagItem, deleteErr)
 	}
@@ -729,44 +589,13 @@ func (repo *DynamodbRepository) updateTag(ctx context.Context, tag string, add b
 	return nil
 }
 
-func Unwrap(ctx context.Context, err error) error {
-	logger := zerolog.Ctx(ctx)
-	var oe *smithy.OperationError
-	if errors.As(err, &oe) {
-		logger.Error().Str("service", oe.Service()).Str("operation", oe.Operation()).Err(oe.Unwrap()).Msgf("failed to call service: %s", oe.Service())
-
-		tmpErr := &types.ResourceNotFoundException{}
-		if errors.As(oe.Err, &tmpErr) {
-			return indexing.ErrTableNotFound
-		}
-
-		tmpErr1 := &types.ConditionalCheckFailedException{}
-		if errors.As(oe.Err, &tmpErr1) {
-			return indexing.ErrConditionCheckFailed
-		}
-	}
-	logger.Error().Err(err).Msg("some error occured")
-	return err
-}
-
-func createConfig(conf config.Options) (aws.Config, error) {
-	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-		return aws.Endpoint{
-			URL:           conf.DynamodbURL,
-			SigningRegion: region,
-		}, nil
-	})
-
-	return aws_config.LoadDefaultConfig(context.TODO(), aws_config.WithEndpointResolverWithOptions(customResolver))
-}
-
-func NewDynamodbRepository(conf config.Options) (*DynamodbRepository, error) {
+func NewDynamodbRepository(conf *config.Options) (*DynamodbRepository, error) {
 	awsConf, err := createConfig(conf)
 	if err != nil {
 		return nil, err
 	}
 	svc := aws_dyndb.NewFromConfig(awsConf)
-	return &DynamodbRepository{conf.DynamodbURL, svc}, nil
+	return &DynamodbRepository{svc}, nil
 }
 
 func createChangeId() string {
