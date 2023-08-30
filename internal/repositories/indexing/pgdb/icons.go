@@ -133,6 +133,10 @@ func NewPgRepository(conn connection) PgRepository {
 	}
 }
 
+func (repo PgRepository) Close() error {
+	return repo.Conn.Pool.Close()
+}
+
 // DescribeIcon returns the attributes of the icon having the specified name, "attributes" meaning here the entire icon without iconfiles' contents
 func (repo PgRepository) DescribeIcon(ctx context.Context, iconName string) (domain.IconDescriptor, error) {
 	tx, err := repo.Conn.Pool.Begin()

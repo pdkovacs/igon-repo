@@ -33,6 +33,7 @@ func Start(conf config.Options, ready func(port int, stop func())) error {
 		}
 		db = dyndb
 	}
+	defer db.Close()
 
 	var blobstore repositories.BlobstoreRepository
 	if len(conf.LocalGitRepo) > 0 {

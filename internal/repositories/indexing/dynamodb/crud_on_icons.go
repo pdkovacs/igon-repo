@@ -2,24 +2,92 @@ package dynamodb
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"iconrepo/internal/app/domain"
 	"iconrepo/internal/config"
-	"iconrepo/internal/repositories/indexing"
+	"iconrepo/internal/logging"
+	"time"
 
+	"cirello.io/dynamolock/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
-	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/rs/xid"
 	"github.com/rs/zerolog"
 
 	aws_dyndb "github.com/aws/aws-sdk-go-v2/service/dynamodb"
 )
 
+type dlockLogger struct {
+	logger zerolog.Logger
+}
+
+func (l *dlockLogger) Println(arg ...any) {
+	if l.logger.GetLevel() == zerolog.DebugLevel {
+		l.logger.Print(arg...)
+	}
+}
+
 type DynamodbRepository struct {
-	awsClient *aws_dyndb.Client
+	awsClient          *aws_dyndb.Client
+	iconsLockClient    *dynamolock.Client
+	iconTagsLockClient *dynamolock.Client
+}
+
+func NewDynamodbRepository(conf *config.Options) (*DynamodbRepository, error) {
+	awsConf, err := createConfig(conf)
+	if err != nil {
+		return nil, err
+	}
+	svc := aws_dyndb.NewFromConfig(awsConf)
+
+	iconsLockClient, iconsLockClientErr := dynamolock.New(
+		svc,
+		iconsLockTableName,
+		dynamolock.WithLeaseDuration(3*time.Second),
+		dynamolock.WithHeartbeatPeriod(1*time.Second),
+		dynamolock.WithLogger(&dlockLogger{logging.Get().With().Str("unit", "cirello.io/dynamolock/v2").Logger()}),
+	)
+	if iconsLockClientErr != nil {
+		return nil, fmt.Errorf("failed to create iconsLockClient: %w", iconsLockClientErr)
+	}
+
+	iconTagsLockClient, iconTagsLockClientErr := dynamolock.New(
+		svc,
+		iconTagsLockTableName,
+		dynamolock.WithLeaseDuration(3*time.Second),
+		dynamolock.WithHeartbeatPeriod(1*time.Second),
+		dynamolock.WithLogger(&dlockLogger{logging.Get().With().Str("unit", "cirello.io/dynamolock/v2").Logger()}),
+	)
+	if iconsLockClientErr != nil {
+		return nil, fmt.Errorf("failed to create iconTagsLockClient: %w", iconTagsLockClientErr)
+	}
+
+	return &DynamodbRepository{svc, iconsLockClient, iconTagsLockClient}, nil
+}
+
+func (repo *DynamodbRepository) Close() error {
+	logger := logging.Get().With().Str("unit", "DynamodbRepository").Str("method", "Close").Logger()
+
+	var myErr error
+
+	iconsLockCloseErr := repo.iconsLockClient.Close()
+	if iconsLockCloseErr != nil {
+		logger.Err(iconsLockCloseErr).Msg("error while closing iconsLockClose")
+		myErr = iconsLockCloseErr
+	}
+
+	iconTagsLockCloseErr := repo.iconTagsLockClient.Close()
+	if iconTagsLockCloseErr != nil {
+		logger.Err(iconTagsLockCloseErr).Msg("error while closing iconTagsLockClose")
+		if myErr == nil { // we only return the first one
+			myErr = iconTagsLockCloseErr
+		}
+	}
+
+	if myErr != nil {
+		return fmt.Errorf("errors while closing DynamodbRepository: %w", myErr)
+	}
+
+	return nil
 }
 
 func (repo *DynamodbRepository) GetAwsClient() *aws_dyndb.Client {
@@ -63,7 +131,7 @@ func (repo *DynamodbRepository) DescribeIcon(ctx context.Context, iconName strin
 
 func (repo *DynamodbRepository) GetExistingTags(ctx context.Context) ([]string, error) {
 	input := &aws_dyndb.ScanInput{
-		TableName: &IconTagsTableName,
+		TableName: aws.String(IconTagsTableName),
 	}
 	result, scanErr := repo.awsClient.Scan(ctx, input)
 	if scanErr != nil {
@@ -92,21 +160,31 @@ func (repo *DynamodbRepository) CreateIcon(
 	dyndbIconfile := DyndbIconfile{}
 	dyndbIconfile.fromIconfileDescriptor(iconfile)
 
-	changeId := createChangeId()
-
 	icon := &DyndbIcon{
 		IconName:   iconName,
 		ModifiedBy: modifiedBy,
 		Iconfiles:  []DyndbIconfile{dyndbIconfile},
-		ChangeId:   changeId,
 	}
-	updateErr := repo.updateIcon(ctx, icon, "")
-	if updateErr != nil {
-		cause := updateErr
-		if errors.Is(updateErr, indexing.ErrConditionCheckFailed) {
-			cause = fmt.Errorf("change-id required: %s: %w", iconName, domain.ErrIconAlreadyExists)
+
+	lock, lockErr := repo.iconsLockClient.AcquireLockWithContext(ctx, iconName, dynamolock.WithData([]byte("CreateIcon")), dynamolock.ReplaceData())
+	if lockErr != nil {
+		return fmt.Errorf("failed to acquire lock on icons_table#%s: %w", iconName, lockErr)
+	}
+	defer func() {
+		success, releaseLockErr := repo.iconsLockClient.ReleaseLock(lock)
+		if releaseLockErr != nil {
+			logger.Error().Err(releaseLockErr).Msg("error while releasing lock on icons table")
 		}
-		return fmt.Errorf("failed to create icon %s: %w", iconName, cause)
+		if success {
+			logger.Debug().Str("lockTable", "icons").Str("lockKey", iconName).Bool("lockReleaseResult", success).Send()
+		} else {
+			logger.Info().Str("lockTable", "icons").Str("lockKey", iconName).Bool("lockReleaseResult", success).Send()
+		}
+	}()
+
+	updateErr := repo.updateIcon(ctx, icon)
+	if updateErr != nil {
+		return fmt.Errorf("failed to create icon %s: %w", iconName, updateErr)
 	}
 
 	if createSideEffect != nil {
@@ -114,7 +192,7 @@ func (repo *DynamodbRepository) CreateIcon(
 		if sideEffectErr != nil {
 			rollbackErr := repo.deleteIcon(ctx, icon)
 			if rollbackErr != nil {
-				logger.Error().Err(rollbackErr).Str("IconName", iconName).Str("ChangeId", icon.ChangeId).Msg("failed to rollback on sideeffect error")
+				logger.Error().Err(rollbackErr).Str("IconName", iconName).Msg("failed to rollback on sideeffect error")
 			}
 			return sideEffectErr
 		}
@@ -132,6 +210,22 @@ func (repo *DynamodbRepository) AddIconfileToIcon(
 ) error {
 	logger := zerolog.Ctx(ctx).With().Str("unit", "DynamodbRepository").Str("method", "AddIconfileToIcon").Logger()
 
+	lock, lockErr := repo.iconsLockClient.AcquireLockWithContext(ctx, iconName, dynamolock.WithData([]byte("AddIconfileToIcon")), dynamolock.ReplaceData())
+	if lockErr != nil {
+		return fmt.Errorf("failed to acquire lock on icons_table#%s: %w", iconName, lockErr)
+	}
+	defer func() {
+		success, releaseLockErr := repo.iconsLockClient.ReleaseLock(lock)
+		if releaseLockErr != nil {
+			logger.Error().Err(releaseLockErr).Msg("error while releasing lock on icons table")
+		}
+		if success {
+			logger.Debug().Str("lockTable", "icons").Str("lockKey", iconName).Bool("lockReleaseResult", success).Send()
+		} else {
+			logger.Info().Str("lockTable", "icons").Str("lockKey", iconName).Bool("lockReleaseResult", success).Send()
+		}
+	}()
+
 	original, getOriginalErr := repo.getIconItem(ctx, iconName, true)
 	if getOriginalErr != nil {
 		return fmt.Errorf("failed to get original of %s for adding iconfile to it: %w", iconName, getOriginalErr)
@@ -144,17 +238,16 @@ func (repo *DynamodbRepository) AddIconfileToIcon(
 		}
 	}
 
-	newChangeId := createChangeId()
 	iconfileToAdd := DyndbIconfile{}
 	iconfileToAdd.fromIconfileDescriptor(iconfile)
 
-	updatedIcon := &DyndbIcon{IconName: iconName, ChangeId: newChangeId, ModifiedBy: modifiedBy}
+	updatedIcon := &DyndbIcon{IconName: iconName, ModifiedBy: modifiedBy}
 	if original != nil {
 		updatedIcon.Iconfiles = original.Iconfiles
 	}
 	updatedIcon.Iconfiles = append(updatedIcon.Iconfiles, iconfileToAdd)
 
-	updateIconErr := repo.updateIcon(ctx, updatedIcon, original.ChangeId)
+	updateIconErr := repo.updateIcon(ctx, updatedIcon)
 	if updateIconErr != nil {
 		// TODO: back out and propagate meaningful error to client on failed condition validation
 		return fmt.Errorf("failed to update icon %s: %w", iconName, updateIconErr)
@@ -163,7 +256,7 @@ func (repo *DynamodbRepository) AddIconfileToIcon(
 	if createSideEffect != nil {
 		sideEffectErr := createSideEffect()
 		if sideEffectErr != nil {
-			rollbackErr := repo.updateIcon(ctx, original, newChangeId)
+			rollbackErr := repo.updateIcon(ctx, original)
 			if rollbackErr != nil {
 				logger.Error().Err(rollbackErr).Str("IconName", iconName).Msg("failed to rollback on sideeffect error")
 			}
@@ -175,6 +268,30 @@ func (repo *DynamodbRepository) AddIconfileToIcon(
 }
 
 func (repo *DynamodbRepository) AddTag(ctx context.Context, iconName string, tag string, modifiedBy string) error {
+	logger := zerolog.Ctx(ctx).With().Str("unit", "DynamodbRepository").Str("method", "AddTag").Logger()
+
+	lock, lockErr := repo.iconsLockClient.AcquireLockWithContext(ctx, iconName, dynamolock.WithData([]byte("AddTag")), dynamolock.ReplaceData())
+	if lockErr != nil {
+		return fmt.Errorf("failed to acquire lock on icons_table#%s: %w", iconName, lockErr)
+	}
+	defer func() {
+		success, releaseLockErr := repo.iconsLockClient.ReleaseLock(lock)
+		if releaseLockErr != nil {
+			logger.Error().Err(releaseLockErr).Msg("error while releasing lock on icons table")
+		}
+		if success {
+			logger.Debug().Str("lockTable", "icons").Str("lockKey", iconName).Bool("lockReleaseResult", success).Send()
+		} else {
+			logger.Info().Str("lockTable", "icons").Str("lockKey", iconName).Bool("lockReleaseResult", success).Send()
+		}
+	}()
+
+	tagsLock, lockErr := repo.iconTagsLockClient.AcquireLockWithContext(ctx, tag, dynamolock.WithData([]byte("AddTag")), dynamolock.ReplaceData())
+	if lockErr != nil {
+		return fmt.Errorf("failed to acquire lock on icon_tags_table#%s: %w", iconName, lockErr)
+	}
+	defer repo.iconTagsLockClient.ReleaseLock(tagsLock)
+
 	oldIconItem, getIconItemErr := repo.getIconItem(ctx, iconName, false)
 	if getIconItemErr != nil {
 		return fmt.Errorf("failed to get icon item %s to add tag %s to: %w", iconName, tag, getIconItemErr)
@@ -188,34 +305,28 @@ func (repo *DynamodbRepository) AddTag(ctx context.Context, iconName string, tag
 	}
 
 	newTags := append(oldTags, tag)
-	changeId := createChangeId()
 
-	newIconItem := &DyndbIcon{IconName: iconName, Iconfiles: oldIconItem.Iconfiles, ChangeId: changeId, ModifiedBy: modifiedBy, Tags: newTags}
+	newIconItem := &DyndbIcon{IconName: iconName, Iconfiles: oldIconItem.Iconfiles, ModifiedBy: modifiedBy, Tags: newTags}
 
-	updateIconErr := repo.updateIcon(ctx, newIconItem, oldIconItem.ChangeId)
+	updateIconErr := repo.updateIcon(ctx, newIconItem)
 	if updateIconErr != nil {
-		if errors.Is(updateIconErr, indexing.ErrConditionCheckFailed) {
-			return indexing.ErrModifyingStaleItem
-		} else {
-			return fmt.Errorf("failed to update icon item %s to add tag %s to: %w", iconName, tag, updateIconErr)
-		}
+		return fmt.Errorf("failed to update icon item %s to add tag %s to: %w", iconName, tag, updateIconErr)
 	}
 
-	updateTagsErr := repo.updateTag(ctx, tag, true, changeId)
+	oldTagItem, err := repo.getTagItem(ctx, tag, true)
+	if err != nil {
+		return fmt.Errorf("failed to get old tag-items for icon %s about to be deleted: %w", iconName, err)
+	}
+	if oldTagItem == nil {
+		oldTagItem = &DyndbTag{tag, 0}
+	}
+
+	updateTagsErr := repo.updateTag(ctx, *oldTagItem, true)
 	if updateTagsErr != nil {
 		// Roll back
-		deleteErr := repo.deleteIcon(ctx, newIconItem)
-		if deleteErr != nil {
-			if errors.Is(deleteErr, indexing.ErrConditionCheckFailed) {
-				// the IconItem has been concurrently overwritten, not much to do
-				return nil
-			}
-			return fmt.Errorf("failed to rollback updating icon %s with tag %s: %w", iconName, tag, deleteErr)
-		}
-
-		if errors.Is(updateTagsErr, indexing.ErrConditionCheckFailed) {
-			// TODO: expect condition validation failure reported; perhaps the same tag was added to, or removed from, another icon?
-			fmt.Printf(">>>>>>>>>>>>>> repeat all updates before giving up and rolling back\n")
+		updateErr := repo.updateIcon(ctx, oldIconItem)
+		if updateErr != nil {
+			return fmt.Errorf("failed to rollback updating icon %s with tag %s: %w", iconName, tag, updateErr)
 		}
 		return fmt.Errorf("failed to update tags table with tag %s to be added to icon item %s: %w", tag, iconName, updateTagsErr)
 	}
@@ -224,6 +335,34 @@ func (repo *DynamodbRepository) AddTag(ctx context.Context, iconName string, tag
 }
 
 func (repo *DynamodbRepository) RemoveTag(ctx context.Context, iconName string, tag string, modifiedBy string) error {
+	logger := zerolog.Ctx(ctx).With().Str("method", "DynamodbRepository.RemoveTag").Logger()
+
+	lock, lockErr := repo.iconsLockClient.AcquireLockWithContext(ctx, iconName, dynamolock.WithData([]byte("RemoveTag")), dynamolock.ReplaceData())
+	if lockErr != nil {
+		lock, readDataErr := repo.iconsLockClient.Get(iconName)
+		if readDataErr != nil {
+			logger.Error().Err(readDataErr).Str("lockTable", "icons").Str("lockKey", iconName).Msg("failed to read lock data after failing to acquire lock")
+		}
+		return fmt.Errorf("failed to acquire lock on icons_table#%s (<%s): %w", iconName, string(lock.Data()), lockErr)
+	}
+	defer func() {
+		success, releaseLockErr := repo.iconsLockClient.ReleaseLock(lock)
+		if releaseLockErr != nil {
+			logger.Error().Err(releaseLockErr).Msg("error while releasing lock on icons table")
+		}
+		if success {
+			logger.Debug().Str("lockTable", "icons").Str("lockKey", iconName).Bool("lockReleaseResult", success).Send()
+		} else {
+			logger.Info().Str("lockTable", "icons").Str("lockKey", iconName).Bool("lockReleaseResult", success).Send()
+		}
+	}()
+
+	tagsLock, lockErr := repo.iconTagsLockClient.AcquireLockWithContext(ctx, tag, dynamolock.WithData([]byte("RemoveTag")), dynamolock.ReplaceData())
+	if lockErr != nil {
+		return fmt.Errorf("failed to acquire lock on icon_tags_table#%s: %w", tag, lockErr)
+	}
+	defer repo.iconTagsLockClient.ReleaseLock(tagsLock)
+
 	oldIconItem, getIconItemErr := repo.getIconItem(ctx, iconName, false)
 	if getIconItemErr != nil {
 		return fmt.Errorf("failed to get icon item %s to add tag %s to: %w", iconName, tag, getIconItemErr)
@@ -243,34 +382,24 @@ func (repo *DynamodbRepository) RemoveTag(ctx context.Context, iconName string, 
 		return nil
 	}
 
-	changeId := createChangeId()
+	newIconItem := &DyndbIcon{IconName: iconName, Iconfiles: oldIconItem.Iconfiles, ModifiedBy: modifiedBy, Tags: newTags}
 
-	newIconItem := &DyndbIcon{IconName: iconName, Iconfiles: oldIconItem.Iconfiles, ChangeId: changeId, ModifiedBy: modifiedBy, Tags: newTags}
-
-	updateIconErr := repo.updateIcon(ctx, newIconItem, oldIconItem.ChangeId)
+	updateIconErr := repo.updateIcon(ctx, newIconItem)
 	if updateIconErr != nil {
-		if errors.Is(updateIconErr, indexing.ErrConditionCheckFailed) {
-			return indexing.ErrModifyingStaleItem
-		} else {
-			return fmt.Errorf("failed to update icon item %s to add tag %s to: %w", iconName, tag, updateIconErr)
-		}
+		return fmt.Errorf("failed to update icon item %s to add tag %s to: %w", iconName, tag, updateIconErr)
 	}
 
-	updateTagsErr := repo.updateTag(ctx, tag, true, changeId)
+	oldTagItem, err := repo.getTagItem(ctx, tag, true)
+	if err != nil {
+		return fmt.Errorf("failed to get old tag-items for icon %s about to be deleted: %w", iconName, err)
+	}
+
+	updateTagsErr := repo.updateTag(ctx, *oldTagItem, false)
 	if updateTagsErr != nil {
 		// Roll back
-		deleteErr := repo.deleteIcon(ctx, newIconItem)
-		if deleteErr != nil {
-			if errors.Is(deleteErr, indexing.ErrConditionCheckFailed) {
-				// the IconItem has been concurrently overwritten, not much to do
-				return nil
-			}
-			return fmt.Errorf("failed to rollback updating icon %s with tag %s: %w", iconName, tag, deleteErr)
-		}
-
-		if errors.Is(updateTagsErr, indexing.ErrConditionCheckFailed) {
-			// TODO: expect condition validation failure reported; perhaps the same tag was added to, or removed from, another icon?
-			fmt.Printf(">>>>>>>>>>>>>> repeat all updates before giving up and rolling back\n")
+		updateErr := repo.updateIcon(ctx, oldIconItem)
+		if updateErr != nil {
+			return fmt.Errorf("failed to rollback updating icon %s with tag %s: %w", iconName, tag, updateErr)
 		}
 		return fmt.Errorf("failed to update tags table with tag %s to be added to icon item %s: %w", tag, iconName, updateTagsErr)
 	}
@@ -279,21 +408,69 @@ func (repo *DynamodbRepository) RemoveTag(ctx context.Context, iconName string, 
 }
 
 func (repo *DynamodbRepository) DeleteIcon(ctx context.Context, iconName string, modifiedBy string, createSideEffect func() error) error {
-	logger := zerolog.Ctx(ctx).With().Str("method", "DynamodbRepository.DeleteIcon").Logger()
+	logger := zerolog.Ctx(ctx).With().Str("method", "DynamodbRepository.DeleteIcon").Str("iconName", iconName).Logger()
+
+	lock, lockErr := repo.iconsLockClient.AcquireLockWithContext(ctx, iconName, dynamolock.WithData([]byte("DeleteIcon")), dynamolock.ReplaceData())
+	if lockErr != nil {
+		lock, readDataErr := repo.iconsLockClient.Get(iconName)
+		if readDataErr != nil {
+			logger.Error().Err(readDataErr).Str("lockTable", "icons").Str("lockKey", iconName).Msg("failed to read lock data after failing to acquire lock")
+		}
+		return fmt.Errorf("failed to acquire lock on icons_table#%s (<%s): %w", iconName, string(lock.Data()), lockErr)
+	}
+	defer func() {
+		success, releaseLockErr := repo.iconsLockClient.ReleaseLock(lock)
+		if releaseLockErr != nil {
+			logger.Error().Err(releaseLockErr).Msg("error while releasing lock on icons table")
+		}
+		if success {
+			logger.Debug().Str("lockTable", "icons").Str("lockKey", iconName).Bool("lockReleaseResult", success).Send()
+		} else {
+			logger.Info().Str("lockTable", "icons").Str("lockKey", iconName).Bool("lockReleaseResult", success).Send()
+		}
+	}()
+
+	return repo.deleteIconNoLock(ctx, iconName, modifiedBy, createSideEffect)
+}
+
+func (repo *DynamodbRepository) deleteIconNoLock(ctx context.Context, iconName string, modifiedBy string, createSideEffect func() error) error {
+	logger := zerolog.Ctx(ctx).With().Str("method", "DynamodbRepository.deleteIcon0").Str("iconName", iconName).Logger()
 
 	iconItem, getIconItemErr := repo.getIconItem(ctx, iconName, false)
 	if getIconItemErr != nil {
 		return fmt.Errorf("failed to fetch %s for deletion (to delete associated tags): %w", iconName, getIconItemErr)
 	}
 
-	changeId := createChangeId()
+	tagsUpdatedWithDecrRefCount := []*DyndbTag{}
 
-	for _, tag := range iconItem.Tags {
-		updateTagErr := repo.updateTag(ctx, tag, false, changeId)
-		if updateTagErr != nil {
-			// TODO: restore old state of the tags updated so far
-			return fmt.Errorf("failed to update tag %s: %w", tag, updateTagErr)
+	rollbackTagsUpdatedSoFar := func() {
+		for _, item := range tagsUpdatedWithDecrRefCount {
+			rollbackErr := repo.updateTag(ctx, *item, true)
+			if rollbackErr != nil {
+				logger.Error().Err(rollbackErr).Str("icon", iconName).Str("tag", item.Tag).Msg("failed to rollback tag ref-count decrement")
+			}
 		}
+	}
+
+	for _, oldTag := range iconItem.Tags {
+		oldItem, err := repo.getTagItem(ctx, oldTag, true)
+		if err != nil {
+			return fmt.Errorf("failed to get old tag-items for icon %s about to be deleted: %w", iconName, err)
+		}
+
+		tagsLock, lockErr := repo.iconTagsLockClient.AcquireLockWithContext(ctx, oldTag, dynamolock.WithData([]byte("DeleteIcon")), dynamolock.ReplaceData())
+		if lockErr != nil {
+			rollbackTagsUpdatedSoFar()
+			return fmt.Errorf("failed to acquire lock on icon_tags_table#%s: %w", iconName, lockErr)
+		}
+		defer repo.iconTagsLockClient.ReleaseLock(tagsLock)
+
+		updateErr := repo.updateTag(ctx, *oldItem, false)
+		if updateErr != nil {
+			rollbackTagsUpdatedSoFar()
+			return fmt.Errorf("failed to update tags for icon %s about to be deleted: %w", iconName, updateErr)
+		}
+		tagsUpdatedWithDecrRefCount = append(tagsUpdatedWithDecrRefCount, oldItem)
 	}
 
 	deleteErr := repo.deleteIcon(ctx, iconItem)
@@ -304,8 +481,8 @@ func (repo *DynamodbRepository) DeleteIcon(ctx context.Context, iconName string,
 	if createSideEffect != nil {
 		sideEffectErr := createSideEffect()
 		if sideEffectErr != nil {
-			// TODO: rollback tags updates
-			rollbackErr := repo.updateIcon(ctx, iconItem, "")
+			rollbackTagsUpdatedSoFar()
+			rollbackErr := repo.updateIcon(ctx, iconItem)
 			if rollbackErr != nil {
 				logger.Error().Err(rollbackErr).Str("IconName", iconName).Msg("failed to rollback on side-effect error")
 			}
@@ -323,17 +500,39 @@ func (repo *DynamodbRepository) DeleteIconfile(
 	modifiedBy string,
 	createSideEffect func() error,
 ) error {
-	logger := zerolog.Ctx(ctx).With().Str("method", "DynamodbRepository.DeleteIconfile").Logger()
+	logger := zerolog.Ctx(ctx).With().Str("method", "DynamodbRepository.DeleteIconfile").Str("iconName", iconName).Str("iconfile", iconfile.String()).Logger()
 
+	readDataLock, _ := repo.iconsLockClient.Get(iconName)
+	logger.Debug().Str("currentLockData", string(readDataLock.Data())).Msg("about to acquire lock")
+
+	lock, lockErr := repo.iconsLockClient.AcquireLockWithContext(ctx, iconName, dynamolock.WithData([]byte("DeleteIconfile")), dynamolock.ReplaceData())
+	if lockErr != nil {
+		lock, readDataErr := repo.iconsLockClient.Get(iconName)
+		if readDataErr != nil {
+			logger.Error().Err(readDataErr).Str("lockTable", "icons").Str("lockKey", iconName).Msg("failed to read lock data after failing to acquire lock")
+		}
+		return fmt.Errorf("failed to acquire lock on icons_table#%s (<%s): %w", iconName, string(lock.Data()), lockErr)
+	}
+	defer func() {
+		success, releaseLockErr := repo.iconsLockClient.ReleaseLock(lock)
+		if releaseLockErr != nil {
+			logger.Error().Err(releaseLockErr).Msg("error while releasing lock on icons table")
+		}
+		if success {
+			logger.Debug().Str("lockTable", "icons").Str("lockKey", iconName).Bool("lockReleaseResult", success).Send()
+		} else {
+			logger.Info().Str("lockTable", "icons").Str("lockKey", iconName).Bool("lockReleaseResult", success).Send()
+		}
+	}()
+
+	logger.Debug().Msg("about to call repo.getIconItem...")
 	oldIconItem, getIconItemErr := repo.getIconItem(ctx, iconName, false)
 	if getIconItemErr != nil {
 		return fmt.Errorf("failed to get DyndbIcon to remove %s: %w", iconName, getIconItemErr)
 	}
 
-	newChangeId := createChangeId()
 	newIconItem := DyndbIcon{
 		IconName:   iconName,
-		ChangeId:   newChangeId,
 		ModifiedBy: modifiedBy,
 		Tags:       oldIconItem.Tags,
 	}
@@ -350,8 +549,9 @@ func (repo *DynamodbRepository) DeleteIconfile(
 	if !found {
 		return domain.ErrIconfileNotFound
 	}
+
 	if len(newIconfiles) == 0 {
-		deleteIconErr := repo.DeleteIcon(ctx, iconName, modifiedBy, createSideEffect)
+		deleteIconErr := repo.deleteIconNoLock(ctx, iconName, modifiedBy, createSideEffect)
 		if deleteIconErr != nil {
 			return fmt.Errorf("failed to delete icon (with no more iconfiles left) %s: %w", iconName, deleteIconErr)
 		}
@@ -359,19 +559,15 @@ func (repo *DynamodbRepository) DeleteIconfile(
 	}
 	newIconItem.Iconfiles = newIconfiles
 
-	updateErr := repo.updateIcon(ctx, &newIconItem, oldIconItem.ChangeId)
+	updateErr := repo.updateIcon(ctx, &newIconItem)
 	if updateErr != nil {
-		cause := updateErr
-		if errors.Is(updateErr, indexing.ErrConditionCheckFailed) {
-			cause = fmt.Errorf("change-id required: %s: %w", oldIconItem.ChangeId, indexing.ErrModifyingStaleItem)
-		}
-		return fmt.Errorf("failed to update icon %s with %v removed: %w", iconName, iconfile, cause)
+		return fmt.Errorf("failed to update icon %s with %v removed: %w", iconName, iconfile, updateErr)
 	}
 
 	if createSideEffect != nil {
 		sideEffectErr := createSideEffect()
 		if sideEffectErr != nil {
-			rollbackErr := repo.updateIcon(ctx, oldIconItem, newIconItem.ChangeId)
+			rollbackErr := repo.updateIcon(ctx, oldIconItem)
 			if rollbackErr != nil {
 				logger.Error().Err(rollbackErr).Str("IconName", iconName).Msg("failed to rollback on side-effect error")
 			}
@@ -384,6 +580,7 @@ func (repo *DynamodbRepository) DeleteIconfile(
 
 func (repo *DynamodbRepository) getIconItem(ctx context.Context, iconName string, consistentRead bool) (*DyndbIcon, error) {
 	logger := zerolog.Ctx(ctx).With().Str("unit", "DynamodbRepository").Str("method", "getIconItem").Logger()
+	logger.Debug().Str("iconName", iconName).Msg("BEGIN")
 
 	icon := &DyndbIcon{IconName: iconName}
 	key, keyErr := icon.GetKey(ctx)
@@ -392,7 +589,7 @@ func (repo *DynamodbRepository) getIconItem(ctx context.Context, iconName string
 	}
 
 	input := &aws_dyndb.GetItemInput{
-		TableName:      &IconsTableName,
+		TableName:      aws.String(IconsTableName),
 		Key:            key,
 		ConsistentRead: &consistentRead,
 	}
@@ -415,7 +612,7 @@ func (repo *DynamodbRepository) getIconItem(ctx context.Context, iconName string
 	return icon, nil
 }
 
-func (repo *DynamodbRepository) updateIcon(ctx context.Context, icon *DyndbIcon, requiredChangeId string) error {
+func (repo *DynamodbRepository) updateIcon(ctx context.Context, icon *DyndbIcon) error {
 	logger := zerolog.Ctx(ctx).With().Str("method", "DynamodbRepository.updateIcon").Logger()
 
 	newItem, marshalErr := attributevalue.MarshalMap(icon)
@@ -423,25 +620,10 @@ func (repo *DynamodbRepository) updateIcon(ctx context.Context, icon *DyndbIcon,
 		return fmt.Errorf("failed to marshal new icon item for updating %s: %w", icon.IconName, marshalErr)
 	}
 
-	conditionExpression, conditionNames, conditionValues, condBuildErr := buildTimestampCondition(ctx, requiredChangeId)
-	if condBuildErr != nil {
-		return fmt.Errorf("failed to build 'must be equal' condition expression for %s: %w", requiredChangeId, condBuildErr)
-	}
-
-	if len(requiredChangeId) == 0 {
-		conditionExpression, conditionNames, conditionValues, condBuildErr = buildPkNotExistsCondition(ctx, iconNameAttribute)
-		if condBuildErr != nil {
-			return fmt.Errorf("failed to build 'attribute not exists' condition expression for %s: %w", iconNameAttribute, condBuildErr)
-		}
-	}
-
 	input := &aws_dyndb.PutItemInput{
-		TableName:                 aws.String(IconsTableName),
-		Item:                      newItem,
-		ConditionExpression:       conditionExpression,
-		ExpressionAttributeNames:  conditionNames,
-		ExpressionAttributeValues: conditionValues,
-		ReturnConsumedCapacity:    "TOTAL",
+		TableName:              aws.String(IconsTableName),
+		Item:                   newItem,
+		ReturnConsumedCapacity: "TOTAL",
 	}
 	output, err := repo.awsClient.PutItem(ctx, input)
 	if err != nil {
@@ -462,18 +644,10 @@ func (repo *DynamodbRepository) deleteIcon(ctx context.Context, iconItem *DyndbI
 		return fmt.Errorf("failed to get key for deleting %s: %w", iconItem.IconName, getKeyErr)
 	}
 
-	conditionExpression, conditionNames, conditionValues, condBuildErr := buildTimestampCondition(ctx, iconItem.ChangeId)
-	if condBuildErr != nil {
-		return condBuildErr
-	}
-
 	input := &aws_dyndb.DeleteItemInput{
-		TableName:                 aws.String(IconsTableName),
-		Key:                       pk,
-		ConditionExpression:       conditionExpression,
-		ExpressionAttributeNames:  conditionNames,
-		ExpressionAttributeValues: conditionValues,
-		ReturnConsumedCapacity:    "TOTAL",
+		TableName:              aws.String(IconsTableName),
+		Key:                    pk,
+		ReturnConsumedCapacity: "TOTAL",
 	}
 	output, err := repo.awsClient.DeleteItem(ctx, input)
 	if err != nil {
@@ -497,7 +671,7 @@ func (repo *DynamodbRepository) getTagItem(ctx context.Context, tag string, cons
 	}
 
 	input := &aws_dyndb.GetItemInput{
-		TableName:      &IconTagsTableName,
+		TableName:      aws.String(IconTagsTableName),
 		Key:            key,
 		ConsistentRead: &consistentRead,
 	}
@@ -521,115 +695,47 @@ func (repo *DynamodbRepository) getTagItem(ctx context.Context, tag string, cons
 	return tagItem, nil
 }
 
-func (repo *DynamodbRepository) updateTag(ctx context.Context, tag string, add bool, parentChangeId string) error {
-	oldTagItem, getTagItemErr := repo.getTagItem(ctx, tag, true)
-	if getTagItemErr != nil {
-		return fmt.Errorf("failed to get old tag item %s: %w", tag, getTagItemErr)
-	}
-
-	oldChangeId := ""
-	if oldTagItem != nil {
-		oldChangeId = oldTagItem.ChangeId
-	}
-	conditionExpression, conditionNames, conditionValues, condBuildErr := buildTimestampCondition(ctx, oldChangeId)
-	if condBuildErr != nil {
-		return condBuildErr
-	}
-
-	var newTagItem = &DyndbTag{Tag: tag, ChangeId: parentChangeId}
-	if oldTagItem == nil {
-		oldTagItem = &DyndbTag{ChangeId: "", ReferenceCount: 0} // Don't require time stamp during update
-	}
+func (repo *DynamodbRepository) updateTag(ctx context.Context, tagItem DyndbTag, add bool) error {
+	var newRefCount int64
 	if add {
-		newTagItem.ReferenceCount = oldTagItem.ReferenceCount + 1
+		newRefCount = tagItem.ReferenceCount + 1
 	} else {
-		newTagItem.ReferenceCount = oldTagItem.ReferenceCount - 1
+		newRefCount = tagItem.ReferenceCount - 1
 	}
 
-	if newTagItem.ReferenceCount > 0 {
-		newItem, marshalErr := attributevalue.MarshalMap(newTagItem)
+	if newRefCount > 0 {
+		newItem, marshalErr := attributevalue.MarshalMap(&DyndbTag{tagItem.Tag, newRefCount})
 		if marshalErr != nil {
-			return fmt.Errorf("failed to marshal new icon item for updating %s: %w", tag, marshalErr)
+			return fmt.Errorf("failed to marshal new icon item for updating %s: %w", tagItem.Tag, marshalErr)
 		}
 
 		input := &aws_dyndb.PutItemInput{
-			TableName:                 aws.String(IconTagsTableName),
-			Item:                      newItem,
-			ConditionExpression:       conditionExpression,
-			ExpressionAttributeNames:  conditionNames,
-			ExpressionAttributeValues: conditionValues,
-			ReturnConsumedCapacity:    "TOTAL",
+			TableName:              aws.String(IconTagsTableName),
+			Item:                   newItem,
+			ReturnConsumedCapacity: "TOTAL",
 		}
 		_, err := repo.awsClient.PutItem(ctx, input)
 		if err != nil {
-			return fmt.Errorf("failed to update icon %s: %w", tag, Unwrap(ctx, err))
+			return fmt.Errorf("failed to update icon %s: %w", tagItem.Tag, Unwrap(ctx, err))
 		}
 
 		return nil
 	}
 
-	pk, getKeyErr := oldTagItem.GetKey(ctx)
+	pk, getKeyErr := tagItem.GetKey(ctx)
 	if getKeyErr != nil {
-		return fmt.Errorf("failed to generate PK of %v for removal: %w", oldTagItem, getKeyErr)
+		return fmt.Errorf("failed to generate PK of %v for removal: %w", tagItem, getKeyErr)
 	}
 
 	input := &aws_dyndb.DeleteItemInput{
-		TableName:                 &IconTagsTableName,
-		Key:                       pk,
-		ConditionExpression:       conditionExpression,
-		ExpressionAttributeNames:  conditionNames,
-		ExpressionAttributeValues: conditionValues,
-		ReturnConsumedCapacity:    "TOTAL",
+		TableName:              aws.String(IconTagsTableName),
+		Key:                    pk,
+		ReturnConsumedCapacity: "TOTAL",
 	}
 	_, deleteErr := repo.awsClient.DeleteItem(ctx, input)
 	if deleteErr != nil {
-		return fmt.Errorf("failed to delete tag %v: %w", oldTagItem, deleteErr)
+		return fmt.Errorf("failed to delete tag %v: %w", tagItem, deleteErr)
 	}
 
 	return nil
-}
-
-func NewDynamodbRepository(conf *config.Options) (*DynamodbRepository, error) {
-	awsConf, err := createConfig(conf)
-	if err != nil {
-		return nil, err
-	}
-	svc := aws_dyndb.NewFromConfig(awsConf)
-	return &DynamodbRepository{svc}, nil
-}
-
-func createChangeId() string {
-	return xid.New().String()
-}
-
-func buildTimestampCondition(ctx context.Context, requiredChangeId string) (*string, map[string]string, map[string]types.AttributeValue, error) {
-	var conditionExpression *string
-	var conditionNames map[string]string
-	var conditionValues map[string]types.AttributeValue
-	if len(requiredChangeId) > 0 {
-		condBuilder := expression.Name(changeIdAttribute).Equal(expression.Value(requiredChangeId))
-		condEx, buildErr := expression.NewBuilder().WithCondition(condBuilder).Build()
-		if buildErr != nil {
-			return conditionExpression, conditionNames, conditionValues, fmt.Errorf("failed to build conditional expression: %w", Unwrap(ctx, buildErr))
-		}
-		conditionExpression = condEx.Condition()
-		conditionNames = condEx.Names()
-		conditionValues = condEx.Values()
-	}
-	return conditionExpression, conditionNames, conditionValues, nil
-}
-
-func buildPkNotExistsCondition(ctx context.Context, pk string) (*string, map[string]string, map[string]types.AttributeValue, error) {
-	var conditionExpression *string
-	var conditionNames map[string]string
-	var conditionValues map[string]types.AttributeValue
-	condBuilder := expression.AttributeNotExists(expression.Name(pk))
-	condEx, buildErr := expression.NewBuilder().WithCondition(condBuilder).Build()
-	if buildErr != nil {
-		return conditionExpression, conditionNames, conditionValues, fmt.Errorf("failed to build conditional expression: %w", Unwrap(ctx, buildErr))
-	}
-	conditionExpression = condEx.Condition()
-	conditionNames = condEx.Names()
-	conditionValues = condEx.Values()
-	return conditionExpression, conditionNames, conditionValues, nil
 }

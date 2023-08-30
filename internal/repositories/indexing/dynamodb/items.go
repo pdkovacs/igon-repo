@@ -9,11 +9,14 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 )
 
-var IconsTableName = "icons"
-var iconNameAttribute = "IconName"
-var changeIdAttribute = "ChangeId"
-var IconTagsTableName = "icon_tags"
-var tagAttribute = "Tag"
+const (
+	IconsTableName        string = "icons"
+	iconNameAttribute     string = "IconName"
+	IconTagsTableName     string = "icon_tags"
+	tagAttribute          string = "Tag"
+	iconsLockTableName    string = "icons_locks"
+	iconTagsLockTableName string = "icon_tags_locks"
+)
 
 type DyndbIconfile struct {
 	Format string `dynamodbav:"Format"`
@@ -45,7 +48,6 @@ func toIconfileDescriptorList(iconfiles []DyndbIconfile) []domain.IconfileDescri
 
 type DyndbIcon struct {
 	IconName   string          `dynamodbav:"IconName"`
-	ChangeId   string          `dynamodbav:"ChangeId"`
 	ModifiedBy string          `dynamodbav:"ModifiedBy"`
 	Iconfiles  []DyndbIconfile `dynamodbav:"Iconfiles"`
 	Tags       []string        `dynamodbav:"Tags"`
@@ -85,7 +87,6 @@ func (dyIcon *DyndbIcon) toIconDescriptor() domain.IconDescriptor {
 type DyndbTag struct {
 	Tag            string `dynamodbav:"Tag"`
 	ReferenceCount int64  `dynamodbav:"ReferenceCount"`
-	ChangeId       string `dynamodbav:"ChangeId"`
 }
 
 func (dyTag *DyndbTag) GetKey(ctx context.Context) (map[string]types.AttributeValue, error) {

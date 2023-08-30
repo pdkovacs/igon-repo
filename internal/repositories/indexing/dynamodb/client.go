@@ -44,11 +44,6 @@ func Unwrap(ctx context.Context, err error) error {
 		if errors.As(oe.Err, &tmpErr) {
 			return indexing.ErrTableNotFound
 		}
-
-		tmpErr1 := &types.ConditionalCheckFailedException{}
-		if errors.As(oe.Err, &tmpErr1) {
-			return indexing.ErrConditionCheckFailed
-		}
 	}
 	logger.Error().Err(err).Msg("some error occured")
 	return err

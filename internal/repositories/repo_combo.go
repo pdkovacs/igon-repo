@@ -10,6 +10,7 @@ import (
 )
 
 type IndexRepository interface {
+	Close() error
 	DescribeAllIcons(ctx context.Context) ([]domain.IconDescriptor, error)
 	DescribeIcon(ctx context.Context, iconName string) (domain.IconDescriptor, error)
 	GetExistingTags(tx context.Context) ([]string, error)

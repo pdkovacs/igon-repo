@@ -3,12 +3,12 @@ module iconrepo
 go 1.19
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.19.0
+	github.com/aws/aws-sdk-go-v2 v1.21.0
 	github.com/aws/aws-sdk-go-v2/config v1.18.28
-	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.10.31
-	github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression v1.4.58
-	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.20.1
-	github.com/aws/smithy-go v1.13.5
+	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.10.39
+	github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression v1.4.66
+	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.21.5
+	github.com/aws/smithy-go v1.14.2
 	github.com/coreos/go-oidc/v3 v3.2.0
 	github.com/gin-contrib/sessions v0.0.5
 	github.com/gin-gonic/gin v1.8.1
@@ -21,15 +21,16 @@ require (
 )
 
 require (
+	cirello.io/dynamolock/v2 v2.0.2 // indirect
 	github.com/antonlindstrom/pgstore v0.0.0-20200229204646-b08ebf1105e0 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.27 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.13.5 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.35 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.29 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.41 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.35 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.3.36 // indirect
-	github.com/aws/aws-sdk-go-v2/service/dynamodbstreams v1.14.15 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.9.11 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/endpoint-discovery v1.7.29 // indirect
+	github.com/aws/aws-sdk-go-v2/service/dynamodbstreams v1.15.5 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.9.14 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/endpoint-discovery v1.7.35 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.29 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.12.13 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.14.13 // indirect

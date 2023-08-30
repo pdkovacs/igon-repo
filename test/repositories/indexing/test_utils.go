@@ -136,7 +136,6 @@ func (s *IndexingTestSuite) SetupSuite() {
 	s.config = conf
 	s.config.DBSchemaName = "itest_repositories"
 	s.ctx = logging.Get().WithContext(context.TODO())
-	NewTestPgRepo(&conf)
 }
 
 func (s *IndexingTestSuite) TearDownSuite() {

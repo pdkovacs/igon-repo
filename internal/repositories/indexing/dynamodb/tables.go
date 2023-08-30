@@ -55,6 +55,32 @@ func NewDyndbIconTagsTable(awsClient *aws_dyndb.Client) *DyndbIconTagsTable {
 	return &DyndbIconTagsTable{awsClient: awsClient}
 }
 
+func DeleteLockItems(ctx context.Context, awsClient *aws_dyndb.Client) error {
+	err := deleteLockItemsFromTable(ctx, awsClient, iconsLockTableName)
+	if err != nil {
+		return err
+	}
+	return deleteLockItemsFromTable(ctx, awsClient, iconTagsLockTableName)
+}
+
+func deleteLockItemsFromTable(ctx context.Context, awsClient *aws_dyndb.Client, tableName string) error {
+	items, iconsScanErr := scanTable(ctx, awsClient, tableName)
+	if iconsScanErr != nil {
+		return fmt.Errorf("failed to scan %s: %w", tableName, iconsScanErr)
+	}
+	for _, item := range items {
+		deleteItemInput := aws_dyndb.DeleteItemInput{
+			TableName: &tableName,
+			Key:       map[string]types.AttributeValue{"key": item["key"]},
+		}
+		_, deleteErr := awsClient.DeleteItem(ctx, &deleteItemInput)
+		if deleteErr != nil {
+			return fmt.Errorf("failed to delete item %v from %s: %w", item["key"], tableName, deleteErr)
+		}
+	}
+	return nil
+}
+
 func scanTable(ctx context.Context, awsClient *aws_dyndb.Client, tableName string) ([]map[string]types.AttributeValue, error) {
 	input := &aws_dyndb.ScanInput{
 		TableName: &tableName,

@@ -18,7 +18,7 @@ type DynamodbTestRepository struct {
 }
 
 func (testRepo *DynamodbTestRepository) Close() error {
-	return errors.New("DynamodbTestRepository.Close not yet implemented")
+	return testRepo.DynamodbRepository.Close()
 }
 
 func (testRepo *DynamodbTestRepository) GetIconCount(ctx context.Context) (int, error) {
@@ -61,28 +61,33 @@ func (testRepo *DynamodbTestRepository) GetTagRelationCount(ctx context.Context)
 
 func (testRepo *DynamodbTestRepository) ResetData(ctx context.Context) error {
 	iconsTable := dynamodb.NewDyndbIconsTable(testRepo.GetAwsClient())
+
 	icons, getIconsErr := iconsTable.GetItems(ctx)
 	if getIconsErr != nil {
 		return getIconsErr
 	}
+
 	for _, icon := range icons {
 		deletErr := testRepo.DeleteAll(ctx, dynamodb.IconsTableName, icon)
 		if deletErr != nil {
 			return deletErr
 		}
 	}
+
 	iconTagsTable := dynamodb.NewDyndbIconTagsTable(testRepo.GetAwsClient())
 	iconTags, getIconTagsErr := iconTagsTable.GetItems(ctx)
 	if getIconTagsErr != nil {
 		return getIconTagsErr
 	}
+
 	for _, icon := range iconTags {
 		deletErr := testRepo.DeleteAll(ctx, dynamodb.IconTagsTableName, icon)
 		if deletErr != nil {
 			return deletErr
 		}
 	}
-	return nil
+
+	return dynamodb.DeleteLockItems(ctx, testRepo.GetAwsClient())
 }
 
 type keyGetter interface {
