@@ -5,4 +5,4 @@ export default (path: string) => {
 	const backendBaseUrl = backendAccess.baseUrl || "";
 	const backendPathRoot = backendAccess.pathRoot || "";
 	return backendBaseUrl + backendPathRoot + path;
-}
+};

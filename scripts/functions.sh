@@ -2,7 +2,8 @@
 
 # Mac OS: the following assumes you have executed
 #     brew install coreutils
-READLINK=$(greadlink --help >/dev/null 2>&1 && echo greadlink || echo readlink)
+READLINK=$(which greadlink >/dev/null 2>&1 && echo greadlink || echo readlink)
+DATE=$(which gdate >/dev/null 2>&1 && echo gdate || echo date)
 
 get_my_ip() {
   if which ip >/dev/null;
@@ -47,7 +48,7 @@ clean_dist() {
 dist_backend() {
     cd "${repo_root}/backend"
     mkdir -p "$dist_dir/backend/"
-    npm install \
+    npm ci \
         && npm run build:backend \
         && cp -a package*.json "$dist_dir/backend/" \
         && cp -a build/src/* "$dist_dir/backend/" \
@@ -58,7 +59,7 @@ dist_backend() {
 dist_frontend() {
     cd "${repo_root}/client"
     mkdir -p "$dist_dir/frontend/" 
-    npm install \
+    npm ci \
         && rm -rf dist \
         && npm run dist \
         && cp -a "${repo_root}"/client/dist/* "$dist_dir/frontend/" \
@@ -85,5 +86,5 @@ pack() {
 # }
 
 ns_date() {
-  date --rfc-3339 ns
+  "$DATE" --rfc-3339 ns
 }

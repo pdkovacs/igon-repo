@@ -30,7 +30,7 @@ Enabling consumer-developers (users of the applicatioin) to give effective feed-
         ```
 1. Install the backend npm dependencies. In the `backend` subdirectory of the local code repository:
 
-    `npm install`
+    `npm ci`
 
 1. Import the demo data (optional, but recommended for frontend development)
 
@@ -42,7 +42,7 @@ Enabling consumer-developers (users of the applicatioin) to give effective feed-
 
 1. Start the frontend in the `client` subdirectory by executing:
 
-    `npm install && npm run dev`
+    `npm ci && npm run dev`
 
 2. For testing with GitLab as a git provider have a file with an appropriate GitLab authentication token:
 

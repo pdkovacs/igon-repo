@@ -11,7 +11,6 @@ import (
 	"github.com/rs/xid"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/pkgerrors"
-	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 type LogLevel = string
@@ -60,17 +59,17 @@ func Get() zerolog.Logger {
 			return os.Getenv("APP_ENV") == "development"
 		}
 
-		if !isDevelopmentEnv() {
-			fileLogger := &lumberjack.Logger{
-				Filename:   "iconrepo.log",
-				MaxSize:    5,
-				MaxBackups: 10,
-				MaxAge:     14,
-				Compress:   true,
-			}
+		// if !isDevelopmentEnv() {
+		// 	fileLogger := &lumberjack.Logger{
+		// 		Filename:   "iconrepo.log",
+		// 		MaxSize:    5,
+		// 		MaxBackups: 10,
+		// 		MaxAge:     14,
+		// 		Compress:   true,
+		// 	}
 
-			output = zerolog.MultiLevelWriter(os.Stderr, fileLogger)
-		}
+		// 	output = zerolog.MultiLevelWriter(os.Stderr, fileLogger)
+		// }
 
 		var gitRevision string
 

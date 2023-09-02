@@ -13,7 +13,14 @@ enum FetchMethod {
 
 export type QueryParams = {[key: string]: string};
 
-const fetchWithMethod = async <B, R> (fetchMethod: FetchMethod, path: string, expectedHttpStatus: number, queryParams?: QueryParams, body?: B, json = true) => {
+const fetchWithMethod = async <B, R> (
+	fetchMethod: FetchMethod,
+	path: string,
+	expectedHttpStatus: number,
+	queryParams?: QueryParams,
+	body?: B,
+	json = true
+) => {
 	const realPath = path.startsWith("!") ? path.substring(1) : getEndpointUrl(path);
 	try {
 		const response = await fetch(realPath, {
@@ -22,8 +29,7 @@ const fetchWithMethod = async <B, R> (fetchMethod: FetchMethod, path: string, ex
 			headers: json ? {
         "Content-Type": "application/json; charset=utf-8"
 			} : undefined,
-			// @ts-ignore
-			body: body ? json ? JSON.stringify(body) : body: undefined
+			body: body ? json ? JSON.stringify(body) : body as string : null
 		});
 
 		if (response.status === 401) {

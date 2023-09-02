@@ -49,14 +49,14 @@ test-dynamodb: backend
 run:
 	go run cmd/main.go
 $(ui-bundle): $(shell find web/src -type f) web/webpack.config.js
-	cd web; npm install; npm run dist;
+	cd web; npm ci; npm run dist;
 $(app): $(ui-bundle) $(shell find internal/ cmd/ -type f)
 	$(build-go)
 $(backend): $(shell find internal/ cmd/ -type f)
 	rm -rf $(ui-bundle-dir); mkdir -p $(ui-bundle-dir); touch $(ui-bundle-dir)/empty.html
 	$(build-go)
 $(frontend): $(shell find web/src -type f) web/webpack.config.js
-	cd web; npm install; npm run frontend;
+	cd web; npm ci; npm run frontend;
 keycloak-init:
 	cd deployments/dev/keycloak/; bash build.sh
 ui-bundle: $(ui-bundle)

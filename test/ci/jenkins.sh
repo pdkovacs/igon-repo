@@ -18,6 +18,6 @@ tar xf $node_package_roll
 export PATH=$node_package_name/bin:$PATH
 node --version
 
-cd client && npm install && \
-cd ../backend && npm install && \
+cd client && npm ci && \
+cd ../backend && npm ci && \
 npm run dist:all

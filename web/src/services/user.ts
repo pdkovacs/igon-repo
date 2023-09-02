@@ -1,5 +1,4 @@
 import getEndpointUrl from "./url";
-import { throwError } from "./errors";
 import { getData } from "./fetch-utils";
 
 export interface UserInfo {
@@ -21,7 +20,7 @@ export const initialUserInfo = () => ({
     permissions: [] as string[]
 });
 
-export const fetchUserInfo: () => Promise<UserInfo> = () => getData<{}, UserInfo>("/user", 200)
+export const fetchUserInfo: () => Promise<UserInfo> = () => getData<void, UserInfo>("/user", 200)
 .then(
     userInfo => ({
 			...userInfo,

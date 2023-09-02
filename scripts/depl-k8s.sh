@@ -24,13 +24,13 @@ kill_backend_process() {
 }
 
 build_backend() {
-  GOOS=linux GOARCH=amd64 make app
+  GOOS=linux GOARCH=amd64 make backend
 }
 
 build_image() {
   build_image_cmd="$1"
   (
-    eval $(minikube docker-env)
+    eval $(minikube -p minikube docker-env)
     eval "$build_image_cmd"
   )
 }

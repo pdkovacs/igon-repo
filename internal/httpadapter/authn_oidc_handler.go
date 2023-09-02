@@ -23,9 +23,11 @@ const authenticationRefererSessionKey = "authentication-referer"
 type HandleOAuth2Callback func(c *gin.Context, storedState string) (*claims, error)
 
 func checkOIDCAuthentication(log zerolog.Logger) func(c *gin.Context) {
-	logger := logging.CreateMethodLogger(log, "checkOIDCAuthentication")
 
 	return func(c *gin.Context) {
+		logger := zerolog.Ctx(c.Request.Context())
+		logger.Debug().Msg("start authorizing...")
+
 		session := sessions.Default(c)
 		user := session.Get(UserKey)
 		if user == nil {
