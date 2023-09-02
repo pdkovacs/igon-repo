@@ -5,6 +5,7 @@ import (
 	"errors"
 	"iconrepo/internal/config"
 	"iconrepo/internal/repositories/indexing"
+	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	aws_config "github.com/aws/aws-sdk-go-v2/config"
@@ -14,19 +15,32 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func createConfig(conf *config.Options) (aws.Config, error) {
-	customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-		return aws.Endpoint{
-			URL:           conf.DynamodbURL,
-			SigningRegion: region,
-		}, nil
-	})
+func createAwsConfig(conf *config.Options) (aws.Config, error) {
 
-	return aws_config.LoadDefaultConfig(context.TODO(), aws_config.WithEndpointResolverWithOptions(customResolver))
+	loadOptions := []func(*aws_config.LoadOptions) error{}
+
+	if len(conf.DynamodbURL) > 1 {
+		customResolver := aws.EndpointResolverWithOptionsFunc(func(service, region string, options ...interface{}) (aws.Endpoint, error) {
+			return aws.Endpoint{
+				URL:           conf.DynamodbURL,
+				SigningRegion: region,
+			}, nil
+		})
+		loadOptions = append(loadOptions, aws_config.WithEndpointResolverWithOptions(customResolver))
+	}
+
+	if profile := os.Getenv("AWS_PROFILE"); len(profile) > 0 {
+		loadOptions = append(loadOptions, aws_config.WithSharedConfigProfile(profile))
+	}
+
+	return aws_config.LoadDefaultConfig(
+		context.TODO(),
+		loadOptions...,
+	)
 }
 
 func NewDynamodbClient(conf *config.Options) (*aws_dyndb.Client, error) {
-	awsConf, err := createConfig(conf)
+	awsConf, err := createAwsConfig(conf)
 	if err != nil {
 		return nil, err
 	}

@@ -33,11 +33,10 @@ type DynamodbRepository struct {
 }
 
 func NewDynamodbRepository(conf *config.Options) (*DynamodbRepository, error) {
-	awsConf, err := createConfig(conf)
-	if err != nil {
-		return nil, err
+	svc, clientErr := NewDynamodbClient(conf)
+	if clientErr != nil {
+		return nil, fmt.Errorf("failed to create dynamodb client: %w", clientErr)
 	}
-	svc := aws_dyndb.NewFromConfig(awsConf)
 
 	iconsLockClient, iconsLockClientErr := dynamolock.New(
 		svc,

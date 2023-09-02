@@ -1,70 +1,68 @@
+terraform {
+  backend "s3" {
+    bucket  = "bitkitchen-tf-state"
+    key     = "iconrepo/indexing/dynamodb"
+    region  = "eu-west-1"
+    encrypt = true
+  }
+}
+
 provider "aws" {
-  access_key                  = "mockAccessKey"
-  region                      = "us-east-1"
-  secret_key                  = "mockSecretKey"
+  region                      = "eu-west-1"
   skip_credentials_validation = true
   skip_metadata_api_check     = true
-  skip_requesting_account_id  = true
-
-  endpoints {
-    dynamodb = "http://localhost:8000"
-  }
 }
 
 resource "aws_dynamodb_table" "icons" {
   name           = "icons"
   billing_mode   = "PROVISIONED"
-  read_capacity  = 20
-  write_capacity = 20
+  read_capacity  = 5
+  write_capacity = 5
   hash_key       = "IconName"
-  range_key      = "IconfileDescriptor"
 
   attribute {
     name = "IconName" # <icon-id>#<icon-name>
     type = "S"
   }
-
-  attribute {
-    name = "IconfileDescriptor" # <format>#<size>
-    type = "S"
-  }
-
-  ttl {
-    attribute_name = "TimeToExist"
-    enabled        = false
-  }
-
-  tags = {
-    Name        = "dynamodb-table-icons"
-    Environment = "dev"
-  }
 }
 
-resource "aws_dynamodb_table" "icon_files" {
-  name           = "icon_files"
+resource "aws_dynamodb_table" "icon_tags" {
+  name           = "icon_tags"
   billing_mode   = "PROVISIONED"
-  read_capacity  = 20
-  write_capacity = 20
+  read_capacity  = 5
+  write_capacity = 5
   hash_key       = "Tag"
-  range_key      = "IconId"
+
 
   attribute {
     name = "Tag"
     type = "S"
   }
+}
+
+resource "aws_dynamodb_table" "icons_locks" {
+  name           = "icons_locks"
+  billing_mode   = "PROVISIONED"
+  read_capacity  = 5
+  write_capacity = 5
+  hash_key       = "key"
 
   attribute {
-    name = "IconId"
+    name = "key"
     type = "S"
   }
+}
 
-  ttl {
-    attribute_name = "TimeToExist"
-    enabled        = false
-  }
+resource "aws_dynamodb_table" "icon_tags_locks" {
+  name           = "icon_tags_locks"
+  billing_mode   = "PROVISIONED"
+  read_capacity  = 5
+  write_capacity = 5
+  hash_key       = "key"
 
-  tags = {
-    Name        = "dynamodb-table-icon_files"
-    Environment = "dev"
+
+  attribute {
+    name = "key"
+    type = "S"
   }
 }

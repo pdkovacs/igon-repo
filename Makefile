@@ -43,7 +43,7 @@ test-single: $(app) # a sample test-case is used, replace it with whichever othe
 test-dynamodb: export DYNAMODB_ONLY = yes
 test-dynamodb: export AWS_REGION = eu-west-1
 test-dynamodb: backend
-	$(test-envs) go test -parallel 10 -v -timeout 5s ./test/repositories/indexing/...
+	$(test-envs) go test -parallel 1 -v -timeout 40s ./test/repositories/indexing/...
 		# -run '(TestAddIconToIndexTestSuite|TestAddIconfileToIndexTestSuite|TestAddTagTestSuite|TestDeleteIconFromIndexTestSuite|TestDeleteIconfileFromIndexTestSuite)'
 		# -run TestDeleteIconfileFromIndexTestSuite -testify.m TestRollbackOnFailedSideEffect
 run:
