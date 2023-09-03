@@ -1,18 +1,3 @@
-terraform {
-  backend "s3" {
-    bucket  = "bitkitchen-tf-state"
-    key     = "iconrepo/indexing/dynamodb"
-    region  = "eu-west-1"
-    encrypt = true
-  }
-}
-
-provider "aws" {
-  region                      = "eu-west-1"
-  skip_credentials_validation = true
-  skip_metadata_api_check     = true
-}
-
 resource "aws_dynamodb_table" "icons" {
   name           = "icons"
   billing_mode   = "PROVISIONED"

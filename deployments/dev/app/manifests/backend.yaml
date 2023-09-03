@@ -53,6 +53,18 @@ spec:
            secretKeyRef:
              name: iconrepo
              key: GITLAB_ACCESS_TOKEN
+        - name: AWS_REGION
+          value: eu-west-1
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+           secretKeyRef:
+             name: iconrepo
+             key: AWS_ACCESS_KEY_ID
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+           secretKeyRef:
+             name: iconrepo
+             key: AWS_SECRET_ACCESS_KEY
         ports:
         - name: http
           containerPort: 8080
