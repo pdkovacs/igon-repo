@@ -21,7 +21,7 @@ func TestBuildinfoAPITestSuite(t *testing.T) {
 			ApiTestSuite: apiTestSuites(
 				"apitests_buildinfo",
 				[]blobstore_tests.TestBlobstoreController{blobstore_tests.DefaultBlobstoreController},
-				[]indexing.IndexTestRepoController{indexing.DefaultIndexTestRepoController},
+				[]indexing.IndexTestRepoController{*indexing.DefaultIndexTestRepoController()},
 			)[0]})
 }
 

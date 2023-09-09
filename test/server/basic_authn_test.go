@@ -21,7 +21,7 @@ func TestBasicAuthnTestSuite(t *testing.T) {
 			ApiTestSuite: apiTestSuites(
 				"apitests_basicauthn",
 				[]blobstore_tests.TestBlobstoreController{blobstore_tests.DefaultBlobstoreController},
-				[]indexing.IndexTestRepoController{indexing.DefaultIndexTestRepoController})[0]},
+				[]indexing.IndexTestRepoController{*indexing.DefaultIndexTestRepoController()})[0]},
 	)
 }
 

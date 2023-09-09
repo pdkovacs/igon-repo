@@ -6,6 +6,7 @@ import (
 	"iconrepo/internal/app/domain"
 	"iconrepo/internal/config"
 	"iconrepo/internal/logging"
+	"strings"
 	"time"
 
 	"cirello.io/dynamolock/v2"
@@ -83,6 +84,10 @@ func (repo *DynamodbRepository) Close() error {
 	}
 
 	if myErr != nil {
+		if strings.Contains(myErr.Error(), "client already closed") {
+			logger.Info().Msg("supressing `client already closed` message")
+			return nil
+		}
 		return fmt.Errorf("errors while closing DynamodbRepository: %w", myErr)
 	}
 

@@ -13,20 +13,24 @@ import (
 
 func Start(conf config.Options, ready func(port int, stop func())) error {
 
-	connection, dbErr := pgdb.NewDBConnection(conf)
-	if dbErr != nil {
-		return dbErr
-	}
-
-	dbSchemaAlreadyThere, schemaErr := pgdb.OpenSchema(conf, connection)
-	if schemaErr != nil {
-		return schemaErr
-	}
-
+	var dbSchemaAlreadyThere bool
 	var db repositories.IndexRepository
 	if conf.DynamodbURL == "" {
+		connection, dbErr := pgdb.NewDBConnection(conf)
+		if dbErr != nil {
+			return dbErr
+		}
+
+		var schemaErr error
+		dbSchemaAlreadyThere, schemaErr = pgdb.OpenSchema(conf, connection)
+		if schemaErr != nil {
+			return schemaErr
+		}
+
 		db = pgdb.NewPgRepository(connection)
-	} else {
+	}
+
+	if len(conf.DynamodbURL) > 0 {
 		dyndb, createDyndbErr := dynamodb.NewDynamodbRepository(&conf)
 		if createDyndbErr != nil {
 			return createDyndbErr
@@ -71,7 +75,7 @@ func Start(conf config.Options, ready func(port int, stop func())) error {
 	server.SetupAndStart(conf, func(port int, stop func()) {
 		ready(port, func() {
 			stop()
-			connection.Pool.Close()
+			db.Close()
 		})
 	})
 

@@ -23,14 +23,14 @@ func TestAuthBackDoorTestSuite(t *testing.T) {
 			ApiTestSuite: apiTestSuites(
 				"apitests_backdoor",
 				[]blobstore_tests.TestBlobstoreController{blobstore_tests.DefaultBlobstoreController},
-				[]indexing.IndexTestRepoController{indexing.DefaultIndexTestRepoController},
+				[]indexing.IndexTestRepoController{*indexing.DefaultIndexTestRepoController()},
 			)[0],
 		},
 	)
 }
 
 func (s *authBackDoorTestSuite) BeforeTest(suiteName string, testName string) {
-	s.ApiTestSuite.initTestCaseConfig(testName)
+	s.initTestCaseConfig(testName)
 	if suiteName != "authBackDoorTestSuite" {
 		return
 	}
@@ -40,18 +40,18 @@ func (s *authBackDoorTestSuite) BeforeTest(suiteName string, testName string) {
 		}
 	case "TestBackDoorShouldBeAvailableWhenEnabled":
 		{
-			s.ApiTestSuite.config.EnableBackdoors = true
+			s.config.EnableBackdoors = true
 		}
 	case "TestBackDoorShouldAllowToSetPrivileges":
 		{
-			s.ApiTestSuite.config.EnableBackdoors = true
+			s.config.EnableBackdoors = true
 		}
 	default:
 		{
 			panic("Unexpected testName: " + testName)
 		}
 	}
-	startErr := s.startApp(s.ApiTestSuite.config)
+	startErr := s.startApp(s.config)
 	if startErr != nil {
 		s.FailNow("", "%v", startErr)
 	}

@@ -161,7 +161,7 @@ func (s *IndexingTestSuite) getIconCount(ctx context.Context) (int, error) {
 	return s.testRepoController.GetIconCount(ctx)
 }
 
-var DefaultIndexTestRepoController IndexTestRepoController = IndexTestRepoController{
+var PgIndexTestRepoController IndexTestRepoController = IndexTestRepoController{
 	repoFactory: func(conf *config.Options) (TestIndexRepository, error) {
 		return NewTestPgRepo(conf)
 	},
@@ -173,19 +173,28 @@ var DynamodbIndexTestRepoController IndexTestRepoController = IndexTestRepoContr
 	},
 }
 
-func IndexProvidersToTest() []IndexTestRepoController {
+func DefaultIndexTestRepoController() *IndexTestRepoController {
 	if len(os.Getenv("PG_ONLY")) > 0 {
 		fmt.Print(">>>>>>>>>>> Indexing provider: PG_ONLY\n")
-		return []IndexTestRepoController{DefaultIndexTestRepoController}
+		return &PgIndexTestRepoController
 	}
 	if len(os.Getenv("DYNAMODB_ONLY")) > 0 {
 		fmt.Print(">>>>>>>>>>> Indexing provider: DYNAMODB_ONLY\n")
-		return []IndexTestRepoController{DynamodbIndexTestRepoController}
+		return &DynamodbIndexTestRepoController
 	}
 	fmt.Print(">>>>>>>>>>> Indexing provider: ALL\n")
-	return []IndexTestRepoController{
-		DefaultIndexTestRepoController,
+	return nil
+}
+
+func IndexProvidersToTest() []IndexTestRepoController {
+	defaultCtrl := DefaultIndexTestRepoController()
+	if defaultCtrl == nil {
+		return []IndexTestRepoController{
+			PgIndexTestRepoController,
+			DynamodbIndexTestRepoController,
+		}
 	}
+	return []IndexTestRepoController{*defaultCtrl}
 }
 
 func indexingTestSuites() []IndexingTestSuite {

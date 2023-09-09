@@ -45,9 +45,11 @@ func apiTestSuites(
 	os.Setenv("LOG_LEVEL", "debug")
 
 	all := []ApiTestSuite{}
+
 	conf := test_commons.CloneConfig(test_commons.GetTestConfig())
 	conf.DBSchemaName = testSequenceName
 	conf.LocalGitRepo = fmt.Sprintf("%s_%s", conf.LocalGitRepo, testSequenceName)
+
 	for _, repoController := range blobstoreProviders {
 		for _, indexinController := range indexingProviders {
 			suiteToEmbed := new(suite.Suite)
@@ -68,16 +70,31 @@ func apiTestSuites(
 }
 
 func (s *ApiTestSuite) SetupSuite() {
+	if len(os.Getenv("PG_ONLY")) > 0 {
+		s.config.DynamodbURL = ""
+	}
+
+	if len(os.Getenv("DYNAMODB_ONLY")) > 0 {
+		s.config.DynamodbURL = os.Getenv("DYNAMODB_URL")
+	}
+
+	if len(os.Getenv("LOCAL_GIT_ONLY")) > 0 {
+		s.config.GitlabNamespacePath = ""
+	}
+
+	if len(os.Getenv("LOCAL_GIT_ONLY")) == 0 {
+		var apiTokenErr error
+		s.config.GitlabAccessToken, apiTokenErr = git_tests.GitTestGitlabAPIToken()
+		if apiTokenErr != nil {
+			panic(fmt.Sprintf("failed to test gitlab api token: %v", apiTokenErr))
+		}
+	}
+
 	if s.config.DBSchemaName == "" {
 		s.FailNow("", "%v", "No config set by the suite extender")
 	}
-	s.config.LogLevel = logging.DebugLevel
 
-	var apiTokenErr error
-	s.config.GitlabAccessToken, apiTokenErr = git_tests.GitTestGitlabAPIToken()
-	if apiTokenErr != nil {
-		s.FailNow("", "%v", apiTokenErr)
-	}
+	s.config.LogLevel = logging.DebugLevel
 
 	s.config.PasswordCredentials = []config.PasswordCredentials{
 		testdata.DefaultCredentials,
