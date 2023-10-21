@@ -6,50 +6,49 @@ KEYCLOAK_URL="http://keycloak:8080"
 KEYCLOAK_USER="keycloak"
 KEYCLOAK_PASSWORD="$KEYCLOAK_ADMIN_PASSWORD"
 KEYCLOAK_CLIENT_ID="terraform"
-KEYCLOAK_CLIENT_SECRET="884e0f95-0f42-4a63-9b1f-94274655669e"
 
 echo "Creating initial terraform client"
 
 accessToken=$(
-    curl -s --fail \
-        -d "username=${KEYCLOAK_USER}" \
-        -d "password=${KEYCLOAK_PASSWORD}" \
-        -d "client_id=admin-cli" \
-        -d "grant_type=password" \
-        "${KEYCLOAK_URL}/realms/master/protocol/openid-connect/token" \
-        | jq -r '.access_token'
+  curl -s --fail \
+    -d "username=${KEYCLOAK_USER}" \
+    -d "password=${KEYCLOAK_PASSWORD}" \
+    -d "client_id=admin-cli" \
+    -d "grant_type=password" \
+    "${KEYCLOAK_URL}/realms/master/protocol/openid-connect/token" |
+    jq -r '.access_token'
 )
 
 echo "accessToken: $accessToken"
 
 function post() {
-    curl --fail \
-        -H "Authorization: bearer ${accessToken}" \
-        -H "Content-Type: application/json" \
-        -d "${2}" \
-        "${KEYCLOAK_URL}/admin${1}"
+  curl --fail \
+    -H "Authorization: bearer ${accessToken}" \
+    -H "Content-Type: application/json" \
+    -d "${2}" \
+    "${KEYCLOAK_URL}/admin${1}"
 }
 
 function put() {
-    curl --fail \
-        -X PUT \
-        -H "Authorization: bearer ${accessToken}" \
-        -H "Content-Type: application/json" \
-        -d "${2}" \
-        "${KEYCLOAK_URL}/admin${1}"
+  curl --fail \
+    -X PUT \
+    -H "Authorization: bearer ${accessToken}" \
+    -H "Content-Type: application/json" \
+    -d "${2}" \
+    "${KEYCLOAK_URL}/admin${1}"
 }
 
 function get() {
-    curl --fail --silent \
-        -H "Authorization: bearer ${accessToken}" \
-        -H "Content-Type: application/json" \
-        "${KEYCLOAK_URL}/admin${1}"
+  curl --fail --silent \
+    -H "Authorization: bearer ${accessToken}" \
+    -H "Content-Type: application/json" \
+    "${KEYCLOAK_URL}/admin${1}"
 }
 
 terraformClient=$(jq -n "{
     id: \"${KEYCLOAK_CLIENT_ID}\",
     name: \"${KEYCLOAK_CLIENT_ID}\",
-    secret: \"${KEYCLOAK_CLIENT_SECRET}\",
+    secret: \"${KEYCLOAK_TF_CLIENT_SECRET}\",
     clientAuthenticatorType: \"client-secret\",
     enabled: true,
     serviceAccountsEnabled: true,

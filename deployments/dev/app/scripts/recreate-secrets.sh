@@ -1,6 +1,6 @@
 #!/bin/bash
 
-. ~/.icon-repo.secrets
+. ~/.iconrepo.secrets
 kubectl delete secret iconrepo 2>/dev/null || echo "Error while deleting secret 'iconrepo', probably didn't exist yet. Creating it..."
 kubectl create secret generic iconrepo \
   --from-literal=OIDC_CLIENT_SECRET=$OIDC_CLIENT_SECRET \

@@ -9,7 +9,7 @@ terraform {
 
 provider "keycloak" {
     client_id     = "terraform"
-    client_secret = "884e0f95-0f42-4a63-9b1f-94274655669e"
+    client_secret = "${var.tf_client_secret}"
     url           = "${var.keycloak_url}"
 }
 
@@ -62,6 +62,11 @@ variable "keycloak_url" {
   default = "http://keycloak:8080"
 }
 
+variable "tf_client_secret" {
+  type = string
+  default = "tf_client_secret"
+}
+
 variable "user_list_file" {
-  default = "~/.icon-repo.users"
+  default = "~/.iconrepo.users"
 }

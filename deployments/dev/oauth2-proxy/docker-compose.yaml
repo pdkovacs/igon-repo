@@ -12,7 +12,7 @@ services:
       - --http-address=0.0.0.0:4180
       - --provider=keycloak-oidc
       - --client-id=iconrepo
-      - --client-secret=Xb5BtE9RvMWCjJGfeMJDYOWIZGKSMm3z
+      - --client-secret=<TODO>
       - --redirect-url=http://$MY_IP:4180/oauth2/callback
       - --oidc-issuer-url=http://$MY_IP:8080/auth/realms/my-realm
       - --oidc-extra-audience=account

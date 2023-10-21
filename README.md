@@ -47,7 +47,7 @@ Enabling consumer-developers (users of the applicatioin) to give effective feed-
 2. For testing with GitLab as a git provider have a file with an appropriate GitLab authentication token:
 
    ```bash
-   $ cat ~/.icon-repo.secrets 
+   $ cat ~/.iconrepo.secrets 
    export GITLAB_ACCESS_TOKEN="XXXXXXXXXXXXXXXXXXXXXXXXXX"
    $ 
    ```
@@ -58,7 +58,7 @@ Enabling consumer-developers (users of the applicatioin) to give effective feed-
 In case you end up having remnants of a largish number of test icon-repositories, you can use a command similar to the following to remove them:
 
 ```bash
-$ . ~/.icon-repo.secrets 
+$ . ~/.iconrepo.secrets 
 $ curl --silent \
     --request GET \
     --url https://gitlab.com/api/v4/projects?owned=true \

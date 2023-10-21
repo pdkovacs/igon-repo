@@ -12,6 +12,11 @@
    kubectl apply -f cors/backend-httpproxy.yaml
    kubectl apply -f cors/client-httpproxy.yaml
    ```
+   or
+
+   ```
+   kubectl apply -f cdn-origin/cdn-httpproxy.yaml
+   ```
 
 3. Check and note the FQDNs:
    

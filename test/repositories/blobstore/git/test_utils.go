@@ -20,7 +20,7 @@ func GitTestGitlabAPIToken() (string, error) {
 	if homedirErr != nil {
 		return "", fmt.Errorf("failed to get gitlab API token: %w", homedirErr)
 	}
-	content, readErr := os.ReadFile(fmt.Sprintf("%s/.icon-repo.secrets", homeDir))
+	content, readErr := os.ReadFile(fmt.Sprintf("%s/.iconrepo.secrets", homeDir))
 	if readErr != nil {
 		return "", fmt.Errorf("failed to get gitlab API token: %w", readErr)
 	}

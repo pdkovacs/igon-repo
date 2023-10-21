@@ -1,3 +1,10 @@
+locals {
+  keycloak_url = "http://keycloak:8080"
+  client_id    = "iconrepo"
+  client_name  = "Icon Repository"
+  app_hostname = "iconrepo.local.com"
+}
+
 terraform {
   required_providers {
     keycloak = {
@@ -9,46 +16,45 @@ terraform {
 
 provider "keycloak" {
     client_id     = "terraform"
-    client_secret = "884e0f95-0f42-4a63-9b1f-94274655669e"
-    url           = "${var.keycloak_url}"
+    client_secret = "${var.tf_client_secret}"
+    url           = "${local.keycloak_url}"
 }
 
 resource "keycloak_realm" "realm" {
   realm = "my-realm"
 }
 
-resource "keycloak_openid_client" "iconrepo" {
+resource "keycloak_openid_client" "iconrepo_client" {
   realm_id            = keycloak_realm.realm.id
-  client_id           = "iconrepo"
-  client_secret       = "Xb5BtE9RvMWCjJGfeMJDYOWIZGKSMm3z"
+  client_id           = "${local.client_id}"
+  client_secret       = "${var.client_secret}"
 
-  name                = "Icon Repository"
+  name                = "${local.client_name}"
   enabled             = true
 
   access_type         = "CONFIDENTIAL"
   valid_redirect_uris = [
-    "http://${var.app_hostname}/*"
+    "http://${local.app_hostname}/*"
   ]
   standard_flow_enabled = true
 
   login_theme = "keycloak"
 }
 
-resource "keycloak_openid_group_membership_protocol_mapper" "group_membership_mapper" {
+resource "keycloak_openid_group_membership_protocol_mapper" "iconrepo_group_membership_mapper" {
   realm_id  = keycloak_realm.realm.id
-  client_id = keycloak_openid_client.iconrepo.id
+  client_id = keycloak_openid_client.iconrepo_client.id
   name      = "group-membership-mapper"
 
   claim_name = "groups"
   full_path = false
 }
 
-variable "app_hostname" {
+variable "tf_client_secret" {
   type = string
-  default = "api.iconrepo.local.com"
+  default = "iconrepo.local.com"
 }
 
-variable "keycloak_url" {
+variable "client_secret" {
   type = string
-  default = "http://keycloak:8080"
 }
