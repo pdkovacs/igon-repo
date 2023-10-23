@@ -53,6 +53,10 @@ spec:
            secretKeyRef:
              name: iconrepo
              key: GITLAB_ACCESS_TOKEN
+        - name: DYNAMODB_URL
+          value: http://dynamodb:8000 # local
+          # value: "-" # the "real" aws service
+          # value: "" # Use postgres for indexing (instead of dynamodb)
         - name: AWS_REGION
           value: eu-west-1
         - name: AWS_ACCESS_KEY_ID

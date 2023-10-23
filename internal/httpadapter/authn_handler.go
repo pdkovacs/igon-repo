@@ -2,12 +2,11 @@ package httpadapter
 
 import (
 	"fmt"
-	"net/http"
-
 	"iconrepo/internal/app/security/authn"
 	"iconrepo/internal/app/security/authr"
 	"iconrepo/internal/app/services"
 	"iconrepo/internal/config"
+	"net/http"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
@@ -15,7 +14,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-const UserKey = "igo-user"
+const UserKey = "iconrepo-user"
 
 type SessionData struct {
 	UserInfo authr.UserInfo

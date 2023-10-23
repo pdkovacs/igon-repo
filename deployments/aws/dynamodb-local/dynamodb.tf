@@ -7,7 +7,7 @@ provider "aws" {
   skip_requesting_account_id  = true
 
   endpoints {
-    dynamodb = "http://localhost:8000"
+    dynamodb = "http://dynamodb:8000"
   }
 }
 
