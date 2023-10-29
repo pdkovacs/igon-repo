@@ -44,6 +44,9 @@ test-dynamodb: export DYNAMODB_ONLY = yes
 test-dynamodb: export AWS_REGION = eu-west-1
 test-dynamodb: backend
 	$(test-envs) go test -parallel 1 -v -timeout 40s ./test/repositories/indexing/...
+		# -run TestAddTagTestSuite -testify.m TestReuseExistingTag
+		# -run TestAddIconToIndexTestSuite -testify.m TestAddASecondIconToIndex
+		# -run TestAddIconfileToIndexTestSuite -testify.m TestSecondIconfile
 		# -run '(TestAddIconToIndexTestSuite|TestAddIconfileToIndexTestSuite|TestAddTagTestSuite|TestDeleteIconFromIndexTestSuite|TestDeleteIconfileFromIndexTestSuite)'
 		# -run TestDeleteIconfileFromIndexTestSuite -testify.m TestRollbackOnFailedSideEffect
 run:

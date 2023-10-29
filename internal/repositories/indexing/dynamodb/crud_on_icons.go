@@ -28,9 +28,10 @@ func (l *dlockLogger) Println(arg ...any) {
 }
 
 type DynamodbRepository struct {
-	awsClient          *aws_dyndb.Client
-	iconsLockClient    *dynamolock.Client
-	iconTagsLockClient *dynamolock.Client
+	awsClient                *aws_dyndb.Client
+	iconsLockClient          *dynamolock.Client
+	iconTagsLockClient       *dynamolock.Client
+	commonAcquireLockOptions []dynamolock.AcquireLockOption
 }
 
 func NewDynamodbRepository(conf *config.Options) (*DynamodbRepository, error) {
@@ -61,7 +62,13 @@ func NewDynamodbRepository(conf *config.Options) (*DynamodbRepository, error) {
 		return nil, fmt.Errorf("failed to create iconTagsLockClient: %w", iconTagsLockClientErr)
 	}
 
-	return &DynamodbRepository{svc, iconsLockClient, iconTagsLockClient}, nil
+	commonAcquireLockOptions := []dynamolock.AcquireLockOption{
+		dynamolock.ReplaceData(),
+	}
+	// TODO:: let this controllable by an env var
+	commonAcquireLockOptions = append(commonAcquireLockOptions, dynamolock.WithDeleteLockOnRelease())
+
+	return &DynamodbRepository{svc, iconsLockClient, iconTagsLockClient, commonAcquireLockOptions}, nil
 }
 
 func (repo *DynamodbRepository) Close() error {
@@ -170,21 +177,11 @@ func (repo *DynamodbRepository) CreateIcon(
 		Iconfiles:  []DyndbIconfile{dyndbIconfile},
 	}
 
-	lock, lockErr := repo.iconsLockClient.AcquireLockWithContext(ctx, iconName, dynamolock.WithData([]byte("CreateIcon")), dynamolock.ReplaceData())
+	lock, lockErr := repo.iconsLockClient.AcquireLockWithContext(ctx, iconName, repo.createAcquireLockOptions("CreateIcon")...)
 	if lockErr != nil {
 		return fmt.Errorf("failed to acquire lock on icons_table#%s: %w", iconName, lockErr)
 	}
-	defer func() {
-		success, releaseLockErr := repo.iconsLockClient.ReleaseLock(lock)
-		if releaseLockErr != nil {
-			logger.Error().Err(releaseLockErr).Msg("error while releasing lock on icons table")
-		}
-		if success {
-			logger.Debug().Str("lockTable", "icons").Str("lockKey", iconName).Bool("lockReleaseResult", success).Send()
-		} else {
-			logger.Info().Str("lockTable", "icons").Str("lockKey", iconName).Bool("lockReleaseResult", success).Send()
-		}
-	}()
+	defer repo.releaseLock(ctx, repo.iconsLockClient, iconName, lock)
 
 	updateErr := repo.updateIcon(ctx, icon)
 	if updateErr != nil {
@@ -214,21 +211,11 @@ func (repo *DynamodbRepository) AddIconfileToIcon(
 ) error {
 	logger := zerolog.Ctx(ctx).With().Str("unit", "DynamodbRepository").Str("method", "AddIconfileToIcon").Logger()
 
-	lock, lockErr := repo.iconsLockClient.AcquireLockWithContext(ctx, iconName, dynamolock.WithData([]byte("AddIconfileToIcon")), dynamolock.ReplaceData())
+	lock, lockErr := repo.iconsLockClient.AcquireLockWithContext(ctx, iconName, repo.createAcquireLockOptions("AddIconfileToIcon")...)
 	if lockErr != nil {
 		return fmt.Errorf("failed to acquire lock on icons_table#%s: %w", iconName, lockErr)
 	}
-	defer func() {
-		success, releaseLockErr := repo.iconsLockClient.ReleaseLock(lock)
-		if releaseLockErr != nil {
-			logger.Error().Err(releaseLockErr).Msg("error while releasing lock on icons table")
-		}
-		if success {
-			logger.Debug().Str("lockTable", "icons").Str("lockKey", iconName).Bool("lockReleaseResult", success).Send()
-		} else {
-			logger.Info().Str("lockTable", "icons").Str("lockKey", iconName).Bool("lockReleaseResult", success).Send()
-		}
-	}()
+	defer repo.releaseLock(ctx, repo.iconsLockClient, iconName, lock)
 
 	original, getOriginalErr := repo.getIconItem(ctx, iconName, true)
 	if getOriginalErr != nil {
@@ -272,29 +259,17 @@ func (repo *DynamodbRepository) AddIconfileToIcon(
 }
 
 func (repo *DynamodbRepository) AddTag(ctx context.Context, iconName string, tag string, modifiedBy string) error {
-	logger := zerolog.Ctx(ctx).With().Str("unit", "DynamodbRepository").Str("method", "AddTag").Logger()
-
-	lock, lockErr := repo.iconsLockClient.AcquireLockWithContext(ctx, iconName, dynamolock.WithData([]byte("AddTag")), dynamolock.ReplaceData())
+	lock, lockErr := repo.iconsLockClient.AcquireLockWithContext(ctx, iconName, repo.createAcquireLockOptions("AddTag")...)
 	if lockErr != nil {
 		return fmt.Errorf("failed to acquire lock on icons_table#%s: %w", iconName, lockErr)
 	}
-	defer func() {
-		success, releaseLockErr := repo.iconsLockClient.ReleaseLock(lock)
-		if releaseLockErr != nil {
-			logger.Error().Err(releaseLockErr).Msg("error while releasing lock on icons table")
-		}
-		if success {
-			logger.Debug().Str("lockTable", "icons").Str("lockKey", iconName).Bool("lockReleaseResult", success).Send()
-		} else {
-			logger.Info().Str("lockTable", "icons").Str("lockKey", iconName).Bool("lockReleaseResult", success).Send()
-		}
-	}()
+	defer repo.releaseLock(ctx, repo.iconsLockClient, iconName, lock)
 
-	tagsLock, lockErr := repo.iconTagsLockClient.AcquireLockWithContext(ctx, tag, dynamolock.WithData([]byte("AddTag")), dynamolock.ReplaceData())
+	tagsLock, lockErr := repo.iconTagsLockClient.AcquireLockWithContext(ctx, tag, repo.createAcquireLockOptions("AddTag")...)
 	if lockErr != nil {
 		return fmt.Errorf("failed to acquire lock on icon_tags_table#%s: %w", iconName, lockErr)
 	}
-	defer repo.iconTagsLockClient.ReleaseLock(tagsLock)
+	defer repo.releaseLock(ctx, repo.iconTagsLockClient, tag, tagsLock)
 
 	oldIconItem, getIconItemErr := repo.getIconItem(ctx, iconName, false)
 	if getIconItemErr != nil {
@@ -341,7 +316,7 @@ func (repo *DynamodbRepository) AddTag(ctx context.Context, iconName string, tag
 func (repo *DynamodbRepository) RemoveTag(ctx context.Context, iconName string, tag string, modifiedBy string) error {
 	logger := zerolog.Ctx(ctx).With().Str("method", "DynamodbRepository.RemoveTag").Logger()
 
-	lock, lockErr := repo.iconsLockClient.AcquireLockWithContext(ctx, iconName, dynamolock.WithData([]byte("RemoveTag")), dynamolock.ReplaceData())
+	lock, lockErr := repo.iconsLockClient.AcquireLockWithContext(ctx, iconName, repo.createAcquireLockOptions("RemoveTag")...)
 	if lockErr != nil {
 		lock, readDataErr := repo.iconsLockClient.Get(iconName)
 		if readDataErr != nil {
@@ -349,23 +324,13 @@ func (repo *DynamodbRepository) RemoveTag(ctx context.Context, iconName string, 
 		}
 		return fmt.Errorf("failed to acquire lock on icons_table#%s (<%s): %w", iconName, string(lock.Data()), lockErr)
 	}
-	defer func() {
-		success, releaseLockErr := repo.iconsLockClient.ReleaseLock(lock)
-		if releaseLockErr != nil {
-			logger.Error().Err(releaseLockErr).Msg("error while releasing lock on icons table")
-		}
-		if success {
-			logger.Debug().Str("lockTable", "icons").Str("lockKey", iconName).Bool("lockReleaseResult", success).Send()
-		} else {
-			logger.Info().Str("lockTable", "icons").Str("lockKey", iconName).Bool("lockReleaseResult", success).Send()
-		}
-	}()
+	defer repo.releaseLock(ctx, repo.iconsLockClient, iconName, lock)
 
-	tagsLock, lockErr := repo.iconTagsLockClient.AcquireLockWithContext(ctx, tag, dynamolock.WithData([]byte("RemoveTag")), dynamolock.ReplaceData())
+	tagsLock, lockErr := repo.iconTagsLockClient.AcquireLockWithContext(ctx, tag, repo.createAcquireLockOptions("RemoveTag")...)
 	if lockErr != nil {
 		return fmt.Errorf("failed to acquire lock on icon_tags_table#%s: %w", tag, lockErr)
 	}
-	defer repo.iconTagsLockClient.ReleaseLock(tagsLock)
+	defer repo.releaseLock(ctx, repo.iconTagsLockClient, tag, tagsLock)
 
 	oldIconItem, getIconItemErr := repo.getIconItem(ctx, iconName, false)
 	if getIconItemErr != nil {
@@ -414,7 +379,7 @@ func (repo *DynamodbRepository) RemoveTag(ctx context.Context, iconName string, 
 func (repo *DynamodbRepository) DeleteIcon(ctx context.Context, iconName string, modifiedBy string, createSideEffect func() error) error {
 	logger := zerolog.Ctx(ctx).With().Str("method", "DynamodbRepository.DeleteIcon").Str("iconName", iconName).Logger()
 
-	lock, lockErr := repo.iconsLockClient.AcquireLockWithContext(ctx, iconName, dynamolock.WithData([]byte("DeleteIcon")), dynamolock.ReplaceData())
+	lock, lockErr := repo.iconsLockClient.AcquireLockWithContext(ctx, iconName, repo.createAcquireLockOptions("DeleteIcon")...)
 	if lockErr != nil {
 		lock, readDataErr := repo.iconsLockClient.Get(iconName)
 		if readDataErr != nil {
@@ -422,17 +387,7 @@ func (repo *DynamodbRepository) DeleteIcon(ctx context.Context, iconName string,
 		}
 		return fmt.Errorf("failed to acquire lock on icons_table#%s (<%s): %w", iconName, string(lock.Data()), lockErr)
 	}
-	defer func() {
-		success, releaseLockErr := repo.iconsLockClient.ReleaseLock(lock)
-		if releaseLockErr != nil {
-			logger.Error().Err(releaseLockErr).Msg("error while releasing lock on icons table")
-		}
-		if success {
-			logger.Debug().Str("lockTable", "icons").Str("lockKey", iconName).Bool("lockReleaseResult", success).Send()
-		} else {
-			logger.Info().Str("lockTable", "icons").Str("lockKey", iconName).Bool("lockReleaseResult", success).Send()
-		}
-	}()
+	defer repo.releaseLock(ctx, repo.iconsLockClient, iconName, lock)
 
 	return repo.deleteIconNoLock(ctx, iconName, modifiedBy, createSideEffect)
 }
@@ -462,12 +417,12 @@ func (repo *DynamodbRepository) deleteIconNoLock(ctx context.Context, iconName s
 			return fmt.Errorf("failed to get old tag-items for icon %s about to be deleted: %w", iconName, err)
 		}
 
-		tagsLock, lockErr := repo.iconTagsLockClient.AcquireLockWithContext(ctx, oldTag, dynamolock.WithData([]byte("DeleteIcon")), dynamolock.ReplaceData())
+		tagsLock, lockErr := repo.iconTagsLockClient.AcquireLockWithContext(ctx, oldTag, repo.createAcquireLockOptions("DeleteIcon")...)
 		if lockErr != nil {
 			rollbackTagsUpdatedSoFar()
 			return fmt.Errorf("failed to acquire lock on icon_tags_table#%s: %w", iconName, lockErr)
 		}
-		defer repo.iconTagsLockClient.ReleaseLock(tagsLock)
+		defer repo.releaseLock(ctx, repo.iconTagsLockClient, oldTag, tagsLock)
 
 		updateErr := repo.updateTag(ctx, *oldItem, false)
 		if updateErr != nil {
@@ -509,7 +464,7 @@ func (repo *DynamodbRepository) DeleteIconfile(
 	readDataLock, _ := repo.iconsLockClient.Get(iconName)
 	logger.Debug().Str("currentLockData", string(readDataLock.Data())).Msg("about to acquire lock")
 
-	lock, lockErr := repo.iconsLockClient.AcquireLockWithContext(ctx, iconName, dynamolock.WithData([]byte("DeleteIconfile")), dynamolock.ReplaceData())
+	lock, lockErr := repo.iconsLockClient.AcquireLockWithContext(ctx, iconName, repo.createAcquireLockOptions("DeleteIconfile")...)
 	if lockErr != nil {
 		lock, readDataErr := repo.iconsLockClient.Get(iconName)
 		if readDataErr != nil {
@@ -517,17 +472,7 @@ func (repo *DynamodbRepository) DeleteIconfile(
 		}
 		return fmt.Errorf("failed to acquire lock on icons_table#%s (<%s): %w", iconName, string(lock.Data()), lockErr)
 	}
-	defer func() {
-		success, releaseLockErr := repo.iconsLockClient.ReleaseLock(lock)
-		if releaseLockErr != nil {
-			logger.Error().Err(releaseLockErr).Msg("error while releasing lock on icons table")
-		}
-		if success {
-			logger.Debug().Str("lockTable", "icons").Str("lockKey", iconName).Bool("lockReleaseResult", success).Send()
-		} else {
-			logger.Info().Str("lockTable", "icons").Str("lockKey", iconName).Bool("lockReleaseResult", success).Send()
-		}
-	}()
+	defer repo.releaseLock(ctx, repo.iconsLockClient, iconName, lock)
 
 	logger.Debug().Msg("about to call repo.getIconItem...")
 	oldIconItem, getIconItemErr := repo.getIconItem(ctx, iconName, false)
@@ -742,4 +687,21 @@ func (repo *DynamodbRepository) updateTag(ctx context.Context, tagItem DyndbTag,
 	}
 
 	return nil
+}
+
+func (repo *DynamodbRepository) createAcquireLockOptions(data string) []dynamolock.AcquireLockOption {
+	return append(repo.commonAcquireLockOptions, dynamolock.WithData([]byte(data)))
+}
+
+func (repo *DynamodbRepository) releaseLock(ctx context.Context, lockClient *dynamolock.Client, lockKey string, lock *dynamolock.Lock) {
+	logger := zerolog.Ctx(ctx).With().Str("unit", "DynamodbRepository").Str("method", "releaseLock").Logger()
+	success, releaseLockErr := lockClient.ReleaseLock(lock)
+	if releaseLockErr != nil {
+		logger.Error().Err(releaseLockErr).Str("key", lockKey).Msg("error while releasing lock")
+	}
+	if success {
+		logger.Debug().Str("lockTable", "icons").Str("lockKey", lockKey).Bool("lockReleaseResult", success).Send()
+	} else {
+		logger.Info().Str("lockTable", "icons").Str("lockKey", lockKey).Bool("lockReleaseResult", success).Send()
+	}
 }
