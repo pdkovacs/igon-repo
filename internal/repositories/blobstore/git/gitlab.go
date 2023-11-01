@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"iconrepo/internal/app/domain"
 	"iconrepo/internal/app/security/authn"
@@ -14,10 +15,10 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/rs/zerolog"
+	"github.com/theodesp/blockingQueues"
 )
 
 var paths = NewGitFilePaths("")
@@ -66,8 +67,7 @@ type Gitlab struct {
 	project    gitlabProject
 	mainBranch string
 	apikey     string
-	client     http.Client
-	mux        sync.Mutex
+	clientPool *blockingQueues.BlockingQueue
 }
 
 func (repo *Gitlab) String() string {
@@ -134,6 +134,7 @@ func NewGitlabRepositoryClient(ctx context.Context, namespacePath string, projec
 	if len(apikey) == 0 {
 		return &Gitlab{}, fmt.Errorf("no API token for GitLab repository")
 	}
+
 	gitlab := Gitlab{
 		project: gitlabProject{
 			namespacePath: namespacePath,
@@ -141,9 +142,15 @@ func NewGitlabRepositoryClient(ctx context.Context, namespacePath string, projec
 		},
 		mainBranch: branch,
 		apikey:     apikey,
-		client: http.Client{
-			Timeout: time.Second * 15,
-		},
+	}
+
+	var poolSize uint64 = 20
+	gitlab.clientPool, _ = blockingQueues.NewLinkedBlockingQueue(poolSize)
+	for i := 0; i < int(poolSize); i++ {
+		client := http.Client{
+			Timeout: 5 * time.Second,
+		}
+		_, _ = gitlab.clientPool.Put(client)
 	}
 
 	namespaceId, err := getNamespaceID(ctx, &gitlab)
@@ -497,8 +504,15 @@ func (g *Gitlab) commit(ctx context.Context, authorName string, commitMessage st
 }
 
 func (g *Gitlab) sendRequest(ctx context.Context, method string, apiCallPath string, body io.Reader) (int, http.Header, string, error) {
-	g.mux.Lock()
-	defer g.mux.Unlock()
+	poolItem, _ := g.clientPool.Get()
+	defer func() {
+		_, _ = g.clientPool.Put(poolItem)
+	}()
+
+	client, ok := poolItem.(http.Client)
+	if !ok {
+		return 0, nil, "", errors.New("type asssertion error")
+	}
 
 	logger := zerolog.Ctx(ctx).With().Str("method", "sendRequest").Str("request-method", method).Str("apiCallPath", apiCallPath).Logger()
 	urlString := fmt.Sprintf("https://gitlab.com/api/v4%s", apiCallPath)
@@ -517,7 +531,7 @@ func (g *Gitlab) sendRequest(ctx context.Context, method string, apiCallPath str
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("PRIVATE-TOKEN", g.apikey)
 
-	resp, requestExecutionError := g.client.Do(request)
+	resp, requestExecutionError := client.Do(request)
 	if requestExecutionError != nil {
 		return 0, nil, "", fmt.Errorf("failed to execute request: %w", requestExecutionError)
 	}

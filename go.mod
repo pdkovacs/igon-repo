@@ -38,6 +38,7 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/lib/pq v1.10.3 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/theodesp/blockingQueues v0.0.0-20171230192932-26531ad66e7c // indirect
 )
 
 require (
