@@ -1,7 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"iconrepo/internal/app"
+	"iconrepo/internal/config"
+	"iconrepo/internal/logging"
 	_ "image/jpeg"
 	_ "image/png"
 	"math/rand"
@@ -10,14 +14,14 @@ import (
 	"syscall"
 	"time"
 
-	"iconrepo/internal/app"
-	"iconrepo/internal/config"
-
 	_ "github.com/jackc/pgx/v4/stdlib"
 )
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
+
+	logger := logging.Get().With().Str("root", "main").Logger()
+	ctx := logger.WithContext(context.Background())
 
 	var serverWanted bool = true
 
@@ -53,7 +57,7 @@ func main() {
 			exitc <- struct{}{}
 		}()
 
-		errAppStart := app.Start(conf, func(port int, stop func()) {
+		errAppStart := app.Start(ctx, conf, func(port int, stop func()) {
 			stopServer = stop
 		})
 		if errAppStart != nil {

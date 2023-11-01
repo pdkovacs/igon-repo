@@ -14,6 +14,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/rs/zerolog"
@@ -65,11 +66,10 @@ type Gitlab struct {
 	project    gitlabProject
 	mainBranch string
 	apikey     string
-	logger     zerolog.Logger
 	client     http.Client
 }
 
-func (repo Gitlab) String() string {
+func (repo *Gitlab) String() string {
 	return fmt.Sprintf("GitLab repository at %s?ref=%s", repo.project, repo.mainBranch)
 }
 
@@ -129,9 +129,9 @@ type projectProperties struct {
 	InitializeWithReadme string `json:"initialize_with_readme"`
 }
 
-func NewGitlabRepositoryClient(namespacePath string, projectPath string, branch string, apikey string, logger zerolog.Logger) (Gitlab, error) {
+func NewGitlabRepositoryClient(ctx context.Context, namespacePath string, projectPath string, branch string, apikey string) (*Gitlab, error) {
 	if len(apikey) == 0 {
-		return Gitlab{}, fmt.Errorf("no API token for GitLab repository")
+		return &Gitlab{}, fmt.Errorf("no API token for GitLab repository")
 	}
 	gitlab := Gitlab{
 		project: gitlabProject{
@@ -143,16 +143,15 @@ func NewGitlabRepositoryClient(namespacePath string, projectPath string, branch 
 		client: http.Client{
 			Timeout: time.Second * 15,
 		},
-		logger: logger,
 	}
 
-	namespaceId, err := getNamespaceID(gitlab)
+	namespaceId, err := getNamespaceID(ctx, &gitlab)
 	if err != nil {
-		return gitlab, err
+		return &gitlab, err
 	}
 	gitlab.project.namespaceId = namespaceId
 
-	return gitlab, nil
+	return &gitlab, nil
 }
 
 func (g *Gitlab) createCreateProjectBody() (io.Reader, error) {
@@ -167,7 +166,9 @@ func (g *Gitlab) createCreateProjectBody() (io.Reader, error) {
 	return bytes.NewReader(jsonInBytes), nil
 }
 
-func (g *Gitlab) CreateRepository() error {
+func (g *Gitlab) CreateRepository(ctx context.Context) error {
+	logger := zerolog.Ctx(ctx).With().Str("method", "CreateRepository").Logger()
+
 	sleepBeforeRetryMs := 1000
 	maxRetryCount := 20
 
@@ -177,7 +178,7 @@ func (g *Gitlab) CreateRepository() error {
 		if requestBodyErr != nil {
 			return fmt.Errorf("failed to create request body for creating test repository: %w", requestBodyErr)
 		}
-		statusCode, _, responseBody, err := g.sendRequest("POST", "/projects", requestBody)
+		statusCode, _, responseBody, err := g.sendRequest(ctx, "POST", "/projects", requestBody)
 		if err != nil || (statusCode != 201 && statusCode != 400) {
 			return fmt.Errorf("failed to create project: (%d) %s -- %w", statusCode, responseBody, err)
 		}
@@ -191,42 +192,44 @@ func (g *Gitlab) CreateRepository() error {
 			if readRequestBodyErr != nil {
 				return fmt.Errorf("failed to read create project request body: %w", readRequestBodyErr)
 			}
-			g.logger.Debug().Err(requestBodyErr).
+			logger.Debug().Err(requestBodyErr).
 				Str("request-body", string(requestBodyStr)).
 				Str("project", g.project.String()).
 				Int("sleep-ms-before-retry", sleepBeforeRetryMs).
 				Msg("Transient error while creating repository")
 			time.Sleep(time.Duration(sleepBeforeRetryMs) * time.Millisecond)
 			if strings.Contains(responseBody, gitlabRepoHasAlreadyBeenTaken) {
-				g.DeleteRepository()
+				_ = g.DeleteRepository(ctx)
 				time.Sleep(time.Duration(sleepBeforeRetryMs) * time.Millisecond)
 			}
 			continue
 		}
-		g.logger.Info().Str("project", g.project.String()).Msg("GitLab repository created")
+		logger.Info().Str("project", g.project.String()).Msg("GitLab repository created")
 		return nil
 	}
 }
 
-func (g *Gitlab) ResetRepository() error {
-	deleteRepoErr := g.DeleteRepository()
+func (g *Gitlab) ResetRepository(ctx context.Context) error {
+	deleteRepoErr := g.DeleteRepository(ctx)
 	if deleteRepoErr != nil {
 		panic(deleteRepoErr)
 	}
-	return g.CreateRepository()
+	return g.CreateRepository(ctx)
 }
 
-func (g *Gitlab) DeleteRepository() error {
-	statusCode, _, body, err := g.sendRequest("DELETE", fmt.Sprintf("/projects/%s", url.PathEscape(g.project.String())), nil)
+func (g *Gitlab) DeleteRepository(ctx context.Context) error {
+	logger := zerolog.Ctx(ctx).With().Str("method", "DeleteRepository").Logger()
+
+	statusCode, _, body, err := g.sendRequest(ctx, "DELETE", fmt.Sprintf("/projects/%s", url.PathEscape(g.project.String())), nil)
 	if err != nil || (statusCode != 202 && statusCode != 404) {
 		return fmt.Errorf("failed to delete gitlab repository: (%d) %s -- %w", statusCode, body, err)
 	}
-	g.logger.Info().Str("project", g.project.String()).Msg("GitLab repository deleted")
+	logger.Info().Str("project", g.project.String()).Msg("GitLab repository deleted")
 	return nil
 }
 
-func (g *Gitlab) GetIconfiles() ([]string, error) {
-	statusCode, _, body, err := g.sendRequest("GET", fmt.Sprintf("/projects/%s/repository/tree?ref=%s&recursive=true", url.PathEscape(g.project.String()), g.mainBranch), nil)
+func (g *Gitlab) GetIconfiles(ctx context.Context) ([]string, error) {
+	statusCode, _, body, err := g.sendRequest(ctx, "GET", fmt.Sprintf("/projects/%s/repository/tree?ref=%s&recursive=true", url.PathEscape(g.project.String()), g.mainBranch), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to send request to get repository tree from GitLab repo: %w", err)
 	}
@@ -280,13 +283,14 @@ func (g *Gitlab) createCommitBody(authorName string, commitMessage string, actio
 }
 
 // GetAbsolutePathToIconfile implements repositories_tests.gitTestRepo
-func (Gitlab) GetAbsolutePathToIconfile(string, domain.IconfileDescriptor) string {
+func (g *Gitlab) GetAbsolutePathToIconfile(string, domain.IconfileDescriptor) string {
 	panic("unimplemented")
 }
 
 // GetStateID implements repositories_tests.gitTestRepo
-func (g *Gitlab) GetStateID() (string, error) {
+func (g *Gitlab) GetStateID(ctx context.Context) (string, error) {
 	statusCode, _, body, err := g.sendRequest(
+		ctx,
 		"GET",
 		fmt.Sprintf(
 			"/projects/%s/repository/commits?%s",
@@ -316,17 +320,18 @@ func (g *Gitlab) GetStateID() (string, error) {
 }
 
 // CheckStatus always returns true for the GitLab repo, since the GitLab service handles consistency (and returns error if it cannot)
-func (Gitlab) CheckStatus() (bool, error) {
+func (g *Gitlab) CheckStatus() (bool, error) {
 	return true, nil
 }
 
 // GetVersionFor returns the commit ID of the iconfile specified by the method paramters.
 // Return empty string in case the file doesn't exist in the repository
-func (g *Gitlab) GetVersionFor(iconName string, iconfileDesc domain.IconfileDescriptor) (string, error) {
+func (g *Gitlab) GetVersionFor(ctx context.Context, iconName string, iconfileDesc domain.IconfileDescriptor) (string, error) {
 	commitIdHeaderKey := "X-Gitlab-Commit-Id"
 
 	filePath := paths.getPathComponents(iconName, iconfileDesc).pathToIconfile
 	statusCode, header, body, err := g.sendRequest(
+		ctx,
 		"HEAD",
 		fmt.Sprintf(
 			"/projects/%s/repository/files/%s?%s",
@@ -348,10 +353,10 @@ func (g *Gitlab) GetVersionFor(iconName string, iconfileDesc domain.IconfileDesc
 	return header.Get(commitIdHeaderKey), nil
 }
 
-func (g *Gitlab) GetVersionMetadata(commitId string) (CommitMetadata, error) {
+func (g *Gitlab) GetVersionMetadata(ctx context.Context, commitId string) (CommitMetadata, error) {
 	commitMetadata := CommitMetadata{}
 
-	statusCode, _, body, err := g.sendRequest("GET", fmt.Sprintf("/projects/%s/repository/commits/%s", url.PathEscape(g.project.String()), commitId), nil)
+	statusCode, _, body, err := g.sendRequest(ctx, "GET", fmt.Sprintf("/projects/%s/repository/commits/%s", url.PathEscape(g.project.String()), commitId), nil)
 	if err != nil {
 		return commitMetadata, fmt.Errorf("failed to send request to get commit meta-data for %s from GitLab repo: %w", commitId, err)
 	}
@@ -373,9 +378,13 @@ func (g *Gitlab) GetVersionMetadata(commitId string) (CommitMetadata, error) {
 	return commitMetadata, nil
 }
 
-func (g *Gitlab) AddIconfile(iconName string, iconfile domain.Iconfile, modifiedBy string) error {
+func (g *Gitlab) AddIconfile(ctx context.Context, iconName string, iconfile domain.Iconfile, modifiedBy string) error {
+	logger := zerolog.Ctx(ctx).With().Str("unit", "gitlab-client").Str("method", "AddIconfile").Str("iconName", iconName).Int("Content length", len(iconfile.Content)).Logger()
+
 	filePath := paths.getPathComponents(iconName, iconfile.IconfileDescriptor).pathToIconfile
-	commitErr := g.commit(modifiedBy, fmt.Sprintf("Adding iconfile: %s", filePath), []commitActionOnByteSlice{
+
+	logger.Debug().Str("filePath", filePath).Msg("about to commit...")
+	commitErr := g.commit(ctx, modifiedBy, fmt.Sprintf("Adding iconfile: %s", filePath), []commitActionOnByteSlice{
 		{
 			Action:   commitActionCreate,
 			FilePath: filePath,
@@ -385,11 +394,12 @@ func (g *Gitlab) AddIconfile(iconName string, iconfile domain.Iconfile, modified
 	if commitErr != nil {
 		return fmt.Errorf("failed to add iconfile to GitLab repo %s::%s: %w", iconName, iconfile.String(), commitErr)
 	}
-	g.logger.Info().Str("icon-name", iconName).Str("icon-file", iconfile.String()).Msg("Iconfile added to GitLab repository")
+	logger.Info().Msg("Iconfile added to GitLab repository")
 	return nil
 }
 
 func (g *Gitlab) DeleteIcon(ctx context.Context, iconDesc domain.IconDescriptor, modifiedBy authn.UserID) error {
+	logger := zerolog.Ctx(ctx).With().Str("iconName", iconDesc.Name).Str("method", "DeleteIcon").Logger()
 	actionList := make([]commitActionOnByteSlice, len(iconDesc.Iconfiles))
 
 	for index, ifDesc := range iconDesc.Iconfiles {
@@ -398,18 +408,20 @@ func (g *Gitlab) DeleteIcon(ctx context.Context, iconDesc domain.IconDescriptor,
 			FilePath: paths.getPathComponents(iconDesc.Name, ifDesc).pathToIconfile,
 		}
 	}
-	commitErr := g.commit(modifiedBy.String(), fmt.Sprintf("Deleting icon: %s", iconDesc.Name), actionList)
+	commitErr := g.commit(ctx, modifiedBy.String(), fmt.Sprintf("Deleting icon: %s", iconDesc.Name), actionList)
 	if commitErr != nil {
 		return fmt.Errorf("failed to delete iconfile from GitLab repo %s: %w", iconDesc.Name, commitErr)
 	}
-	g.logger.Info().Str("icon-name", iconDesc.Name).Msg("Iconfile deleted from GitLab repository")
+	logger.Info().Msg("Iconfile deleted from GitLab repository")
 	return nil
 }
 
 func (g *Gitlab) DeleteIconfile(ctx context.Context, iconName string, iconfileDesc domain.IconfileDescriptor, modifiedBy authn.UserID) error {
+	logger := zerolog.Ctx(ctx).With().Str("iconName", iconName).Str("icon-file", iconfileDesc.String()).Str("method", "DeleteIconfile").Logger()
+
 	filePath := paths.getPathComponents(iconName, iconfileDesc).pathToIconfile
 
-	commitErr := g.commit(modifiedBy.String(), fmt.Sprintf("Deleting iconfile: %s", filePath), []commitActionOnByteSlice{
+	commitErr := g.commit(ctx, modifiedBy.String(), fmt.Sprintf("Deleting iconfile: %s", filePath), []commitActionOnByteSlice{
 		{
 			Action:   commitActionDelete,
 			FilePath: filePath,
@@ -418,13 +430,15 @@ func (g *Gitlab) DeleteIconfile(ctx context.Context, iconName string, iconfileDe
 	if commitErr != nil {
 		return fmt.Errorf("failed to delete iconfile from GitLab repo %s::%s: %w", iconName, iconfileDesc.String(), commitErr)
 	}
-	g.logger.Info().Str("icon-name", iconName).Str("icon-file", iconfileDesc.String()).Msg("Iconfile deleted from GitLab repository")
+
+	logger.Info().Msg("Iconfile deleted from GitLab repository")
 	return nil
 }
 
-func (g *Gitlab) GetIconfile(iconName string, iconfileDesc domain.IconfileDescriptor) ([]byte, error) {
+func (g *Gitlab) GetIconfile(ctx context.Context, iconName string, iconfileDesc domain.IconfileDescriptor) ([]byte, error) {
 	filePath := paths.getPathComponents(iconName, iconfileDesc).pathToIconfile
 	statusCode, _, body, err := g.sendRequest(
+		ctx,
 		"GET",
 		fmt.Sprintf(
 			"/projects/%s/repository/files/%s?%s",
@@ -459,7 +473,7 @@ func (g *Gitlab) GetIconfile(iconName string, iconfileDesc domain.IconfileDescri
 	return content, nil
 }
 
-func (g *Gitlab) commit(authorName string, commitMessage string, actions []commitActionOnByteSlice) error {
+func (g *Gitlab) commit(ctx context.Context, authorName string, commitMessage string, actions []commitActionOnByteSlice) error {
 	if os.Getenv(SimulateGitCommitFailureEnvvarName) == "true" {
 		return fmt.Errorf("simulate git commit failure")
 	}
@@ -470,6 +484,7 @@ func (g *Gitlab) commit(authorName string, commitMessage string, actions []commi
 	}
 
 	statusCode, _, body, err := g.sendRequest(
+		ctx,
 		"POST",
 		fmt.Sprintf("/projects/%s/repository/commits?%s", url.PathEscape(g.project.String()), url.PathEscape(fmt.Sprintf("ref=%s", g.mainBranch))),
 		commitBody,
@@ -480,10 +495,11 @@ func (g *Gitlab) commit(authorName string, commitMessage string, actions []commi
 	return nil
 }
 
-func (g *Gitlab) sendRequest(method string, apiCallPath string, body io.Reader) (int, http.Header, string, error) {
+func (g *Gitlab) sendRequest(ctx context.Context, method string, apiCallPath string, body io.Reader) (int, http.Header, string, error) {
+	logger := zerolog.Ctx(ctx).With().Str("method", "sendRequest").Str("request-method", method).Str("apiCallPath", apiCallPath).Logger()
 	urlString := fmt.Sprintf("https://gitlab.com/api/v4%s", apiCallPath)
 
-	g.logger.Debug().Str("method", method).Str("url", urlString).Msg("send request")
+	logger.Debug().Msg("send request")
 	request, requestCreationError := http.NewRequest(
 		method,
 		urlString,
@@ -513,7 +529,7 @@ func (g *Gitlab) sendRequest(method string, apiCallPath string, body io.Reader) 
 		return resp.StatusCode, nil, "", fmt.Errorf("failed to parse %s header", "RateLimit-Remaining")
 	}
 	if rateLimitRemainning < 5 {
-		g.logger.Warn().Int64("rateLimitRemainning", rateLimitRemainning).Msg("Rate limit remaining to low")
+		logger.Warn().Int64("rateLimitRemainning", rateLimitRemainning).Msg("Rate limit remaining to low")
 	}
 
 	return resp.StatusCode, resp.Header, string(respBody), nil
@@ -524,8 +540,8 @@ type namespaceInfo struct {
 	Path string `json:"path"`
 }
 
-func getNamespaceID(gitlabCli Gitlab) (int, error) {
-	statusCode, _, body, err := gitlabCli.sendRequest("GET", "/namespaces?owned_only=true", nil)
+func getNamespaceID(ctx context.Context, gitlabCli *Gitlab) (int, error) {
+	statusCode, _, body, err := gitlabCli.sendRequest(ctx, "GET", "/namespaces?owned_only=true", nil)
 	if err != nil || statusCode != 200 {
 		return 0, fmt.Errorf("failed to retreive GitLab namespaces (%d) %s -- %w", statusCode, body, err)
 	}

@@ -1,6 +1,7 @@
 package git
 
 import (
+	"context"
 	"iconrepo/internal/logging"
 	"os"
 	"testing"
@@ -17,6 +18,7 @@ type localGitRepoTestSuite struct {
 	suite.Suite
 	t             *testing.T
 	gitRepoClient Local
+	ctx           context.Context
 }
 
 func TestLocalGitTestSuite(t *testing.T) {
@@ -31,8 +33,10 @@ func (testSuite *localGitRepoTestSuite) removeRepoDir() {
 }
 
 func (testSuite *localGitRepoTestSuite) BeforeTest(suiteName string, testName string) {
+	logger := logging.Get().With().Str("root", "TestLocalGitTestSuite").Logger()
+	testSuite.ctx = logger.WithContext(context.Background())
 	testSuite.removeRepoDir()
-	gitRepoCreationError := testSuite.gitRepoClient.CreateRepository()
+	gitRepoCreationError := testSuite.gitRepoClient.CreateRepository(testSuite.ctx)
 	if gitRepoCreationError != nil {
 		panic(gitRepoCreationError)
 	}
@@ -46,7 +50,7 @@ func (testSuite *localGitRepoTestSuite) TestLocationDoesntExist() {
 
 func (testSuite *localGitRepoTestSuite) TestLocationDoesntHaveRepo() {
 	testSuite.removeRepoDir()
-	err := testSuite.gitRepoClient.CreateRepository()
+	err := testSuite.gitRepoClient.CreateRepository(testSuite.ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -55,15 +59,15 @@ func (testSuite *localGitRepoTestSuite) TestLocationDoesntHaveRepo() {
 
 func (testSuite *localGitRepoTestSuite) TestLocationHasRepo() {
 	testSuite.removeRepoDir()
-	err := testSuite.gitRepoClient.CreateRepository()
+	err := testSuite.gitRepoClient.CreateRepository(testSuite.ctx)
 	if err != nil {
 		panic(err)
 	}
-	err = testSuite.gitRepoClient.DeleteRepository()
+	err = testSuite.gitRepoClient.DeleteRepository(testSuite.ctx)
 	if err != nil {
 		panic(err)
 	}
-	err = testSuite.gitRepoClient.CreateRepository()
+	err = testSuite.gitRepoClient.CreateRepository(testSuite.ctx)
 	if err != nil {
 		panic(err)
 	}

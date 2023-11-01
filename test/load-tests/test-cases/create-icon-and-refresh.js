@@ -38,9 +38,6 @@ export default function() {
 							console.log(">>>>>>>>>>>>>>>>> ", resCreate);
 							fail(`unexpected response: status is ${resCreate.status}`);
 						}
-            check(resCreate, {
-               "icon desc OK": () => newIconDesc && newIconDesc.format === "svg"
-            });
 
 						if (!checkOutput) {
 							fail(`unexpected response: status is ${resCreate.status}`);

@@ -3,13 +3,12 @@ package git
 import (
 	"context"
 	"fmt"
-	"os"
-	"strings"
-
 	"iconrepo/internal/app/domain"
 	"iconrepo/internal/app/security/authn"
 	"iconrepo/internal/config"
 	"iconrepo/internal/logging"
+	"os"
+	"strings"
 
 	"github.com/rs/zerolog"
 )
@@ -33,28 +32,32 @@ func NewLocalGitRepository(location string, logger zerolog.Logger) Local {
 	return git
 }
 
-var SimulateGitCommitFailureEnvvarName = "GIT_COMMIT_FAIL_INTRUSIVE_TEST"
-var gitCommitFailureTestCommand = "procyon lotor"
+var (
+	SimulateGitCommitFailureEnvvarName = "GIT_COMMIT_FAIL_INTRUSIVE_TEST"
+	gitCommitFailureTestCommand        = "procyon lotor"
+)
 
-const filesAddedSuccessMessage = "icon file(s) added"
-const filesDeletedSuccessMessage = "all file(s) for icon \"%s\" deleted:\n\n%s"
-const fileDeleteSuccessMessage = "iconfile for icon \"%s\" deleted:\n\n%s"
+const (
+	filesAddedSuccessMessage   = "icon file(s) added"
+	filesDeletedSuccessMessage = "all file(s) for icon \"%s\" deleted:\n\n%s"
+	fileDeleteSuccessMessage   = "iconfile for icon \"%s\" deleted:\n\n%s"
+)
 
 const cleanStatusMessageTail = "nothing to commit, working tree clean"
 
-func (repo *Local) CreateRepository() error {
+func (repo *Local) CreateRepository(ctx context.Context) error {
 	return repo.initMaybe()
 }
 
-func (repo *Local) ResetRepository() error {
-	deleteRepoErr := repo.DeleteRepository()
+func (repo *Local) ResetRepository(ctx context.Context) error {
+	deleteRepoErr := repo.DeleteRepository(ctx)
 	if deleteRepoErr != nil {
 		panic(deleteRepoErr)
 	}
-	return repo.CreateRepository()
+	return repo.CreateRepository(ctx)
 }
 
-func (repo *Local) DeleteRepository() error {
+func (repo *Local) DeleteRepository(ctx context.Context) error {
 	return os.RemoveAll(repo.Location)
 }
 
@@ -185,7 +188,7 @@ func (repo *Local) createIconfile(iconName string, iconfile domain.Iconfile, mod
 	return pathComponents.pathToIconfileInRepo, err
 }
 
-func (repo *Local) AddIconfile(iconName string, iconfile domain.Iconfile, modifiedBy string) error {
+func (repo *Local) AddIconfile(ctx context.Context, iconName string, iconfile domain.Iconfile, modifiedBy string) error {
 	iconfileOperation := func() ([]string, error) {
 		pathToIconfileInRepo, err := repo.createIconfile(iconName, iconfile, modifiedBy)
 		if err != nil {
@@ -210,7 +213,7 @@ func (repo *Local) AddIconfile(iconName string, iconfile domain.Iconfile, modifi
 	return nil
 }
 
-func (repo *Local) GetIconfile(iconName string, iconfileDesc domain.IconfileDescriptor) ([]byte, error) {
+func (repo *Local) GetIconfile(ctx context.Context, iconName string, iconfileDesc domain.IconfileDescriptor) ([]byte, error) {
 	pathToFile := repo.GetAbsolutePathToIconfile(iconName, iconfileDesc)
 	bytes, err := os.ReadFile(pathToFile)
 	if err != nil {

@@ -4,11 +4,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"image"
-
 	"iconrepo/internal/app/domain"
 	"iconrepo/internal/app/security/authr"
 	"iconrepo/internal/logging"
+	"image"
 
 	"github.com/rs/zerolog"
 )
@@ -19,7 +18,7 @@ type Repository interface {
 	CreateIcon(ctx context.Context, iconName string, iconfile domain.Iconfile, modifiedBy authr.UserInfo) error
 	DeleteIcon(ctx context.Context, iconName string, modifiedBy authr.UserInfo) error
 
-	GetIconfile(iconName string, iconfile domain.IconfileDescriptor) ([]byte, error)
+	GetIconfile(ctx context.Context, iconName string, iconfile domain.IconfileDescriptor) ([]byte, error)
 	AddIconfile(ctx context.Context, iconName string, iconfile domain.Iconfile, modifiedBy authr.UserInfo) error
 	DeleteIconfile(ctx context.Context, iconName string, iconfile domain.IconfileDescriptor, modifiedBy authr.UserInfo) error
 
@@ -97,8 +96,8 @@ func (service *IconService) CreateIcon(ctx context.Context, iconName string, ini
 	}, nil
 }
 
-func (service *IconService) GetIconfile(iconName string, iconfile domain.IconfileDescriptor) ([]byte, error) {
-	content, err := service.Repository.GetIconfile(iconName, iconfile)
+func (service *IconService) GetIconfile(ctx context.Context, iconName string, iconfile domain.IconfileDescriptor) ([]byte, error) {
+	content, err := service.Repository.GetIconfile(ctx, iconName, iconfile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to retrieve iconfile %v: %w", iconfile, err)
 	}

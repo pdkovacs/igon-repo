@@ -6,13 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
-
 	"iconrepo/internal/app/domain"
 	"iconrepo/internal/app/security/authn"
 	"iconrepo/internal/app/security/authr"
 	"iconrepo/internal/app/services"
+	"io"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
@@ -170,14 +169,14 @@ func createIcon(
 	}
 }
 
-func getIconfile(getIconfile func(iconName string, iconfile domain.IconfileDescriptor) ([]byte, error)) func(g *gin.Context) {
+func getIconfile(getIconfile func(ctx context.Context, iconName string, iconfile domain.IconfileDescriptor) ([]byte, error)) func(g *gin.Context) {
 	return func(g *gin.Context) {
 		logger := zerolog.Ctx(g.Request.Context())
 
 		iconName := g.Param("name")
 		format := g.Param("format")
 		size := g.Param("size")
-		iconfile, err := getIconfile(iconName, domain.IconfileDescriptor{
+		iconfile, err := getIconfile(g.Request.Context(), iconName, domain.IconfileDescriptor{
 			Format: format,
 			Size:   size,
 		})
@@ -202,7 +201,6 @@ func addIconfile(
 	addIconfile func(ctx context.Context, iconName string, initialIconfileContent []byte, modifiedBy authr.UserInfo) (domain.IconfileDescriptor, error),
 	publish func(msg services.NotificationMessage, initiator authn.UserID),
 ) func(g *gin.Context) {
-
 	return func(g *gin.Context) {
 		logger := zerolog.Ctx(g.Request.Context())
 

@@ -44,7 +44,7 @@ k6 run \
   -e ICONREPO_BASE_URL=http://ux:ux@iconrepo.local.com \
   -e MY_SESION="$MY_SESION" \
   --vus 5 \
-  --duration 4s \
+  --duration 30s \
   --out json=output/create-icon-and-refresh.json \
   "file://${__directory}/test-cases/create-icon-and-refresh.js"
 

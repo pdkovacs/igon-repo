@@ -3,7 +3,6 @@ package repositories
 import (
 	"context"
 	"fmt"
-
 	"iconrepo/internal/app/domain"
 	"iconrepo/internal/app/security/authn"
 	"iconrepo/internal/app/security/authr"
@@ -24,9 +23,9 @@ type IndexRepository interface {
 
 type BlobstoreRepository interface {
 	fmt.Stringer
-	CreateRepository() error
-	AddIconfile(iconName string, iconfile domain.Iconfile, modifiedBy string) error
-	GetIconfile(iconName string, iconfile domain.IconfileDescriptor) ([]byte, error)
+	CreateRepository(ctx context.Context) error
+	AddIconfile(ctx context.Context, iconName string, iconfile domain.Iconfile, modifiedBy string) error
+	GetIconfile(ctx context.Context, iconName string, iconfile domain.IconfileDescriptor) ([]byte, error)
 	DeleteIcon(ctx context.Context, iconDesc domain.IconDescriptor, modifiedBy authn.UserID) error
 	DeleteIconfile(ctx context.Context, iconName string, iconfileDesc domain.IconfileDescriptor, modifiedBy authn.UserID) error
 }
@@ -46,7 +45,7 @@ func (combo *RepoCombo) DescribeIcon(ctx context.Context, iconName string) (doma
 
 func (combo *RepoCombo) CreateIcon(ctx context.Context, iconName string, iconfile domain.Iconfile, modifiedBy authr.UserInfo) error {
 	return combo.Index.CreateIcon(ctx, iconName, iconfile.IconfileDescriptor, modifiedBy.UserId.String(), func() error {
-		return combo.Blobstore.AddIconfile(iconName, iconfile, modifiedBy.UserId.String())
+		return combo.Blobstore.AddIconfile(ctx, iconName, iconfile, modifiedBy.UserId.String())
 	})
 }
 
@@ -63,12 +62,12 @@ func (combo *RepoCombo) DeleteIcon(ctx context.Context, iconName string, modifie
 
 func (combo *RepoCombo) AddIconfile(ctx context.Context, iconName string, iconfile domain.Iconfile, modifiedBy authr.UserInfo) error {
 	return combo.Index.AddIconfileToIcon(ctx, iconName, iconfile.IconfileDescriptor, modifiedBy.UserId.String(), func() error {
-		return combo.Blobstore.AddIconfile(iconName, iconfile, modifiedBy.UserId.String())
+		return combo.Blobstore.AddIconfile(ctx, iconName, iconfile, modifiedBy.UserId.String())
 	})
 }
 
-func (combo *RepoCombo) GetIconfile(iconName string, iconfile domain.IconfileDescriptor) ([]byte, error) {
-	return combo.Blobstore.GetIconfile(iconName, iconfile)
+func (combo *RepoCombo) GetIconfile(ctx context.Context, iconName string, iconfile domain.IconfileDescriptor) ([]byte, error) {
+	return combo.Blobstore.GetIconfile(ctx, iconName, iconfile)
 }
 
 func (combo *RepoCombo) DeleteIconfile(ctx context.Context, iconName string, iconfile domain.IconfileDescriptor, modifiedBy authr.UserInfo) error {

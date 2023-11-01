@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"iconrepo/internal/app/services"
 	"iconrepo/internal/config"
 	"iconrepo/internal/httpadapter"
@@ -11,8 +12,7 @@ import (
 	"iconrepo/internal/repositories/indexing/pgdb"
 )
 
-func Start(conf config.Options, ready func(port int, stop func())) error {
-
+func Start(ctx context.Context, conf config.Options, ready func(port int, stop func())) error {
 	var dbSchemaAlreadyThere bool
 	var db repositories.IndexRepository
 	if conf.DynamodbURL == "" {
@@ -46,20 +46,20 @@ func Start(conf config.Options, ready func(port int, stop func())) error {
 	}
 	if len(conf.GitlabNamespacePath) > 0 {
 		gitlabClient, gitlabRepoErr := git.NewGitlabRepositoryClient(
+			ctx,
 			conf.GitlabNamespacePath,
 			conf.GitlabProjectPath,
 			conf.GitlabMainBranch,
 			conf.GitlabAccessToken,
-			logging.CreateUnitLogger(logging.Get(), "Gitlab client"),
 		)
 		if gitlabRepoErr != nil {
 			return gitlabRepoErr
 		}
-		blobstore = &gitlabClient
+		blobstore = gitlabClient
 	}
 
 	if !dbSchemaAlreadyThere {
-		gitErr := blobstore.CreateRepository()
+		gitErr := blobstore.CreateRepository(ctx)
 		if gitErr != nil {
 			return gitErr
 		}

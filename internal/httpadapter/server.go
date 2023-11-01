@@ -4,23 +4,23 @@ import (
 	"database/sql"
 	"encoding/gob"
 	"fmt"
-	"net"
-	"net/http"
-	"regexp"
-	"strconv"
-	"time"
-
 	"iconrepo/internal/app/security/authn"
 	"iconrepo/internal/app/security/authr"
 	"iconrepo/internal/app/services"
 	"iconrepo/internal/config"
 	"iconrepo/internal/logging"
 	"iconrepo/web"
+	"net"
+	"net/http"
+	"regexp"
+	"strconv"
+	"time"
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/memstore"
 	"github.com/gin-contrib/sessions/postgres"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/xid"
 	"github.com/rs/zerolog"
 )
 
@@ -196,13 +196,12 @@ func (s *server) Stop() {
 	} else {
 		logger.Info().Interface("listener", s.listener).Msg("Listener closed successfully")
 	}
-
 }
 
 func RequestLogger(g *gin.Context) {
 	start := time.Now()
 
-	l := logging.Get()
+	l := logging.Get().With().Str("req_xid", xid.New().String()).Logger()
 
 	r := g.Request
 	g.Request = r.WithContext(l.WithContext(r.Context()))
@@ -245,7 +244,7 @@ func (lrw *loggingResponseWriter) WriteHeader(code int) {
 // TODO:
 // Use "github.com/gin-contrib/cors" with strict, parameterized rules
 func CORSMiddleware(clientURLs string, logger zerolog.Logger) gin.HandlerFunc {
-	var clientURLsRegexp = regexp.MustCompile(clientURLs)
+	clientURLsRegexp := regexp.MustCompile(clientURLs)
 
 	return func(c *gin.Context) {
 		origin := c.Request.Header.Get("origin")
