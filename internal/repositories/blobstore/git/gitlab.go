@@ -67,6 +67,7 @@ type Gitlab struct {
 	mainBranch string
 	apikey     string
 	client     http.Client
+	mux        sync.Mutex
 }
 
 func (repo *Gitlab) String() string {
@@ -496,6 +497,9 @@ func (g *Gitlab) commit(ctx context.Context, authorName string, commitMessage st
 }
 
 func (g *Gitlab) sendRequest(ctx context.Context, method string, apiCallPath string, body io.Reader) (int, http.Header, string, error) {
+	g.mux.Lock()
+	defer g.mux.Unlock()
+
 	logger := zerolog.Ctx(ctx).With().Str("method", "sendRequest").Str("request-method", method).Str("apiCallPath", apiCallPath).Logger()
 	urlString := fmt.Sprintf("https://gitlab.com/api/v4%s", apiCallPath)
 
