@@ -1,8 +1,12 @@
 import { receiveNotification } from "../state/actions/notification-actions";
 import store from "../state/store";
+import { getRealPath } from "./fetch-utils";
 
 function dial() {
-	const conn = new WebSocket(`ws://${location.host}/subscribe`);
+
+  const realPath = getRealPath("/subscribe");
+
+	const conn = new WebSocket(`ws://${location.host}${realPath}`);
 
 	conn.addEventListener("close", ev => {
 		console.log(`WebSocket Disconnected code: ${ev.code}, reason: ${ev.reason}`, true);
@@ -27,4 +31,6 @@ function dial() {
 	});
 }
 
-// dial();
+console.log("calling dial()...");
+
+dial();

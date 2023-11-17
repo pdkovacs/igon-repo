@@ -13,6 +13,10 @@ enum FetchMethod {
 
 export type QueryParams = {[key: string]: string};
 
+export const getRealPath = (path: string) => {
+  return path.startsWith("!") ? path.substring(1) : getEndpointUrl(path);
+};
+
 const fetchWithMethod = async <B, R> (
 	fetchMethod: FetchMethod,
 	path: string,
@@ -21,7 +25,7 @@ const fetchWithMethod = async <B, R> (
 	body?: B,
 	json = true
 ) => {
-	const realPath = path.startsWith("!") ? path.substring(1) : getEndpointUrl(path);
+	const realPath = getRealPath(path);
 	try {
 		const response = await fetch(realPath, {
 			method: fetchMethod,

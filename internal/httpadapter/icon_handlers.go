@@ -120,7 +120,7 @@ func describeIcon(describeIcon func(ctx context.Context, iconName string) (domai
 func createIcon(
 	getUserInfo func(c *gin.Context) authr.UserInfo,
 	createIcon func(ctx context.Context, iconName string, initialIconfileContent []byte, modifiedBy authr.UserInfo) (domain.Icon, error),
-	publish func(msg services.NotificationMessage, initiator authn.UserID),
+	publish func(ctx context.Context, msg services.NotificationMessage, initiator authn.UserID),
 ) func(g *gin.Context) {
 	return func(g *gin.Context) {
 		logger := zerolog.Ctx(g.Request.Context())
@@ -164,8 +164,8 @@ func createIcon(
 				return
 			}
 		}
+		publish(g.Request.Context(), services.NotifMsgIconCreated, authorInfo.UserId)
 		g.JSON(201, iconToResponseIcon(icon))
-		publish(services.NotifMsgIconCreated, authorInfo.UserId)
 	}
 }
 
@@ -199,7 +199,7 @@ func getIconfile(getIconfile func(ctx context.Context, iconName string, iconfile
 func addIconfile(
 	getUserInfo func(g *gin.Context) authr.UserInfo,
 	addIconfile func(ctx context.Context, iconName string, initialIconfileContent []byte, modifiedBy authr.UserInfo) (domain.IconfileDescriptor, error),
-	publish func(msg services.NotificationMessage, initiator authn.UserID),
+	publish func(ctx context.Context, msg services.NotificationMessage, initiator authn.UserID),
 ) func(g *gin.Context) {
 	return func(g *gin.Context) {
 		logger := zerolog.Ctx(g.Request.Context())
@@ -253,8 +253,8 @@ func addIconfile(
 				g.AbortWithStatus(http.StatusInternalServerError)
 			}
 		}
+		publish(g.Request.Context(), services.NotifMsgIconfileAdded, authorInfo.UserId)
 		g.JSON(200, CreateIconPath(iconRootPath, iconName, iconfileDescriptor))
-		publish(services.NotifMsgIconfileAdded, authorInfo.UserId)
 		buf.Reset()
 	}
 }
@@ -262,7 +262,7 @@ func addIconfile(
 func deleteIcon(
 	getUserInfo func(g *gin.Context) authr.UserInfo,
 	deleteIcon func(ctx context.Context, iconName string, modifiedBy authr.UserInfo) error,
-	publish func(msg services.NotificationMessage, initiator authn.UserID),
+	publish func(ctx context.Context, msg services.NotificationMessage, initiator authn.UserID),
 ) func(g *gin.Context) {
 	return func(g *gin.Context) {
 		logger := zerolog.Ctx(g.Request.Context())
@@ -279,15 +279,15 @@ func deleteIcon(
 			g.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
+		publish(g.Request.Context(), services.NotifMsgIconDeleted, authorInfo.UserId)
 		g.Status(204)
-		publish(services.NotifMsgIconDeleted, authorInfo.UserId)
 	}
 }
 
 func deleteIconfile(
 	getUserInfo func(c *gin.Context) authr.UserInfo,
 	deleteIconfile func(ctx context.Context, iconName string, iconfile domain.IconfileDescriptor, modifiedBy authr.UserInfo) error,
-	publish func(msg services.NotificationMessage, initiator authn.UserID),
+	publish func(ctx context.Context, msg services.NotificationMessage, initiator authn.UserID),
 ) func(g *gin.Context) {
 	return func(g *gin.Context) {
 		logger := zerolog.Ctx(g.Request.Context())
@@ -317,8 +317,8 @@ func deleteIconfile(
 			g.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
+		publish(g.Request.Context(), services.NotifMsgIconfileDeleted, authorInfo.UserId)
 		g.Status(204)
-		publish(services.NotifMsgIconfileDeleted, authorInfo.UserId)
 	}
 }
 

@@ -65,24 +65,31 @@ type socketIO interface {
 }
 
 func (ns *Notification) Subscribe(ctx context.Context, sIo socketIO, userid authn.UserID) error {
+	logger := zerolog.Ctx(ctx).With().Str("unit", "notificationService").Str("method", "Subscribe").Logger()
+
 	subs := &subscriber{
 		userId: userid,
 		msgs:   make(chan string, ns.subscriberMessageBuffer),
 		closeSlow: func() {
+			logger.Debug().Msg("closing subscription...")
 			sIo.Close()
 		},
 	}
 
 	ns.addSubscriber(subs)
+	logger.Debug().Msg("subscription added...")
 	defer ns.deleteSubscriber(subs)
 
 	for {
 		select {
 		case msg := <-subs.msgs:
+			logger.Debug().Str("message", msg).Msg("Incoming message...")
 			err := writeTimeout(ctx, time.Second*5, sIo, msg)
 			if err != nil {
+				logger.Error().Err(err).Str("message", msg).Msg("failed to send message")
 				return err
 			}
+			logger.Debug().Str("message", msg).Msg("Message relayed!")
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -106,18 +113,23 @@ func (ns *Notification) deleteSubscriber(s *subscriber) {
 // publish publishes the msg to all subscribers.
 // It never blocks and so messages to slow subscribers
 // are dropped.
-func (cs *Notification) Publish(msg NotificationMessage, initiator authn.UserID) {
+func (cs *Notification) Publish(ctx context.Context, msg NotificationMessage, initiator authn.UserID) {
+	logger := zerolog.Ctx(ctx).With().Str("unit", "notificationService").Str("method", "Publish").Logger()
+
 	cs.subscribersMu.Lock()
 	defer cs.subscribersMu.Unlock()
 
-	cs.publishLimiter.Wait(context.TODO())
+	logger.Debug().Str("message", string(msg)).Msg("waiting for limiter...")
+	cs.publishLimiter.Wait(ctx)
 
+	logger.Debug().Str("message", string(msg)).Int("subscriberCount", len(cs.subscribers)).Msg("starting to iterate on subscribers...")
 	for s := range cs.subscribers {
 		if s.userId == initiator {
 			continue
 		}
 		select {
 		case s.msgs <- string(msg):
+			logger.Debug().Str("message", string(msg)).Msg("msg channeled")
 		default:
 			go s.closeSlow()
 		}

@@ -9,6 +9,7 @@ spec:
   routes:
     - conditions:
       - prefix: /api
+      enableWebsockets: true
       services:
         - name: iconrepo-backend
           port: 8080
@@ -20,6 +21,8 @@ spec:
       - name: mysession
         pathRewrite:
           value: /
+      timeoutPolicy:
+        response: 1h
     - conditions:
       - prefix: /openid-callback
       services:
