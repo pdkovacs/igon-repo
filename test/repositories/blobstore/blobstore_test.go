@@ -1,6 +1,7 @@
 package blobstore
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -14,7 +15,7 @@ import (
 
 func TestGitRepositoryTestSuite(t *testing.T) {
 	for _, repoController := range BlobstoreProvidersToTest() {
-		suite.Run(t, &BlobstoreTestSuite{RepoController: repoController, TestSequenceId: "blobstore"})
+		suite.Run(t, &BlobstoreTestSuite{RepoController: repoController, TestSequenceId: "blobstore", Ctx: context.Background()})
 	}
 }
 
@@ -23,7 +24,7 @@ func (s *BlobstoreTestSuite) TestAcceptsNewIconfileWhenEmpty() {
 	icon := test_commons.TestData[0]
 	iconfile := icon.Iconfiles[0]
 	timeBeforeAdd := time.Now()
-	err = s.RepoController.AddIconfile(icon.Name, iconfile, icon.ModifiedBy)
+	err = s.RepoController.AddIconfile(s.Ctx, icon.Name, iconfile, icon.ModifiedBy)
 	s.NoError(err)
 
 	var sha1 string
@@ -39,12 +40,12 @@ func (s *BlobstoreTestSuite) TestAcceptsNewIconfileWhenNotEmpty() {
 	iconfile1 := icon.Iconfiles[0]
 	iconfile2 := icon.Iconfiles[1]
 
-	errorWhenAddingFirstIconFile := s.RepoController.AddIconfile(icon.Name, iconfile1, icon.ModifiedBy)
+	errorWhenAddingFirstIconFile := s.RepoController.AddIconfile(s.Ctx, icon.Name, iconfile1, icon.ModifiedBy)
 	s.NoError(errorWhenAddingFirstIconFile)
 
 	firstSha1, errorWhenGettingFirstSha1 := s.GetStateID()
 	s.NoError(errorWhenGettingFirstSha1)
-	errorAddingSecondIconfile := s.RepoController.AddIconfile(icon.Name, iconfile2, icon.ModifiedBy)
+	errorAddingSecondIconfile := s.RepoController.AddIconfile(s.Ctx, icon.Name, iconfile2, icon.ModifiedBy)
 	s.NoError(errorAddingSecondIconfile)
 	secondSha1, errorWhenGettingSecondSha1 := s.GetStateID()
 	s.NoError(errorWhenGettingSecondSha1)

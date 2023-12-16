@@ -75,5 +75,6 @@ $ curl --silent \
 ## Generate mocks
 
 ```bash
-mockery --dir=internal/app/services --name=Repository --filename=repository.go --output=test/mocks
+$ brew install mockery
+$ mockery
 ```

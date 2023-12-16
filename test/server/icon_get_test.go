@@ -1,6 +1,7 @@
 package server
 
 import (
+	"net/http"
 	"testing"
 
 	"iconrepo/test/testdata"
@@ -36,7 +37,7 @@ func (s *iconGetTestSuite) TestDescribeSingleIcon() {
 	session.MustAddTestData(dataIn)
 	statusCode, one, err := session.describeIcon(dataIn[0].Name)
 	s.NoError(err)
-	s.Equal(200, statusCode)
+	s.Equal(http.StatusOK, statusCode)
 	s.assertResponseIconsEqual(dataOut[0], one)
 
 	s.AssertEndState()
@@ -49,7 +50,7 @@ func (s *iconGetTestSuite) TestReturn404ForNonExistentIcon() {
 	statusCode, _, err := session.describeIcon("somenonexistentname")
 	s.Error(err)
 	s.ErrorIs(err, errJSONUnmarshal)
-	s.Equal(404, statusCode)
+	s.Equal(http.StatusNotFound, statusCode)
 
 	s.AssertEndState()
 }

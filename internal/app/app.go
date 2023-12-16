@@ -5,7 +5,6 @@ import (
 	"iconrepo/internal/app/services"
 	"iconrepo/internal/config"
 	"iconrepo/internal/httpadapter"
-	"iconrepo/internal/logging"
 	"iconrepo/internal/repositories"
 	"iconrepo/internal/repositories/blobstore/git"
 	"iconrepo/internal/repositories/indexing/dynamodb"
@@ -41,7 +40,7 @@ func Start(ctx context.Context, conf config.Options, ready func(port int, stop f
 
 	var blobstore repositories.BlobstoreRepository
 	if len(conf.LocalGitRepo) > 0 {
-		localGit := git.NewLocalGitRepository(conf.LocalGitRepo, logging.CreateUnitLogger(logging.Get(), "local git repository"))
+		localGit := git.NewLocalGitRepository(conf.LocalGitRepo)
 		blobstore = &localGit
 	}
 	if len(conf.GitlabNamespacePath) > 0 {

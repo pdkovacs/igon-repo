@@ -1,6 +1,7 @@
 package server
 
 import (
+	"net/http"
 	"testing"
 
 	"iconrepo/internal/app/security/authr"
@@ -28,7 +29,7 @@ func (s *deleteIconTestSuite) TestFailWith403WithoutPrivilege() {
 	session.setAuthorization([]authr.PermissionID{})
 	statusCode, deleteError := session.deleteIcon(dataIn[0].Name)
 	s.NoError(deleteError)
-	s.Equal(403, statusCode)
+	s.Equal(http.StatusForbidden, statusCode)
 	respIcons, listError := session.DescribeAllIcons(s.Ctx)
 	s.NoError((listError))
 	s.AssertResponseIconSetsEqual(dataOut, respIcons)
@@ -43,7 +44,7 @@ func (s *deleteIconTestSuite) TestSucceedsWithPrivilege() {
 	session.setAuthorization([]authr.PermissionID{authr.REMOVE_ICON})
 	statusCode, deleteError := session.deleteIcon(dataIn[0].Name)
 	s.NoError(deleteError)
-	s.Equal(204, statusCode)
+	s.Equal(http.StatusNoContent, statusCode)
 	respIcons, listError := session.DescribeAllIcons(s.Ctx)
 	s.NoError((listError))
 	s.AssertResponseIconSetsEqual([]httpadapter.IconDTO{dataOut[1]}, respIcons)

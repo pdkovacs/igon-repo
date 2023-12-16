@@ -1,6 +1,7 @@
 package git
 
 import (
+	"context"
 	"iconrepo/internal/repositories/blobstore/git"
 	"iconrepo/test/test_commons"
 	"os"
@@ -11,6 +12,7 @@ import (
 
 type gitlabRepoTestSuite struct {
 	suite.Suite
+	ctx     context.Context
 	t       *testing.T
 	gitRepo *git.Gitlab
 }
@@ -19,7 +21,7 @@ func TestGitlabRepoTestSuite(t *testing.T) {
 	if len(os.Getenv("LOCAL_GIT_ONLY")) > 0 {
 		return
 	}
-	suite.Run(t, &gitlabRepoTestSuite{t: t})
+	suite.Run(t, &gitlabRepoTestSuite{ctx: context.Background(), t: t})
 }
 
 func (testSuite *gitlabRepoTestSuite) BeforeTest(suiteName string, testName string) {
@@ -30,21 +32,21 @@ func (testSuite *gitlabRepoTestSuite) BeforeTest(suiteName string, testName stri
 	if createClientErr != nil {
 		testSuite.FailNow("", "%v", createClientErr)
 	}
-	createRepoErr := testSuite.gitRepo.ResetRepository()
+	createRepoErr := testSuite.gitRepo.ResetRepository(testSuite.ctx)
 	if createRepoErr != nil {
 		testSuite.FailNow("", "%v", createRepoErr)
 	}
 }
 
 func (testSuite *gitlabRepoTestSuite) AfterTest(suiteName string, testName string) {
-	testSuite.gitRepo.DeleteRepository()
+	testSuite.gitRepo.DeleteRepository(testSuite.ctx)
 }
 
 func (testSuite *gitlabRepoTestSuite) TestAddIconfile() {
 	var err error
 	icon := test_commons.TestData[0]
 	iconfile := icon.Iconfiles[0]
-	err = testSuite.gitRepo.AddIconfile(icon.Name, iconfile, icon.ModifiedBy)
+	err = testSuite.gitRepo.AddIconfile(testSuite.ctx, icon.Name, iconfile, icon.ModifiedBy)
 	testSuite.NoError(err)
 
 	// var sha1 string

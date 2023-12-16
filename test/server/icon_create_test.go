@@ -1,6 +1,7 @@
 package server
 
 import (
+	"net/http"
 	"testing"
 
 	"iconrepo/internal/app/domain"
@@ -36,7 +37,7 @@ func (s *iconCreateTestSuite) TestFailsWith403WithoutPrivilege() {
 	statusCode, _, err := session.CreateIcon(iconName, iconfileContent)
 	s.Error(err)
 	s.ErrorIs(err, errJSONUnmarshal)
-	s.Equal(403, statusCode)
+	s.Equal(http.StatusForbidden, statusCode)
 
 	icons, errDesc := session.DescribeAllIcons(s.Ctx)
 	s.NoError(errDesc)
@@ -72,7 +73,7 @@ func (s *iconCreateTestSuite) TestCompletesWithPrivilege() {
 	session.mustSetAuthorization([]authr.PermissionID{authr.CREATE_ICON})
 	statusCode, resultIcon, err := session.CreateIcon(iconName, iconfileContent)
 	s.NoError(err)
-	s.Equal(201, statusCode)
+	s.Equal(http.StatusCreated, statusCode)
 	s.Equal(expectedResponse, resultIcon)
 
 	icons, errDesc := session.DescribeAllIcons(s.Ctx)

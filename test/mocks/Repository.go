@@ -28,6 +28,10 @@ func (_m *Repository) EXPECT() *Repository_Expecter {
 func (_m *Repository) AddIconfile(ctx context.Context, iconName string, iconfile domain.Iconfile, modifiedBy authr.UserInfo) error {
 	ret := _m.Called(ctx, iconName, iconfile, modifiedBy)
 
+	if len(ret) == 0 {
+		panic("no return value specified for AddIconfile")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, string, domain.Iconfile, authr.UserInfo) error); ok {
 		r0 = rf(ctx, iconName, iconfile, modifiedBy)
@@ -72,6 +76,10 @@ func (_c *Repository_AddIconfile_Call) RunAndReturn(run func(context.Context, st
 // AddTag provides a mock function with given fields: ctx, iconName, tag, modifiedBy
 func (_m *Repository) AddTag(ctx context.Context, iconName string, tag string, modifiedBy authr.UserInfo) error {
 	ret := _m.Called(ctx, iconName, tag, modifiedBy)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddTag")
+	}
 
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, string, string, authr.UserInfo) error); ok {
@@ -118,6 +126,10 @@ func (_c *Repository_AddTag_Call) RunAndReturn(run func(context.Context, string,
 func (_m *Repository) CreateIcon(ctx context.Context, iconName string, iconfile domain.Iconfile, modifiedBy authr.UserInfo) error {
 	ret := _m.Called(ctx, iconName, iconfile, modifiedBy)
 
+	if len(ret) == 0 {
+		panic("no return value specified for CreateIcon")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, string, domain.Iconfile, authr.UserInfo) error); ok {
 		r0 = rf(ctx, iconName, iconfile, modifiedBy)
@@ -163,6 +175,10 @@ func (_c *Repository_CreateIcon_Call) RunAndReturn(run func(context.Context, str
 func (_m *Repository) DeleteIcon(ctx context.Context, iconName string, modifiedBy authr.UserInfo) error {
 	ret := _m.Called(ctx, iconName, modifiedBy)
 
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteIcon")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, string, authr.UserInfo) error); ok {
 		r0 = rf(ctx, iconName, modifiedBy)
@@ -207,6 +223,10 @@ func (_c *Repository_DeleteIcon_Call) RunAndReturn(run func(context.Context, str
 func (_m *Repository) DeleteIconfile(ctx context.Context, iconName string, iconfile domain.IconfileDescriptor, modifiedBy authr.UserInfo) error {
 	ret := _m.Called(ctx, iconName, iconfile, modifiedBy)
 
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteIconfile")
+	}
+
 	var r0 error
 	if rf, ok := ret.Get(0).(func(context.Context, string, domain.IconfileDescriptor, authr.UserInfo) error); ok {
 		r0 = rf(ctx, iconName, iconfile, modifiedBy)
@@ -248,25 +268,29 @@ func (_c *Repository_DeleteIconfile_Call) RunAndReturn(run func(context.Context,
 	return _c
 }
 
-// DescribeAllIcons provides a mock function with given fields:
+// DescribeAllIcons provides a mock function with given fields: ctx
 func (_m *Repository) DescribeAllIcons(ctx context.Context) ([]domain.IconDescriptor, error) {
-	ret := _m.Called()
+	ret := _m.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DescribeAllIcons")
+	}
 
 	var r0 []domain.IconDescriptor
 	var r1 error
-	if rf, ok := ret.Get(0).(func() ([]domain.IconDescriptor, error)); ok {
-		return rf()
+	if rf, ok := ret.Get(0).(func(context.Context) ([]domain.IconDescriptor, error)); ok {
+		return rf(ctx)
 	}
-	if rf, ok := ret.Get(0).(func() []domain.IconDescriptor); ok {
-		r0 = rf()
+	if rf, ok := ret.Get(0).(func(context.Context) []domain.IconDescriptor); ok {
+		r0 = rf(ctx)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]domain.IconDescriptor)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func() error); ok {
-		r1 = rf()
+	if rf, ok := ret.Get(1).(func(context.Context) error); ok {
+		r1 = rf(ctx)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -280,13 +304,14 @@ type Repository_DescribeAllIcons_Call struct {
 }
 
 // DescribeAllIcons is a helper method to define mock.On call
-func (_e *Repository_Expecter) DescribeAllIcons() *Repository_DescribeAllIcons_Call {
-	return &Repository_DescribeAllIcons_Call{Call: _e.mock.On("DescribeAllIcons")}
+//   - ctx context.Context
+func (_e *Repository_Expecter) DescribeAllIcons(ctx interface{}) *Repository_DescribeAllIcons_Call {
+	return &Repository_DescribeAllIcons_Call{Call: _e.mock.On("DescribeAllIcons", ctx)}
 }
 
-func (_c *Repository_DescribeAllIcons_Call) Run(run func()) *Repository_DescribeAllIcons_Call {
+func (_c *Repository_DescribeAllIcons_Call) Run(run func(ctx context.Context)) *Repository_DescribeAllIcons_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run()
+		run(args[0].(context.Context))
 	})
 	return _c
 }
@@ -296,7 +321,7 @@ func (_c *Repository_DescribeAllIcons_Call) Return(_a0 []domain.IconDescriptor, 
 	return _c
 }
 
-func (_c *Repository_DescribeAllIcons_Call) RunAndReturn(run func() ([]domain.IconDescriptor, error)) *Repository_DescribeAllIcons_Call {
+func (_c *Repository_DescribeAllIcons_Call) RunAndReturn(run func(context.Context) ([]domain.IconDescriptor, error)) *Repository_DescribeAllIcons_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -304,6 +329,10 @@ func (_c *Repository_DescribeAllIcons_Call) RunAndReturn(run func() ([]domain.Ic
 // DescribeIcon provides a mock function with given fields: ctx, iconName
 func (_m *Repository) DescribeIcon(ctx context.Context, iconName string) (domain.IconDescriptor, error) {
 	ret := _m.Called(ctx, iconName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DescribeIcon")
+	}
 
 	var r0 domain.IconDescriptor
 	var r1 error
@@ -354,25 +383,29 @@ func (_c *Repository_DescribeIcon_Call) RunAndReturn(run func(context.Context, s
 	return _c
 }
 
-// GetIconfile provides a mock function with given fields: iconName, iconfile
-func (_m *Repository) GetIconfile(iconName string, iconfile domain.IconfileDescriptor) ([]byte, error) {
-	ret := _m.Called(iconName, iconfile)
+// GetIconfile provides a mock function with given fields: ctx, iconName, iconfile
+func (_m *Repository) GetIconfile(ctx context.Context, iconName string, iconfile domain.IconfileDescriptor) ([]byte, error) {
+	ret := _m.Called(ctx, iconName, iconfile)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetIconfile")
+	}
 
 	var r0 []byte
 	var r1 error
-	if rf, ok := ret.Get(0).(func(string, domain.IconfileDescriptor) ([]byte, error)); ok {
-		return rf(iconName, iconfile)
+	if rf, ok := ret.Get(0).(func(context.Context, string, domain.IconfileDescriptor) ([]byte, error)); ok {
+		return rf(ctx, iconName, iconfile)
 	}
-	if rf, ok := ret.Get(0).(func(string, domain.IconfileDescriptor) []byte); ok {
-		r0 = rf(iconName, iconfile)
+	if rf, ok := ret.Get(0).(func(context.Context, string, domain.IconfileDescriptor) []byte); ok {
+		r0 = rf(ctx, iconName, iconfile)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]byte)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(string, domain.IconfileDescriptor) error); ok {
-		r1 = rf(iconName, iconfile)
+	if rf, ok := ret.Get(1).(func(context.Context, string, domain.IconfileDescriptor) error); ok {
+		r1 = rf(ctx, iconName, iconfile)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -386,15 +419,16 @@ type Repository_GetIconfile_Call struct {
 }
 
 // GetIconfile is a helper method to define mock.On call
+//   - ctx context.Context
 //   - iconName string
 //   - iconfile domain.IconfileDescriptor
-func (_e *Repository_Expecter) GetIconfile(iconName interface{}, iconfile interface{}) *Repository_GetIconfile_Call {
-	return &Repository_GetIconfile_Call{Call: _e.mock.On("GetIconfile", iconName, iconfile)}
+func (_e *Repository_Expecter) GetIconfile(ctx interface{}, iconName interface{}, iconfile interface{}) *Repository_GetIconfile_Call {
+	return &Repository_GetIconfile_Call{Call: _e.mock.On("GetIconfile", ctx, iconName, iconfile)}
 }
 
-func (_c *Repository_GetIconfile_Call) Run(run func(iconName string, iconfile domain.IconfileDescriptor)) *Repository_GetIconfile_Call {
+func (_c *Repository_GetIconfile_Call) Run(run func(ctx context.Context, iconName string, iconfile domain.IconfileDescriptor)) *Repository_GetIconfile_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string), args[1].(domain.IconfileDescriptor))
+		run(args[0].(context.Context), args[1].(string), args[2].(domain.IconfileDescriptor))
 	})
 	return _c
 }
@@ -404,7 +438,7 @@ func (_c *Repository_GetIconfile_Call) Return(_a0 []byte, _a1 error) *Repository
 	return _c
 }
 
-func (_c *Repository_GetIconfile_Call) RunAndReturn(run func(string, domain.IconfileDescriptor) ([]byte, error)) *Repository_GetIconfile_Call {
+func (_c *Repository_GetIconfile_Call) RunAndReturn(run func(context.Context, string, domain.IconfileDescriptor) ([]byte, error)) *Repository_GetIconfile_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -412,6 +446,10 @@ func (_c *Repository_GetIconfile_Call) RunAndReturn(run func(string, domain.Icon
 // GetTags provides a mock function with given fields: ctx
 func (_m *Repository) GetTags(ctx context.Context) ([]string, error) {
 	ret := _m.Called(ctx)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetTags")
+	}
 
 	var r0 []string
 	var r1 error
@@ -463,13 +501,17 @@ func (_c *Repository_GetTags_Call) RunAndReturn(run func(context.Context) ([]str
 	return _c
 }
 
-// RemoveTag provides a mock function with given fields: iconName, tag, modifiedBy
+// RemoveTag provides a mock function with given fields: ctx, iconName, tag, modifiedBy
 func (_m *Repository) RemoveTag(ctx context.Context, iconName string, tag string, modifiedBy authr.UserInfo) error {
-	ret := _m.Called(iconName, tag, modifiedBy)
+	ret := _m.Called(ctx, iconName, tag, modifiedBy)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RemoveTag")
+	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, string, authr.UserInfo) error); ok {
-		r0 = rf(iconName, tag, modifiedBy)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, authr.UserInfo) error); ok {
+		r0 = rf(ctx, iconName, tag, modifiedBy)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -483,16 +525,17 @@ type Repository_RemoveTag_Call struct {
 }
 
 // RemoveTag is a helper method to define mock.On call
+//   - ctx context.Context
 //   - iconName string
 //   - tag string
 //   - modifiedBy authr.UserInfo
-func (_e *Repository_Expecter) RemoveTag(iconName interface{}, tag interface{}, modifiedBy interface{}) *Repository_RemoveTag_Call {
-	return &Repository_RemoveTag_Call{Call: _e.mock.On("RemoveTag", iconName, tag, modifiedBy)}
+func (_e *Repository_Expecter) RemoveTag(ctx interface{}, iconName interface{}, tag interface{}, modifiedBy interface{}) *Repository_RemoveTag_Call {
+	return &Repository_RemoveTag_Call{Call: _e.mock.On("RemoveTag", ctx, iconName, tag, modifiedBy)}
 }
 
-func (_c *Repository_RemoveTag_Call) Run(run func(iconName string, tag string, modifiedBy authr.UserInfo)) *Repository_RemoveTag_Call {
+func (_c *Repository_RemoveTag_Call) Run(run func(ctx context.Context, iconName string, tag string, modifiedBy authr.UserInfo)) *Repository_RemoveTag_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string), args[1].(string), args[2].(authr.UserInfo))
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(authr.UserInfo))
 	})
 	return _c
 }
@@ -502,7 +545,7 @@ func (_c *Repository_RemoveTag_Call) Return(_a0 error) *Repository_RemoveTag_Cal
 	return _c
 }
 
-func (_c *Repository_RemoveTag_Call) RunAndReturn(run func(string, string, authr.UserInfo) error) *Repository_RemoveTag_Call {
+func (_c *Repository_RemoveTag_Call) RunAndReturn(run func(context.Context, string, string, authr.UserInfo) error) *Repository_RemoveTag_Call {
 	_c.Call.Return(run)
 	return _c
 }

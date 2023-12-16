@@ -1,6 +1,7 @@
 package server
 
 import (
+	"net/http"
 	"testing"
 
 	"iconrepo/internal/app/security/authn"
@@ -65,7 +66,7 @@ func (s *authBackDoorTestSuite) TestBackDoorMustntBeAvailableByDefault() {
 		body: []authr.PermissionID{},
 	})
 	s.NoError(err)
-	s.Equal(405, resp.statusCode)
+	s.Equal(http.StatusNotFound, resp.statusCode)
 }
 
 func (s *authBackDoorTestSuite) TestBackDoorShouldBeAvailableWhenEnabled() {
@@ -74,7 +75,7 @@ func (s *authBackDoorTestSuite) TestBackDoorShouldBeAvailableWhenEnabled() {
 		[]authr.PermissionID{},
 	)
 	s.NoError(err)
-	s.Equal(200, resp.statusCode)
+	s.Equal(http.StatusOK, resp.statusCode)
 }
 
 func (s *authBackDoorTestSuite) TestBackDoorShouldAllowToSetPrivileges() {
@@ -90,13 +91,13 @@ func (s *authBackDoorTestSuite) TestBackDoorShouldAllowToSetPrivileges() {
 
 	resp, err := session.setAuthorization(requestedAuthorization)
 	s.NoError(err)
-	s.Equal(resp.statusCode, 200)
+	s.Equal(200, resp.statusCode)
 
 	resp, errUserInfo := session.get(&testRequest{
 		path:          authenticationBackdoorPath,
 		respBodyProto: &authr.UserInfo{},
 	})
 	s.NoError(errUserInfo)
-	s.Equal(200, resp.statusCode)
+	s.Equal(http.StatusOK, resp.statusCode)
 	s.Equal(&expectedUserInfo, resp.body)
 }

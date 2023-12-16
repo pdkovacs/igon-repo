@@ -1,6 +1,7 @@
 package server
 
 import (
+	"net/http"
 	"testing"
 
 	"iconrepo/internal/app/security/authr"
@@ -35,7 +36,7 @@ func (s *iconUpdateTestSuite) TestAddingIconfileFailsWith403WithoutPermission() 
 
 	s.Error(updateError)
 	s.ErrorIs(updateError, errJSONUnmarshal)
-	s.Equal(403, statusCode)
+	s.Equal(http.StatusForbidden, statusCode)
 
 	resp, descError := session.DescribeAllIcons(s.Ctx)
 	s.NoError(descError)
@@ -60,7 +61,7 @@ func (s *iconUpdateTestSuite) TestCanAddIconfilesWithProperPermission() {
 	statusCode, resp, updateError := session.addIconfile(iconName, newIconfile)
 
 	s.NoError(updateError)
-	s.Equal(200, statusCode)
+	s.Equal(http.StatusOK, statusCode)
 	s.Equal(iconfilePath, resp)
 
 	expectedIconDesc := dataOut

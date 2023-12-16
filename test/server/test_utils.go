@@ -60,7 +60,7 @@ func apiTestSuites(
 				indexinController,
 				repoController,
 				apiTestClient{},
-				logging.Get().With().Str("test_sequence_name", testSequenceName).Logger().WithContext(context.TODO()),
+				logging.Get().With().Str("test_sequence_name", testSequenceName).Logger().WithContext(context.Background()),
 				testSequenceName,
 				"",
 			})
@@ -115,7 +115,7 @@ func (s *ApiTestSuite) initTestCaseConfig(testName string) {
 
 	git_tests.SetupGitlabTestCaseConfig(&s.config, s.testSequenceId, s.xid)
 
-	createRepoErr := s.TestBlobstoreController.ResetRepository(&s.config)
+	createRepoErr := s.TestBlobstoreController.ResetRepository(s.Ctx, &s.config)
 	if createRepoErr != nil {
 		s.FailNow("", "%v", createRepoErr)
 	}
@@ -138,7 +138,7 @@ func (s *ApiTestSuite) BeforeTest(suiteName string, testName string) {
 func (s *ApiTestSuite) AfterTest(suiteName, testName string) {
 	s.terminateTestServer()
 	os.Unsetenv(git.SimulateGitCommitFailureEnvvarName)
-	deleteRepoErr := s.TestBlobstoreController.DeleteRepository()
+	deleteRepoErr := s.TestBlobstoreController.DeleteRepository(s.Ctx)
 	if deleteRepoErr != nil {
 		zerolog.Ctx(s.Ctx).Error().Err(deleteRepoErr).Str("project", s.TestBlobstoreController.String()).Msg("failed to delete testGitRepo")
 	}
@@ -149,7 +149,7 @@ func (s *ApiTestSuite) startApp(serverConfig config.Options) error {
 	wg.Add(1)
 	var startFailure error
 	go func() {
-		startErr := app.Start(serverConfig, func(port int, stopServer func()) {
+		startErr := app.Start(s.Ctx, serverConfig, func(port int, stopServer func()) {
 			s.Client.serverPort = port
 			s.stopServer = stopServer
 			wg.Done()

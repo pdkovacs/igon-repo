@@ -30,7 +30,7 @@ func (s *gitTests) TestRemainsConsistentAfterAddingIconfileFails() {
 	iconfile2 := icon.Iconfiles[1]
 
 	now := time.Now()
-	errorWhenAddingFirstIconFile := s.RepoController.AddIconfile(icon.Name, iconfile1, icon.ModifiedBy)
+	errorWhenAddingFirstIconFile := s.RepoController.AddIconfile(s.Ctx, icon.Name, iconfile1, icon.ModifiedBy)
 	s.NoError(errorWhenAddingFirstIconFile)
 
 	os.Setenv(git.SimulateGitCommitFailureEnvvarName, "true")
@@ -38,7 +38,7 @@ func (s *gitTests) TestRemainsConsistentAfterAddingIconfileFails() {
 	lastGoodSha1, errorWhenGettingLastGoodSha1 := s.GetStateID()
 	s.Equal(len("8e9b80b5155dea01e5175bc819bbe364dbc07a66"), len(lastGoodSha1))
 	s.NoError(errorWhenGettingLastGoodSha1)
-	errorAddingSecondIconfile := s.RepoController.AddIconfile(icon.Name, iconfile2, icon.ModifiedBy)
+	errorAddingSecondIconfile := s.RepoController.AddIconfile(s.Ctx, icon.Name, iconfile2, icon.ModifiedBy)
 	s.Error(errorAddingSecondIconfile)
 	postSha1, errorWhenGettingPostSha1 := s.GetStateID()
 	s.Equal(len("8e9b80b5155dea01e5175bc819bbe364dbc07a66"), len(postSha1))
@@ -66,7 +66,7 @@ func (s *iconCreateTests) TestRollbackToLastConsistentStateOnError() {
 	session := s.Client.MustLoginSetAllPerms()
 	session.MustAddTestData(dataIn)
 
-	lastStableSHA1, beforeIncidentGitErr := s.TestBlobstoreController.GetStateID()
+	lastStableSHA1, beforeIncidentGitErr := s.TestBlobstoreController.GetStateID(s.Ctx)
 	s.NoError(beforeIncidentGitErr)
 
 	os.Setenv(git.SimulateGitCommitFailureEnvvarName, "true")
@@ -74,7 +74,7 @@ func (s *iconCreateTests) TestRollbackToLastConsistentStateOnError() {
 	statusCode, _, _ := session.CreateIcon(moreDataIn[1].Name, moreDataIn[1].Iconfiles[0].Content)
 	s.Contains([]int{http.StatusConflict, http.StatusInternalServerError}, statusCode) // TODO: 500 accepted for dynamodb for now. We may be able to do better
 
-	afterIncidentSHA1, afterIncidentGitErr := s.TestBlobstoreController.GetStateID()
+	afterIncidentSHA1, afterIncidentGitErr := s.TestBlobstoreController.GetStateID(s.Ctx)
 	s.NoError(afterIncidentGitErr)
 
 	s.Equal(lastStableSHA1, afterIncidentSHA1)

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"net/http"
 	"testing"
 
 	"iconrepo/internal/app/security/authn"
@@ -33,7 +34,7 @@ func (s *basicAuthnTestSuite) TestShouldFailWith401WithoutCredentials() {
 	}
 	resp, requestError := s.Client.get(&req)
 	s.NoError(requestError)
-	s.Equal(401, resp.statusCode)
+	s.Equal(http.StatusUnauthorized, resp.statusCode)
 	challenge, hasChallange := resp.headers["Www-Authenticate"]
 	s.True(hasChallange)
 	s.Equal("Basic", challenge[0])
@@ -49,7 +50,7 @@ func (s *basicAuthnTestSuite) TestShouldFailWith401WithWrongCredentials() {
 	}
 	resp, requestError := s.Client.get(&req)
 	s.NoError(requestError)
-	s.Equal(401, resp.statusCode)
+	s.Equal(http.StatusUnauthorized, resp.statusCode)
 	challenge, hasChallange := resp.headers["Www-Authenticate"]
 	s.True(hasChallange)
 	s.Equal("Basic", challenge[0])
@@ -65,7 +66,7 @@ func (s *basicAuthnTestSuite) TestShouldPasssWithCorrectCredentials() {
 	}
 	resp, requestError := s.Client.get(&req)
 	s.NoError(requestError)
-	s.Equal(200, resp.statusCode)
+	s.Equal(http.StatusOK, resp.statusCode)
 	_, hasChallange := resp.headers["Www-Authenticate"]
 	s.False(hasChallange)
 }

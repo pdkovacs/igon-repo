@@ -1,6 +1,7 @@
 package git
 
 import (
+	"context"
 	"fmt"
 	"iconrepo/internal/config"
 	"iconrepo/internal/logging"
@@ -53,18 +54,18 @@ func NewGitlabTestRepoClient(conf *config.Options) (*git.Gitlab, error) {
 	}
 
 	gitlab, err := git.NewGitlabRepositoryClient(
+		logging.CreateUnitLogger(logging.Get(), "test gitlab clienty").WithContext(context.Background()),
 		conf.GitlabNamespacePath,
 		conf.GitlabProjectPath,
 		conf.GitlabMainBranch,
 		conf.GitlabAccessToken,
-		logging.CreateUnitLogger(logging.Get(), "test gitlab clienty"),
 	)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create gitlab repo client %w", err)
 	}
 
-	return &gitlab, nil
+	return gitlab, nil
 }
 
 type RepositoryResetter interface {

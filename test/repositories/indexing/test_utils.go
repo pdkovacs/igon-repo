@@ -135,7 +135,7 @@ func (s *IndexingTestSuite) SetupSuite() {
 	conf := test_commons.CloneConfig(test_commons.GetTestConfig())
 	s.config = conf
 	s.config.DBSchemaName = "itest_repositories"
-	s.ctx = logging.Get().WithContext(context.TODO())
+	s.ctx = logging.Get().WithContext(context.Background())
 }
 
 func (s *IndexingTestSuite) TearDownSuite() {
@@ -181,9 +181,9 @@ func DefaultIndexTestRepoController() *IndexTestRepoController {
 	if len(os.Getenv("DYNAMODB_ONLY")) > 0 {
 		fmt.Print(">>>>>>>>>>> Indexing provider: DYNAMODB_ONLY\n")
 		return &DynamodbIndexTestRepoController
+	} else {
+		return &PgIndexTestRepoController
 	}
-	fmt.Print(">>>>>>>>>>> Indexing provider: ALL\n")
-	return nil
 }
 
 func IndexProvidersToTest() []IndexTestRepoController {
@@ -207,7 +207,7 @@ func indexingTestSuites() []IndexingTestSuite {
 			suiteToEmbed,
 			conf,
 			provider,
-			logging.Get().With().Str("test_sequence_name", "indexing tests").Logger().WithContext(context.TODO()),
+			logging.Get().With().Str("test_sequence_name", "indexing tests").Logger().WithContext(context.Background()),
 		})
 	}
 

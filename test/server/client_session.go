@@ -53,7 +53,7 @@ func (client *apiTestClient) login(credentials *requestCredentials) (*apiTestSes
 	return &apiTestSession{
 		apiTestClient: apiTestClient{
 			serverPort: client.serverPort,
-			ctx:        context.TODO(),
+			ctx:        context.Background(),
 		},
 		cjar: cjar,
 	}, nil

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"net/http"
 	"testing"
 
 	"iconrepo/internal/app/domain"
@@ -32,7 +33,7 @@ func (s *iconfileDeleteTestSuite) TestDeletingIconfileFailsWith403WithoutPermiss
 	statusCode, errDelete := session.deleteIconfile(dataIn[0].Name, dataIn[0].Iconfiles[1].IconfileDescriptor)
 
 	s.NoError(errDelete)
-	s.Equal(403, statusCode)
+	s.Equal(http.StatusForbidden, statusCode)
 
 	resp, descError := session.DescribeAllIcons(s.Ctx)
 	s.NoError(descError)
@@ -53,7 +54,7 @@ func (s *iconfileDeleteTestSuite) TestDeletingIconfileSucceedsWithRequiredPermis
 	dataOut[0].Paths = append(dataOut[0].Paths[:1], dataOut[0].Paths[2:]...)
 
 	s.NoError(errDelete)
-	s.Equal(204, statusCode)
+	s.Equal(http.StatusNoContent, statusCode)
 
 	resp, descError := session.DescribeAllIcons(s.Ctx)
 	s.NoError(descError)
@@ -73,7 +74,7 @@ func (s *iconfileDeleteTestSuite) TestDeletingIconfileFailsWith404ForNonexistent
 	statusCode, errDelete := session.deleteIconfile("nonexistent-icon", dataIn[0].Iconfiles[1].IconfileDescriptor)
 
 	s.NoError(errDelete)
-	s.Equal(404, statusCode)
+	s.Equal(http.StatusNotFound, statusCode)
 
 	resp, descError := session.DescribeAllIcons(s.Ctx)
 	s.NoError(descError)
@@ -93,7 +94,7 @@ func (s *iconfileDeleteTestSuite) TestDeletingIconfileFailsWith404ForNonexistent
 	statusCode, errDelete := session.deleteIconfile(dataIn[0].Name, domain.IconfileDescriptor{Format: "nonexistentformat", Size: "18px"})
 
 	s.NoError(errDelete)
-	s.Equal(404, statusCode)
+	s.Equal(http.StatusNotFound, statusCode)
 
 	resp, descError := session.DescribeAllIcons(s.Ctx)
 	s.NoError(descError)
@@ -113,7 +114,7 @@ func (s *iconfileDeleteTestSuite) TestDeleteIconIfLastIconfileDeleted() {
 	for index := range dataOut[0].Paths {
 		statusCode, errDelete := session.deleteIconfile(dataOut[0].Name, dataOut[0].Paths[index].IconfileDescriptor)
 		s.NoError(errDelete)
-		s.Equal(204, statusCode)
+		s.Equal(http.StatusNoContent, statusCode)
 	}
 
 	newDataOut := append(dataOut[:0], dataOut[1:]...)

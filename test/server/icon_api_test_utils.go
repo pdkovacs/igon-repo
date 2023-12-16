@@ -46,7 +46,7 @@ func (s *IconTestSuite) assertAllFilesIndexedAreInTheBlobstore() []string {
 
 	for _, iconDescIndexed := range allIconDescIndexed {
 		for _, iconfileDesc := range iconDescIndexed.Iconfiles {
-			fileContentInGit, readGitFileErr := blob.GetIconfile(iconDescIndexed.Name, iconfileDesc)
+			fileContentInGit, readGitFileErr := blob.GetIconfile(s.Ctx, iconDescIndexed.Name, iconfileDesc)
 			s.NoError(readGitFileErr)
 			s.Greater(len(fileContentInGit), 0)
 			checkedGitFiles = append(checkedGitFiles, git.NewGitFilePaths("").GetPathToIconfileInRepo(iconDescIndexed.Name, iconfileDesc))
@@ -61,7 +61,7 @@ func (s *IconTestSuite) createIconfilePaths(iconName string, iconfileDescriptor 
 }
 
 func (s *IconTestSuite) assertAllFilesInBlobstoreAreIndexed(iconfilesIndexed []string) {
-	iconfiles, err := s.TestBlobstoreController.GetIconfiles()
+	iconfiles, err := s.TestBlobstoreController.GetIconfiles(s.Ctx)
 	s.NoError(err)
 	for _, gitFile := range iconfiles {
 		found := false

@@ -23,11 +23,10 @@ func (repo Local) String() string {
 	return fmt.Sprintf("Local git repository at %s", repo.Location)
 }
 
-func NewLocalGitRepository(location string, logger zerolog.Logger) Local {
+func NewLocalGitRepository(location string) Local {
 	git := Local{
 		Location:  location,
 		FilePaths: NewGitFilePaths(location),
-		Logger:    logger,
 	}
 	return git
 }
@@ -301,7 +300,7 @@ func (repo Local) CheckStatus() (bool, error) {
 	return strings.Contains(status, cleanStatusMessageTail), nil
 }
 
-func (repo Local) GetStateID() (string, error) {
+func (repo Local) GetStateID(ctx context.Context) (string, error) {
 	out, err := repo.ExecuteGitCommand([]string{"rev-parse", "HEAD"})
 	if err != nil {
 		return "", fmt.Errorf("failed to get current git commit: %w", err)
@@ -309,7 +308,7 @@ func (repo Local) GetStateID() (string, error) {
 	return strings.TrimSpace(out), nil
 }
 
-func (repo Local) GetIconfiles() ([]string, error) {
+func (repo Local) GetIconfiles(ctx context.Context) ([]string, error) {
 	output, err := repo.ExecuteGitCommand([]string{"ls-tree", "-r", "HEAD", "--name-only"})
 	if err != nil {
 		return nil, err
@@ -328,7 +327,7 @@ func (repo Local) GetIconfiles() ([]string, error) {
 
 // GetVersionFor returns the commit ID of the iconfile specified by the method paramters.
 // Return empty string in case the file doesn't exist in the repository
-func (repo Local) GetVersionFor(iconName string, iconfileDesc domain.IconfileDescriptor) (string, error) {
+func (repo Local) GetVersionFor(ctx context.Context, iconName string, iconfileDesc domain.IconfileDescriptor) (string, error) {
 	printCommitIDArgs := []string{"log", "-n", "1", "--pretty=format:%H", "--", repo.FilePaths.GetPathToIconfileInRepo(iconName, iconfileDesc)}
 	output, execErr := repo.ExecuteGitCommand(printCommitIDArgs)
 	if execErr != nil {
@@ -337,7 +336,7 @@ func (repo Local) GetVersionFor(iconName string, iconfileDesc domain.IconfileDes
 	return output, nil
 }
 
-func (repo Local) GetVersionMetadata(commitId string) (CommitMetadata, error) {
+func (repo Local) GetVersionMetadata(ctx context.Context, commitId string) (CommitMetadata, error) {
 	logger := logging.CreateMethodLogger(repo.Logger, fmt.Sprintf("git: GetVersionMetadata: %s", commitId))
 
 	printCommitMetadataArgs := []string{"show", "--quiet", "--format=fuller", "--date=format:%Y-%m-%dT%H:%M:%S%z"}

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"net/http"
 	"testing"
 
 	"iconrepo/internal/app/security/authr"
@@ -32,7 +33,7 @@ func (s *tagsTestSuite) TestAddingFailsWithoutPermission() {
 
 	statusCode, err := session.addTag(iconIn.Name, tag)
 	s.NoError(err)
-	s.Equal(403, statusCode)
+	s.Equal(http.StatusForbidden, statusCode)
 
 	respIcons := session.mustDescribeAllIcons()
 	s.AssertResponseIconSetsEqual(dataOut, respIcons)
@@ -51,7 +52,7 @@ func (s *tagsTestSuite) TestAddingSucceedssWithRequiredPermission() {
 
 	statusCode, err := session.addTag(iconIn.Name, tag)
 	s.NoError(err)
-	s.Equal(201, statusCode)
+	s.Equal(http.StatusCreated, statusCode)
 
 	iconOut.Tags = []string{tag}
 
@@ -69,12 +70,12 @@ func (s *tagsTestSuite) TestDeletingFailsWithoutPermission() {
 	session.MustAddTestData(dataIn)
 	statusCode, err := session.addTag(iconIn.Name, tag)
 	s.NoError(err)
-	s.Equal(201, statusCode)
+	s.Equal(http.StatusCreated, statusCode)
 
 	session.mustSetAllPermsExcept([]authr.PermissionID{authr.REMOVE_TAG})
 	statusCode, err = session.removeTag(iconIn.Name, tag)
 	s.NoError(err)
-	s.Equal(403, statusCode)
+	s.Equal(http.StatusForbidden, statusCode)
 
 	iconOut.Tags = []string{tag}
 
@@ -91,12 +92,12 @@ func (s *tagsTestSuite) TestDeletingSucceedssWithRequiredPermission() {
 	session.MustAddTestData(dataIn)
 	statusCode, err := session.addTag(iconIn.Name, tag)
 	s.NoError(err)
-	s.Equal(201, statusCode)
+	s.Equal(http.StatusCreated, statusCode)
 
 	session.mustSetAuthorization([]authr.PermissionID{authr.REMOVE_TAG})
 	statusCode, err = session.removeTag(iconIn.Name, tag)
 	s.NoError(err)
-	s.Equal(204, statusCode)
+	s.Equal(http.StatusNoContent, statusCode)
 
 	respIcons := session.mustDescribeAllIcons()
 	s.AssertResponseIconSetsEqual(dataOut, respIcons)
