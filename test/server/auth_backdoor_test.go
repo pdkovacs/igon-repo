@@ -59,7 +59,7 @@ func (s *authBackDoorTestSuite) BeforeTest(suiteName string, testName string) {
 }
 
 func (s *authBackDoorTestSuite) TestBackDoorMustntBeAvailableByDefault() {
-	session := s.Client.mustLogin(nil)
+	session := s.Client.mustLogin()
 	resp, err := session.put(&testRequest{
 		path: authenticationBackdoorPath,
 		json: true,
@@ -70,7 +70,7 @@ func (s *authBackDoorTestSuite) TestBackDoorMustntBeAvailableByDefault() {
 }
 
 func (s *authBackDoorTestSuite) TestBackDoorShouldBeAvailableWhenEnabled() {
-	session := s.Client.mustLogin(nil)
+	session := s.Client.mustLogin()
 	resp, err := session.setAuthorization(
 		[]authr.PermissionID{},
 	)
@@ -87,7 +87,7 @@ func (s *authBackDoorTestSuite) TestBackDoorShouldAllowToSetPrivileges() {
 		DisplayName: userID.String(),
 	}
 
-	session := s.Client.mustLogin(nil)
+	session := s.Client.mustLogin()
 
 	resp, err := session.setAuthorization(requestedAuthorization)
 	s.NoError(err)

@@ -29,7 +29,7 @@ func TestBuildinfoAPITestSuite(t *testing.T) {
 func (s *buildinfoAPITestSuite) TestMustIncludeVersionInfo() {
 	expected := config.GetBuildInfo()
 
-	session := s.Client.mustLogin(nil)
+	session := s.Client.mustLogin()
 	req := testRequest{
 		path:          "/app-info",
 		respBodyProto: &config.BuildInfo{},

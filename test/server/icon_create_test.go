@@ -32,7 +32,7 @@ func (s *iconCreateTestSuite) TestFailsWith403WithoutPrivilege() {
 	}
 	iconfileContent := testdata.GetDemoIconfileContent(iconName, iconFile)
 
-	session := s.Client.mustLogin(nil)
+	session := s.Client.mustLogin()
 	session.mustSetAllPermsExcept([]authr.PermissionID{authr.CREATE_ICON})
 	statusCode, _, err := session.CreateIcon(iconName, iconfileContent)
 	s.Error(err)
@@ -69,7 +69,7 @@ func (s *iconCreateTestSuite) TestCompletesWithPrivilege() {
 		},
 	}
 
-	session := s.Client.mustLogin(nil)
+	session := s.Client.mustLogin()
 	session.mustSetAuthorization([]authr.PermissionID{authr.CREATE_ICON})
 	statusCode, resultIcon, err := session.CreateIcon(iconName, iconfileContent)
 	s.NoError(err)
