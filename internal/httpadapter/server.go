@@ -131,7 +131,7 @@ func (s *server) initEndpoints(options config.Options) *gin.Engine {
 
 	rootEngine.NoRoute(authentication(options, &userService, s.logger.With().Logger()), gin.WrapH(web.AssetHandler("/", "dist", logger)))
 
-	logger.Debug().Str("authn-type", string(options.AuthenticationType)).Msg("Creating login end-point...")
+	logger.Debug().Str("authenticationType", string(options.AuthenticationType)).Msg("Creating login end-point...")
 	rootEngine.GET("/login", authentication(options, &userService, s.logger.With().Logger()))
 
 	rootEngine.GET("/app-info", func(c *gin.Context) {

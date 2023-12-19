@@ -35,7 +35,7 @@ func GetTestConfig() config.Options {
 	os.Setenv("DB_HOST", oldDBHostEnvVar)
 
 	homeTmpDir := filepath.Join(os.Getenv("HOME"), "tmp")
-	testTmpDir := filepath.Join(homeTmpDir, "tmp-icon-repo-test")
+	testTmpDir := filepath.Join(homeTmpDir, "tmp-iconrepo-test")
 	repoBaseDir := filepath.Join(testTmpDir, strconv.Itoa(os.Getpid()))
 
 	config.LocalGitRepo = repoBaseDir

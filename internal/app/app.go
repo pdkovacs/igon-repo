@@ -9,9 +9,12 @@ import (
 	"iconrepo/internal/repositories/blobstore/git"
 	"iconrepo/internal/repositories/indexing/dynamodb"
 	"iconrepo/internal/repositories/indexing/pgdb"
+
+	"github.com/rs/zerolog"
 )
 
 func Start(ctx context.Context, conf config.Options, ready func(port int, stop func())) error {
+	logger := zerolog.Ctx(ctx)
 	var dbSchemaAlreadyThere bool
 	var db repositories.IndexRepository
 	if conf.DynamodbURL == "" {
@@ -42,6 +45,7 @@ func Start(ctx context.Context, conf config.Options, ready func(port int, stop f
 	if len(conf.LocalGitRepo) > 0 {
 		localGit := git.NewLocalGitRepository(conf.LocalGitRepo)
 		blobstore = &localGit
+		logger.Info().Str("location", conf.LocalGitRepo).Msg("Connecting local git repo...")
 	}
 	if len(conf.GitlabNamespacePath) > 0 {
 		gitlabClient, gitlabRepoErr := git.NewGitlabRepositoryClient(
@@ -55,6 +59,12 @@ func Start(ctx context.Context, conf config.Options, ready func(port int, stop f
 			return gitlabRepoErr
 		}
 		blobstore = gitlabClient
+		logger.Info().
+			Str("gitlabNamespacePath,", conf.GitlabNamespacePath).
+			Str("gitlabProjectPath,", conf.GitlabProjectPath).
+			Str("gitlabMainBranch,", conf.GitlabMainBranch).
+			Str("gitlabAccessToken,", conf.GitlabAccessToken).
+			Msg("Connecting to Gitlab repo...")
 	}
 
 	if !dbSchemaAlreadyThere {

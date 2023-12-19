@@ -93,7 +93,7 @@ func authentication(options config.Options, userService *services.UserService, l
 func logout(options config.Options) gin.HandlerFunc {
 	return func(g *gin.Context) {
 		if options.AuthenticationType != authn.SchemeOIDC {
-			log.Info().Str("authn-type", string(options.AuthenticationType)).Msg("Logout is not currently supported with authentication scheme")
+			log.Info().Str("authenticationType", string(options.AuthenticationType)).Msg("Logout is not currently supported with authentication scheme")
 			g.AbortWithStatus(http.StatusBadRequest)
 		}
 		session := sessions.Default(g)

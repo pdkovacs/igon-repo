@@ -32,7 +32,7 @@ type Options struct {
 	SessionDbName               string                     `json:"sessionDbName" env:"SESSION_DB_NAME" long:"session-db-name" short:"" default:"" description:"Name of the session DB"`
 	LocalGitRepo                string                     `json:"localGitRepo" env:"LOCAL_GIT_REPO" long:"local-git-repo" short:"g" default:"" description:"Path to the local git repository"`
 	GitlabNamespacePath         string                     `json:"gitlabNamespacePath" env:"GITLAB_NAMESPACE_PATH" long:"gitlab-namespace-path" short:"" default:"" description:"GitLab namespace path"`
-	GitlabProjectPath           string                     `json:"gitlabProjectPath" env:"GITLAB_PROJECT_PATH" long:"gitlab-project-path" short:"" default:"icon-repo-gitrepo-test" description:"GitLab project path"`
+	GitlabProjectPath           string                     `json:"gitlabProjectPath" env:"GITLAB_PROJECT_PATH" long:"gitlab-project-path" short:"" default:"iconrepo-gitrepo-test" description:"GitLab project path"`
 	GitlabMainBranch            string                     `json:"gitlabMainBranch" env:"GITLAB_MAIN_BRANCH" long:"gitlab-main-branch" short:"" default:"main" description:"The GitLab project's main branch"`
 	GitlabAccessToken           string                     `json:"gitlabAccessToken" env:"GITLAB_ACCESS_TOKEN" long:"gitlab-access-token" short:"" default:"" description:"GitLab API access token"`
 	AuthenticationType          authn.AuthenticationScheme `json:"authenticationType" env:"AUTHENTICATION_TYPE" long:"authentication-type" short:"a" default:"oidc" description:"Authentication type"`
@@ -61,7 +61,7 @@ type Options struct {
 	DynamodbURL                 string                     `json:"dynamodbUrl" env:"DYNAMODB_URL" long:"dynamodb-url" short:"" default:""`
 }
 
-var DefaultIconRepoHome = filepath.Join(os.Getenv("HOME"), ".ui-toolbox/icon-repo")
+var DefaultIconRepoHome = filepath.Join(os.Getenv("HOME"), ".ui-toolbox/iconrepo")
 var DefaultIconDataLocationGit = filepath.Join(DefaultIconRepoHome, "git-repo")
 var DefaultConfigFilePath = filepath.Join(DefaultIconRepoHome, "config.json")
 
@@ -73,7 +73,7 @@ const (
 
 // GetConfigFilePath gets the path of the configuration file
 func GetConfigFilePath() ConfigFilePath {
-	result := os.Getenv("ICON_REPO_CONFIG_FILE")
+	result := os.Getenv("ICONREPO_CONFIG_FILE")
 	if result == "" {
 		result = DefaultConfigFilePath
 	}

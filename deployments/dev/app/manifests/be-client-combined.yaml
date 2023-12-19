@@ -42,7 +42,7 @@ spec:
         imagePullPolicy: Never
         name: iconrepo
         env:
-        - name: ICON_REPO_CONFIG_FILE
+        - name: ICONREPO_CONFIG_FILE
           value: /etc/config/config.json
         - name: OIDC_CLIENT_SECRET
           valueFrom:

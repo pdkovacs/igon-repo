@@ -1,11 +1,11 @@
 mkfile_path = $(abspath $(lastword $(MAKEFILE_LIST)))
 export BACKEND_SOURCE_HOME = $(dir $(mkfile_path))
 
-ui-bundle-dir = web/dist
-ui-bundle = $(ui-bundle-dir)/bundle.js
-app       = iconrepo
-frontend  = web/frontend/bundle.js
-backend   = iconrepo-backend
+backend = iconrepo-backend
+
+# includes UI in the executable
+app = iconrepo
+ui-dist = ../iconrepo-ui/dist
 
 test-envs = LOG_LEVEL=debug APP_ENV=development
 
@@ -20,7 +20,7 @@ endef
 define build-go =
 	$(buildinfo)
 	echo "GOOS: ${GOOS} GOARCH: ${GOARCH}"
-	env GOOS=${GOOS} GOARCH=${GOARCH} go build -o $(app) cmd/main.go
+	env GOOS=${GOOS} GOARCH=${GOARCH} go build -o ${1} cmd/main.go
 endef
 
 .PHONY: clean test run app
@@ -28,18 +28,18 @@ clean:
 	go clean -testcache
 	rm -f iconrepo
 # example command line:
-#   export LOCAL_GIT_ONLY=yes; export ICONREPO_DB_HOST=postgres; make clean && time make test 2>&1 | tee ~/workspace/logs/icon-repo-test
+#   export LOCAL_GIT_ONLY=yes; export ICONREPO_DB_HOST=postgres; make clean && time make test 2>&1 | tee ~/workspace/logs/iconrepo-test
 test: test-server test-iconservice test-repos test-seq
 	go test -parallel 1 -v -timeout 60s ./test/iconservice/...
-test-server: $(app)
+test-server: $(backend)
 	go test -parallel 1 -v -timeout 120s ./test/server/...
 test-iconservice: $(iconservice)
-test-repos: $(app)
+test-repos: $(backend)
 	go test -parallel 1 -v -timeout 60s ./test/repositories/...
-test-seq: $(app)
+test-seq: $(backend)
 	go test -parallel 1 -v -timeout 60s ./test/seq/...
-test-single: $(app) # a sample test-case is used, replace it with whichever other test cases you need to run
-	go test -parallel 1 -v -timeout 10s ./... -run '^TestIconCreateTestSuite$$' -testify.m TestFailsWith403WithoutPrivilege#01
+test-single: $(backend) # a sample test-case is used, replace it with whichever other test cases you need to run
+	go test -parallel 1 -v -timeout 10s ./... -run '^TestAuthBackDoorTestSuite$$' -testify.m TestBackDoorMustntBeAvailableByDefault
 test-dynamodb: export DYNAMODB_ONLY = yes
 test-dynamodb: export AWS_REGION = eu-west-1
 test-dynamodb: backend
@@ -51,29 +51,20 @@ test-dynamodb: backend
 		# -run TestDeleteIconfileFromIndexTestSuite -testify.m TestRollbackOnFailedSideEffect
 run:
 	go run cmd/main.go
-$(ui-bundle): $(shell find web/src -type f) web/webpack.config.js
-	cd web; npm ci; npm run dist;
-$(app): $(ui-bundle) $(shell find internal/ cmd/ -type f)
-	$(build-go)
-$(backend): $(shell find internal/ cmd/ -type f)
-	rm -rf $(ui-bundle-dir); mkdir -p $(ui-bundle-dir); touch $(ui-bundle-dir)/empty.html
-	$(build-go)
-$(frontend): $(shell find web/src -type f) web/webpack.config.js
-	cd web; npm ci; npm run frontend;
+remove-ui-dist: $(shell find web/dist -type f | grep -v empty.html)
+	@rm $^ || echo "No files to remove in web/dist"
+$(backend): remove-ui-dist $(shell find internal/ cmd/ -type f)
+	# $(call build-go, $(backend))
+$(app): $(shell find internal/ cmd/ -type f) $(shell find $(ui-dist) -type f)
+	cp -a $(ui-dist)/* web/dist/
+	$(call build-go, $(app))
 keycloak-init:
 	cd deployments/dev/keycloak/; bash build.sh
-ui-bundle: $(ui-bundle)
-app: $(app)
 backend: $(backend)
-frontend: $(frontend)
+app: $(app)
 docker: GOOS=linux
 docker: GOARCH=amd64
-app-docker: $(app)
-	cp $(app) deployments/docker/backend/
-	deployments/docker/backend/build.sh
 backend-docker: $(backend)
-	scripts/make.sh build_backend_docker $(app)
-frontend-docker: $(frontend)
-	scripts/make.sh build_frontend_docker $(ui-bundle) $(ui-bundle-dir)
+	scripts/make.sh build_backend_docker $(backend)
 watch:
 	./scripts/watch.sh $(ui-bundle) $(ui-bundle-dir) 2>&1 | tee ~/workspace/logs/iconrepo-watch-log

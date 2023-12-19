@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export ICON_REPO_CONFIG_FILE=deployments/dev/app/configs/dev-oidc.json
+export ICONREPO_CONFIG_FILE=deployments/dev/app/configs/dev-oidc.json
 export deployment_target=k8s           # "local" or "k8s"
 export backend_client_split=cdn-origin # "cors" or "cdn-origin"
 

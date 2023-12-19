@@ -60,7 +60,7 @@ func (s *authBackDoorTestSuite) BeforeTest(suiteName string, testName string) {
 
 func (s *authBackDoorTestSuite) TestBackDoorMustntBeAvailableByDefault() {
 	session := s.Client.mustLogin()
-	resp, err := session.put(&testRequest{
+	resp, err := session.get(&testRequest{
 		path: authenticationBackdoorPath,
 		json: true,
 		body: []authr.PermissionID{},

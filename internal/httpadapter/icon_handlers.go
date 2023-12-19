@@ -82,7 +82,7 @@ func iconToResponseIcon(icon domain.Icon) IconDTO {
 
 func describeAllIcons(describeAllIcons func(ctx context.Context) ([]domain.IconDescriptor, error)) func(g *gin.Context) {
 	return func(g *gin.Context) {
-		logger := zerolog.Ctx(g.Request.Context())
+		logger := zerolog.Ctx(g.Request.Context()).With().Str("function", "describeAllIcons").Logger()
 
 		icons, err := describeAllIcons(g.Request.Context())
 		if err != nil {
@@ -99,7 +99,7 @@ func describeAllIcons(describeAllIcons func(ctx context.Context) ([]domain.IconD
 
 func describeIcon(describeIcon func(ctx context.Context, iconName string) (domain.IconDescriptor, error)) func(g *gin.Context) {
 	return func(g *gin.Context) {
-		logger := zerolog.Ctx(g.Request.Context())
+		logger := zerolog.Ctx(g.Request.Context()).With().Str("function", "describeIcon").Logger()
 
 		iconName := g.Param("name")
 		icon, err := describeIcon(g.Request.Context(), iconName)
@@ -123,7 +123,7 @@ func createIcon(
 	publish func(ctx context.Context, msg services.NotificationMessage, initiator authn.UserID),
 ) func(g *gin.Context) {
 	return func(g *gin.Context) {
-		logger := zerolog.Ctx(g.Request.Context())
+		logger := zerolog.Ctx(g.Request.Context()).With().Str("function", "createIcon").Logger()
 
 		r := g.Request
 		r.ParseMultipartForm(32 << 20) // limit your max input length to 32MB
@@ -171,7 +171,7 @@ func createIcon(
 
 func getIconfile(getIconfile func(ctx context.Context, iconName string, iconfile domain.IconfileDescriptor) ([]byte, error)) func(g *gin.Context) {
 	return func(g *gin.Context) {
-		logger := zerolog.Ctx(g.Request.Context())
+		logger := zerolog.Ctx(g.Request.Context()).With().Str("function", "getIconfile").Logger()
 
 		iconName := g.Param("name")
 		format := g.Param("format")
@@ -187,6 +187,7 @@ func getIconfile(getIconfile func(ctx context.Context, iconName string, iconfile
 			}
 			logger.Error().Err(err).Str("icon-name", iconName).Str("format", format).Str("size", size).Msg("failed to retrieve icon content")
 			g.AbortWithStatus(http.StatusInternalServerError)
+			return
 		}
 		if format == "svg" {
 			g.Data(200, "image/svg+xml", iconfile)
@@ -202,7 +203,7 @@ func addIconfile(
 	publish func(ctx context.Context, msg services.NotificationMessage, initiator authn.UserID),
 ) func(g *gin.Context) {
 	return func(g *gin.Context) {
-		logger := zerolog.Ctx(g.Request.Context())
+		logger := zerolog.Ctx(g.Request.Context()).With().Str("function", "addIconfile").Logger()
 
 		authorInfo := getUserInfo(g)
 
@@ -290,7 +291,7 @@ func deleteIconfile(
 	publish func(ctx context.Context, msg services.NotificationMessage, initiator authn.UserID),
 ) func(g *gin.Context) {
 	return func(g *gin.Context) {
-		logger := zerolog.Ctx(g.Request.Context())
+		logger := zerolog.Ctx(g.Request.Context()).With().Str("function", "deleteIconfile").Logger()
 
 		authorInfo := getUserInfo(g)
 		iconName := g.Param("name")
@@ -324,7 +325,7 @@ func deleteIconfile(
 
 func getTags(getTags func(ctx context.Context) ([]string, error)) func(g *gin.Context) {
 	return func(g *gin.Context) {
-		logger := zerolog.Ctx(g.Request.Context())
+		logger := zerolog.Ctx(g.Request.Context()).With().Str("function", "getTags").Logger()
 
 		tags, serviceError := getTags(g.Request.Context())
 		if serviceError != nil {
@@ -345,7 +346,7 @@ func addTag(
 	addTag func(ctx context.Context, iconName string, tag string, modifiedBy authr.UserInfo) error,
 ) func(g *gin.Context) {
 	return func(g *gin.Context) {
-		logger := zerolog.Ctx(g.Request.Context())
+		logger := zerolog.Ctx(g.Request.Context()).With().Str("function", "addTag").Logger()
 
 		userInfo := getUserInfo(g)
 		iconName := g.Param("name")
@@ -390,7 +391,7 @@ func removeTag(
 	removeTag func(ctx context.Context, iconName string, tag string, modifiedBy authr.UserInfo) error,
 ) func(g *gin.Context) {
 	return func(g *gin.Context) {
-		logger := zerolog.Ctx(g.Request.Context())
+		logger := zerolog.Ctx(g.Request.Context()).With().Str("function", "removeTag").Logger()
 
 		userInfo := getUserInfo(g)
 		iconName := g.Param("name")

@@ -1,6 +1,6 @@
 @apiEndpoint = https://gitlab.com/api/v4
 @namespaceId = 59138982
-@projectId = testing-with-repositories%2Ficon-repo-gitrepo-test
+@projectId = testing-with-repositories%2Ficonrepo-gitrepo-test
 
 # @name namespaceOwnedOnly
 GET {{apiEndpoint}}/namespaces?owned_only=true
@@ -32,7 +32,7 @@ PRIVATE-TOKEN: {{gitlabAccessToken}}
 ###
 
 # @name createProject
-POST  {{apiEndpoint}}/projects?namespace_id={{namespaceId}}&path=icon-repo-gitrepo-test
+POST  {{apiEndpoint}}/projects?namespace_id={{namespaceId}}&path=iconrepo-gitrepo-test
 PRIVATE-TOKEN: {{gitlabAccessToken}}
 
 ###

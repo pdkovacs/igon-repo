@@ -1,13 +1,13 @@
 #!/bin/bash
 
 deploy_app_config() {
-  if [ ! -f "$ICON_REPO_CONFIG_FILE" ];
+  if [ ! -f "$ICONREPO_CONFIG_FILE" ];
   then
-    echo "File $ICON_REPO_CONFIG_FILE doesn't exist"
+    echo "File $ICONREPO_CONFIG_FILE doesn't exist"
     exit 1;
   fi
 
-  cp "$ICON_REPO_CONFIG_FILE" deployments/dev/app/config.json
+  cp "$ICONREPO_CONFIG_FILE" deployments/dev/app/config.json
 
   kubectl create configmap iconrepo --from-file=deployments/dev/app/config.json --dry-run=client -o yaml | kubectl apply -f -
 }

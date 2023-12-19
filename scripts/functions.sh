@@ -74,11 +74,11 @@ dist_all() {
 pack() {
     dist_all \
     && cd "$dist_dir" \
-    && tar -czf icon-repo-app.tgz --exclude '.DS_Store' backend frontend
+    && tar -czf iconrepo-app.tgz --exclude '.DS_Store' backend frontend
 }
 
 # build_docker() {
-#     dist_all && cd docker && docker build -t cxn/icon-repo-app .
+#     dist_all && cd docker && docker build -t cxn/iconrepo-app .
 # }
 
 # start_docker() {

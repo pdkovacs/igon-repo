@@ -81,8 +81,7 @@ func (s *appTestSuite) TestCreateIcon() {
 		Iconfiles: []domain.Iconfile{iconfile},
 	}
 	mockRepo := mocks.Repository{}
-	// mockRepo.On("CreateIcon", mock.AnythingOfType("*context.emptyCtx"), iconName, iconfile, testUser).Return(nil)
-	mockRepo.EXPECT().CreateIcon(mock.AnythingOfType("context.backgroundCtx"), iconName, iconfile, testUser).Return(nil)
+	mockRepo.On("CreateIcon", mock.AnythingOfType("*context.emptyCtx"), iconName, iconfile, testUser).Return(nil)
 	api := services.NewIconService(&mockRepo)
 	icon, err := api.CreateIcon(s.ctx, iconName, iconfile.Content, testUser)
 	s.NoError(err)

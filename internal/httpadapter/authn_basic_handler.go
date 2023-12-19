@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog"
 )
 
 // basicConfig holds the configuration for the Basic authentication scheme
@@ -38,24 +39,31 @@ func decodeBasicAuthnHeaderValue(headerValue string) (userid string, password st
 
 func checkBasicAuthentication(options basicConfig, userService services.UserService) func(c *gin.Context) {
 	return func(c *gin.Context) {
-		authorized := false
+		logger := zerolog.Ctx(c.Request.Context())
+		authenticated := false
 
 		session := sessions.Default(c)
 		user := session.Get(UserKey)
+		logger.Debug().Bool("isAuthenticated", authenticated).Send()
 		if user != nil {
-			authorized = true
+			authenticated = true
 		} else {
 			authnHeaderValue, hasHeader := c.Request.Header["Authorization"]
+			logger.Debug().Bool("hasHeader", hasHeader).Send()
 			if hasHeader {
 				username, password, decodeOK := decodeBasicAuthnHeaderValue(authnHeaderValue[0])
+				logger.Debug().Bool("headerCouldBeDecoded", decodeOK).Send()
 				if decodeOK {
+					logger.Debug().Str("username", username).Send()
+					logger.Debug().Int("passwordCredentialsList length", len(options.PasswordCredentialsList)).Send()
 					for _, pc := range options.PasswordCredentialsList {
+						logger.Debug().Str("currentUserName", pc.Username).Send()
 						if pc.Username == username && pc.Password == password {
 							userId := authn.LocalDomain.CreateUserID(username)
 							userInfo := userService.GetUserInfo(userId)
 							session.Set(UserKey, SessionData{userInfo})
 							session.Save()
-							authorized = true
+							authenticated = true
 							break
 						}
 					}
@@ -64,7 +72,7 @@ func checkBasicAuthentication(options basicConfig, userService services.UserServ
 		}
 		session.Save()
 
-		if authorized {
+		if authenticated {
 			c.Next()
 		} else {
 			c.Header("WWW-Authenticate", "Basic")
@@ -75,6 +83,6 @@ func checkBasicAuthentication(options basicConfig, userService services.UserServ
 
 func basicScheme(options basicConfig, userService *services.UserService) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.Status(200)
+		checkBasicAuthentication(options, *userService)(c)
 	}
 }

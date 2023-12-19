@@ -1,6 +1,6 @@
 FROM ubuntu:22.04
 
-LABEL Name="icon-repo"
+LABEL Name="iconrepo"
 LABEL Version="1.0.0"
 
 RUN useradd -m --shell /bin/false iconrepo

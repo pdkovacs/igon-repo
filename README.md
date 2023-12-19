@@ -55,7 +55,7 @@ Enabling consumer-developers (users of the applicatioin) to give effective feed-
 
 ## GitLab
 
-In case you end up having remnants of a largish number of test icon-repositories, you can use a command similar to the following to remove them:
+In case you end up having remnants of a largish number of test iconrepositories, you can use a command similar to the following to remove them:
 
 ```bash
 $ . ~/.iconrepo.secrets 
@@ -63,7 +63,7 @@ $ curl --silent \
     --request GET \
     --url https://gitlab.com/api/v4/projects?owned=true \
     --header "private-token: $GITLAB_ACCESS_TOKEN" | \
-    jq '.[] | select(.path_with_namespace | startswith("testing-with-repositories/icon-repo-gitrepo-test")) | .id' | \
+    jq '.[] | select(.path_with_namespace | startswith("testing-with-repositories/iconrepo-gitrepo-test")) | .id' | \
     while read id;
     do
         echo $id;

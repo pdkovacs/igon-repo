@@ -10,7 +10,7 @@
     "oidcLogoutUrl": "http://keycloak:8080/realms/my-realm/protocol/openid-connect/logout",
     "localGitRepo": "",
     "gitlabNamespacePath": "testing-with-repositories",
-    "gitlabProjectPath": "icon-repo",
+    "gitlabProjectPath": "iconrepo",
     "gitlabMainBranch": "main",
     "logLevel": "debug"
 }

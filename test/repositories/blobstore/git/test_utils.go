@@ -10,7 +10,7 @@ import (
 	"regexp"
 )
 
-const defaultGitlabProjectPath = "icon-repo-gitrepo-test"
+const defaultGitlabProjectPath = "iconrepo-gitrepo-test"
 
 const gitlabAPITokenLineRegexpString = "GITLAB_ACCESS_TOKEN=?(.+)"
 

@@ -8,14 +8,14 @@ build_backend() {
 }
 
 deploy_app_config() {
-  if echo "$ICON_REPO_CONFIG_FILE" | grep -E '\-template.json';
+  if echo "$ICONREPO_CONFIG_FILE" | grep -E '\-template.json';
   then
     # shellcheck disable=SC2001
-    NEW_ICON_REPO_CONFIG_FILE=$(echo "$ICON_REPO_CONFIG_FILE" | sed -e 's/^\(.*\)-template[.]json$/\1.json/g')
-    echo "$NEW_ICON_REPO_CONFIG_FILE"
-    envsubst < "$ICON_REPO_CONFIG_FILE" > "$NEW_ICON_REPO_CONFIG_FILE"
-    export ICON_REPO_CONFIG_FILE=$NEW_ICON_REPO_CONFIG_FILE
-    echo "ICON_REPO_CONFIG_FILE is $ICON_REPO_CONFIG_FILE"
+    NEW_ICONREPO_CONFIG_FILE=$(echo "$ICONREPO_CONFIG_FILE" | sed -e 's/^\(.*\)-template[.]json$/\1.json/g')
+    echo "$NEW_ICONREPO_CONFIG_FILE"
+    envsubst < "$ICONREPO_CONFIG_FILE" > "$NEW_ICONREPO_CONFIG_FILE"
+    export ICONREPO_CONFIG_FILE=$NEW_ICONREPO_CONFIG_FILE
+    echo "ICONREPO_CONFIG_FILE is $ICONREPO_CONFIG_FILE"
   fi
 }
 

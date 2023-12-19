@@ -15,8 +15,9 @@
 terraform.tfstate*
 fswatch.pid
 deployments/dev/app/config.json
-bundle.js
+bundle.js*
 index.html
 internal/config/buildinfo.txt
 iconrepo.log
 iconrepo*.log.gz
+iconrepo-backend
