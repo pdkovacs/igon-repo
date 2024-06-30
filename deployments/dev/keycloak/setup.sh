@@ -1,6 +1,9 @@
 #!/bin/bash
 
+grep KEYCLOAK_TF_CLIENT_SECRET ~/.keycloak.secrets  || echo "KEYCLOAK_TF_CLIENT_SECRET=$(openssl rand -base64 32)" >> ~/.keycloak.secrets
 . ~/.keycloak.secrets
+
+grep ~/.iconrepo.secrets OIDC_CLIENT_SECRET || echo "OIDC_CLIENT_SECRET=$(openssl rand -base64 32)" >> ~/.iconrepo.secrets
 . ~/.iconrepo.secrets
 ICONREPO_CLIENT_SECRET="$OIDC_CLIENT_SECRET"
 

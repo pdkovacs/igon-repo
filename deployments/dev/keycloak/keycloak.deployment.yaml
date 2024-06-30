@@ -18,8 +18,8 @@ spec:
     spec:
       containers:
       - name: keycloak
-        image: quay.io/keycloak/keycloak:19.0.3
-        args: ["start-dev", "--features=preview"]
+        image: quay.io/keycloak/keycloak:25.0.1
+        args: ["start-dev", "--verbose"]
         envFrom:
           - configMapRef:
               name: keycloak
