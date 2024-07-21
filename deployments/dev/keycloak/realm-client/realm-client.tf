@@ -1,5 +1,5 @@
 locals {
-  keycloak_url = "http://keycloak:8080"
+  keycloak_url = var.keycloak_url
   client_id    = "iconrepo"
   client_name  = "Icon Repository"
   app_hostname = "iconrepo.local.com"
@@ -48,6 +48,11 @@ resource "keycloak_openid_group_membership_protocol_mapper" "iconrepo_group_memb
 
   claim_name = "groups"
   full_path = false
+}
+
+variable "keycloak_url" {
+  type    = string
+  default = "http://keycloak:8080"
 }
 
 variable "tf_client_secret" {

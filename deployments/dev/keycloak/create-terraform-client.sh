@@ -2,7 +2,7 @@
 
 . ~/.keycloak.secrets
 
-KEYCLOAK_URL="http://keycloak:8080"
+KEYCLOAK_URL=${KEYCLOAK_URL:-"http://keycloak:8080"}
 KEYCLOAK_USER="keycloak"
 KEYCLOAK_PASSWORD="$KEYCLOAK_ADMIN_PASSWORD"
 KEYCLOAK_CLIENT_ID="terraform"

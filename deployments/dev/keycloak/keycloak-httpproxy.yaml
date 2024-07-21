@@ -1,0 +1,38 @@
+apiVersion: projectcontour.io/v1
+kind: HTTPProxy
+metadata:
+  name: keycloak-ingress
+  namespace: default
+spec:
+  virtualhost:
+    fqdn: keycloak.local.com
+  routes:
+    - conditions:
+      - prefix: /
+      services:
+        - name: keycloak
+          port: 8080
+      cookieRewritePolicies: # We're not directing to REWRITE here actually, we're directing NOT to REWRITE
+      - name: AUTH_SESSION_ID
+        pathRewrite:
+          value: /
+      - name: AUTH_SESSION_ID_LEGACY
+        pathRewrite:
+          value: /
+      - name: KC_RESTART
+        pathRewrite:
+          value: /
+      - name: connect.sid
+        pathRewrite:
+          value: /
+      - name: io
+        pathRewrite:
+          value: /
+      timeoutPolicy:
+        response: 1h
+      # responseHeadersPolicy:
+      #   set:
+      #   - name: Content-Security-Policy
+      #     value: "default-src 'self'; script-src-elem 'self' unpkg.com; style-src 'self' 'unsafe-inline'"
+      #   - name: Strict-Transport-Security
+      #     value: max-age=31536000; includeSubDomains
