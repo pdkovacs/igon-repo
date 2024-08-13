@@ -1,12 +1,12 @@
 module iconrepo
 
-go 1.19
+go 1.22
 
 require (
+	cirello.io/dynamolock/v2 v2.0.2
 	github.com/aws/aws-sdk-go-v2 v1.21.0
 	github.com/aws/aws-sdk-go-v2/config v1.18.28
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.10.39
-	github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression v1.4.66
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.21.5
 	github.com/aws/smithy-go v1.14.2
 	github.com/coreos/go-oidc/v3 v3.2.0
@@ -16,14 +16,14 @@ require (
 	github.com/rs/xid v1.5.0
 	github.com/rs/zerolog v1.29.1
 	github.com/stretchr/testify v1.8.0
+	github.com/theodesp/blockingQueues v0.0.0-20171230192932-26531ad66e7c
 	golang.org/x/oauth2 v0.0.0-20220722155238-128564f6959c
-	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
 require (
-	cirello.io/dynamolock/v2 v2.0.2 // indirect
 	github.com/antonlindstrom/pgstore v0.0.0-20200229204646-b08ebf1105e0 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.13.27 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression v1.4.66 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.13.5 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.41 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.35 // indirect
@@ -38,7 +38,6 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/lib/pq v1.10.3 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/theodesp/blockingQueues v0.0.0-20171230192932-26531ad66e7c // indirect
 )
 
 require (
