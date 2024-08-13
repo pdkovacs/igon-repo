@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-KEYCLOAK_URL="http://keycloak.local.com/"
+KEYCLOAK_URL="http://keycloak.internal/"
 
 printf "Waiting for local Keycloak to be ready"
 

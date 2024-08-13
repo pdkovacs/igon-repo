@@ -4,7 +4,7 @@ BEGIN {
 }
 /envoy/ {
   for ( name in names ) {
-    printf("%s         %s.local.com\n", $3, names[name]);
+    printf("%s         %s.internal\n", $3, names[name]);
   }
 }
 '

@@ -23,8 +23,8 @@
     ```
     $ kubectl get httpproxies.projectcontour.io 
     NAME                       FQDN                         TLS SECRET   STATUS   STATUS DESCRIPTION
-    content-delivery-ingress   iconrepo.local.com                        valid    Valid HTTPProxy
-    iconrepo-backend-ingress   iconrepo-backend.local.com                valid    Valid HTTPProxy
+    content-delivery-ingress   iconrepo.internal                        valid    Valid HTTPProxy
+    iconrepo-backend-ingress   iconrepo-backend.internal                valid    Valid HTTPProxy
     ```
 
 4. Check and note envoy's IP address

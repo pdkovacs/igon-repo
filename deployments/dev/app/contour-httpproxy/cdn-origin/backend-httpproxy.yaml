@@ -5,7 +5,7 @@ metadata:
   namespace: default
 spec:
   virtualhost:
-    fqdn: api.iconrepo.local.com
+    fqdn: api.iconrepo.internal
   routes:
     - conditions:
       - prefix: /

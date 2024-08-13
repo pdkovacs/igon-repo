@@ -41,7 +41,7 @@ stats() {
 
 mkdir -p output
 k6 run \
-  -e ICONREPO_BASE_URL=http://ux:ux@iconrepo.local.com \
+  -e ICONREPO_BASE_URL=http://ux:ux@iconrepo.internal \
   -e MY_SESION="$MY_SESION" \
   --vus 5 \
   --duration 30s \

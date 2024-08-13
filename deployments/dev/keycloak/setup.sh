@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export KEYCLOAK_URL="http://keycloak.local.com"
+export KEYCLOAK_URL="http://keycloak.internal"
 
 grep KEYCLOAK_TF_CLIENT_SECRET ~/.keycloak.secrets  || echo "KEYCLOAK_TF_CLIENT_SECRET=$(openssl rand -base64 32)" >> ~/.keycloak.secrets
 . ~/.keycloak.secrets

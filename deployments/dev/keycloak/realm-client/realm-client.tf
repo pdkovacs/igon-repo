@@ -2,7 +2,7 @@ locals {
   keycloak_url = var.keycloak_url
   client_id    = "iconrepo"
   client_name  = "Icon Repository"
-  app_hostname = "iconrepo.local.com"
+  app_hostname = "iconrepo.internal"
 }
 
 terraform {
@@ -57,7 +57,7 @@ variable "keycloak_url" {
 
 variable "tf_client_secret" {
   type = string
-  default = "iconrepo.local.com"
+  default = "iconrepo.internal"
 }
 
 variable "client_secret" {

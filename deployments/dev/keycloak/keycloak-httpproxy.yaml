@@ -5,7 +5,7 @@ metadata:
   namespace: default
 spec:
   virtualhost:
-    fqdn: keycloak.local.com
+    fqdn: keycloak.internal
   routes:
     - conditions:
       - prefix: /
