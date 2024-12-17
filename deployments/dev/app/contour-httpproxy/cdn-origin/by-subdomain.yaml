@@ -1,7 +1,7 @@
 apiVersion: projectcontour.io/v1
 kind: HTTPProxy
 metadata:
-  name: iconrepo-backend-ingress
+  name: by-subdomain-backend-access-ingress
   namespace: default
 spec:
   virtualhost:

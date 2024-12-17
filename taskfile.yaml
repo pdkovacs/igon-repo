@@ -1,0 +1,103 @@
+version: '3'
+
+includes:
+  devdepl:
+    taskfile: deployments/dev
+    dir: ./deployments/dev
+
+vars:
+  BACKEND_SOURCE_HOME: $PWD
+  BACKEND: 'iconrepo-backend'
+  # includes UI in the executable
+  APP: iconrepo
+  UI_DIST: '{{ .UI_DIST | default "../iconrepo-ui/dist" }}'
+  TEST_OPTIONS: 'LOG_LEVEL=debug APP_ENV=development'
+
+tasks:
+  clean:
+    cmds:
+      - |
+        go clean -testcache
+        rm -f iconrepo
+  test:
+    cmds:
+      - task: test-server
+      - task: test-repos
+      - task: test-seq
+      - go test -parallel 1 -v -timeout 60s ./test/iconservice/...
+  test-server:
+    sources:
+      - '{{.BACKEND}}'
+    cmds:
+      - go test -parallel 1 -v -timeout 120s ./test/server/...
+  test-repos:
+    sources:
+      - '{{.BACKEND}}'
+    cmds:
+      - go test -parallel 1 -v -timeout 60s ./test/repositories/...
+  test-seq:
+    sources:
+      - '{{.BACKEND}}'
+    cmds:
+      - go test -parallel 1 -v -timeout 60s ./test/seq/...
+  test-single: # a sample test-case is used, replace it with whichever other test cases you need to run
+    sources:
+      - '{{.BACKEND}}'
+    cmds:
+      - go test -parallel 1 -v -timeout 10s ./... -run '^TestAuthBackDoorTestSuite$$' -testify.m TestBackDoorMustntBeAvailableByDefault
+  test-dynamodb:
+    sources:
+      - '{{.BACKEND}}'
+    cmds:
+      - |
+        $TEST_OPTIONS DYNAMODB_ONLY=yes AWS_REGION=eu-west-1 go test -parallel 1 -v -timeout 40s ./test/repositories/indexing/...
+          # -run TestAddTagTestSuite -testify.m TestReuseExistingTag
+          # -run TestAddIconToIndexTestSuite -testify.m TestAddASecondIconToIndex
+          # -run TestAddIconfileToIndexTestSuite -testify.m TestSecondIconfile
+          # -run '(TestAddIconToIndexTestSuite|TestAddIconfileToIndexTestSuite|TestAddTagTestSuite|TestDeleteIconFromIndexTestSuite|TestDeleteIconfileFromIndexTestSuite)'
+          # -run TestDeleteIconfileFromIndexTestSuite -testify.m TestRollbackOnFailedSideEffect
+  build_info:
+    internal: true
+    cmds:
+      - |
+        echo 'VERSION=0.0.1' > internal/config/buildinfo.txt
+        printf "TIME=" >> internal/config/buildinfo.txt
+        date +%Y-%m-%dT%H:%M:%S%z >> internal/config/buildinfo.txt
+        printf "COMMIT=" >> internal/config/buildinfo.txt
+        git rev-parse HEAD >> internal/config/buildinfo.txt
+  build_go:
+    internal: true
+    sources:
+      - internal/**/*
+      - cmd/**/*
+      - ./taskfile.yaml
+    generates:
+      - iconrepo
+    cmds:
+      - task: build_info
+      - |
+        cd cmd
+        # mkdir -p web/dist && touch web/dist/nothing-here
+        echo "GOOS: ${GOOS} GOARCH: ${GOARCH}"
+        GOOS=${GOOS} GOARCH=${GOARCH} go build -o iconrepo
+  run:
+    cmds:
+      - go run cmd/main.go
+  remove-ui-dist:
+    cmds:
+      - rm -rf $(find web/dist -type f | grep -v empty.html)
+  app:
+      # - $(find $(ui-dist) -type f)
+    cmds:
+      # - cp -a $(ui-dist)/* web/dist/
+      - task: build_go
+  backend_docker:
+    cmds:
+      - task: app
+      - |
+        docker_dir=deployments/docker/backend
+        cp cmd/iconrepo $docker_dir/
+        docker build -t iconrepo-backend:latest $docker_dir
+  watch:
+    cmds:
+      - ./scripts/watch.sh $(ui-bundle) $(ui-bundle-dir) 2>&1 | tee ~/workspace/logs/iconrepo-watch-log

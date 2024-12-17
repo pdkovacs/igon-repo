@@ -1,0 +1,16 @@
+version: '3'
+
+includes:
+  db: database
+  keycloak:
+    taskfile: keycloak
+    dir: ./keycloak
+  app:
+    taskfile: app
+    dir: ./app
+
+tasks:
+  testme:
+    cmds:
+      - echo {{.PGPASSWORD}}
+

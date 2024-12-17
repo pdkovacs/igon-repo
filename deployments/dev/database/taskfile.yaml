@@ -1,0 +1,17 @@
+version: '3'
+
+vars:
+  PGPASSWORD:
+    sh: kubectl get secrets | grep postgres >/dev/null && kubectl get secrets postgres -o jsonpath={.data.POSTGRES_PASSWORD} | base64 -d || echo '' > /dev/null
+
+tasks:
+  deploy:
+    cmds:
+      - |
+        if [ -z "{{.PGPASSWORD}}" ]; then
+          echo "No postgres secret yet, creating..."
+          PGPASSWORD="$(openssl rand -base64 32)"
+          kubectl create secret generic postgres --from-literal=POSTGRES_PASSWORD=$PGPASSWORD
+        fi
+        kubectl apply -f database/postgres.yaml
+

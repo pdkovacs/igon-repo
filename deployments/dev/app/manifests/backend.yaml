@@ -35,8 +35,8 @@ spec:
         app: iconrepo
     spec:
       containers:
-      - image: iconrepo-backend:latest
-        imagePullPolicy: Never
+      - image: nightmanager/iconrepo-backend:latest
+        imagePullPolicy: Always
         name: iconrepo
         env:
         - name: LOG_LEVEL

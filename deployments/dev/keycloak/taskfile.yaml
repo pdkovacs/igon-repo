@@ -1,0 +1,270 @@
+version: '3'
+
+vars:
+  KEYCLOAK_URL: '{{.KEYCLOAK_URL | default "http://keycloak.internal/"}}'
+  KC_DB_PASSWORD:
+    sh: kubectl get secrets | grep keycloak >/dev/null && kubectl get secrets keycloak -o jsonpath={.data.KC_DB_PASSWORD} | base64 -d || echo '' > /dev/null
+  KEYCLOAK_ADMIN_PASSWORD:
+    sh: kubectl get secrets | grep keycloak >/dev/null && kubectl get secrets keycloak -o jsonpath={.data.KEYCLOAK_ADMIN_PASSWORD} | base64 -d || echo '' > /dev/null
+  KC_TF_CLIENT_SECRET:
+    sh: kubectl get secrets | grep keycloak >/dev/null && kubectl get secrets keycloak -o jsonpath={.data.KC_TF_CLIENT_SECRET} | base64 -d || echo '' > /dev/null
+  ICONREPO_CLIENT_SECRET:
+    sh: kubectl get secrets | grep keycloak >/dev/null && kubectl get secrets keycloak -o jsonpath={.data.ICONREPO_CLIENT_SECRET} | base64 -d || echo '' > /dev/null
+
+tasks:
+  init_db:
+    internal: true
+    cmds:
+      - |
+        if [ -z "{{.KC_DB_PASSWORD}}" ]; then
+          echo "No keycloak secret yet, creating..."
+          KC_DB_PASSWORD="$(openssl rand -base64 32)" 
+          kubectl create secret generic keycloak --from-literal=KC_DB_PASSWORD=$KC_DB_PASSWORD
+        else
+          KC_DB_PASSWORD={{.KC_DB_PASSWORD}}
+        fi
+
+        kubectl exec -i $(kubectl get pod -l app=postgres -o jsonpath='{.items[0].metadata.name}') -- psql -U postgres postgres <<EOF
+        drop database keycloak;
+        drop user keycloak;
+        create user keycloak with password '$KC_DB_PASSWORD';
+        alter user keycloak createdb;
+        EOF
+        kubectl exec -i $(kubectl get pod -l app=postgres -o jsonpath='{.items[0].metadata.name}') -- psql -U keycloak postgres <<EOF
+        create database keycloak;
+        EOF
+  recreate_config:
+    cmds:
+      - |
+        if [ -z "{{.KEYCLOAK_ADMIN_PASSWORD}}" ]; then
+          echo "No keycloak secret yet, creating..."
+          KEYCLOAK_ADMIN_PASSWORD="$(openssl rand -base64 32)" 
+          # Use `stringData` with jq for unencoded data:
+          kubectl get secret keycloak -o json | jq ".stringData[\"KEYCLOAK_ADMIN_PASSWORD\"]=\"$KEYCLOAK_ADMIN_PASSWORD\"" | kubectl apply -f -
+        else
+          KEYCLOAK_ADMIN_PASSWORD={{.KEYCLOAK_ADMIN_PASSWORD}}
+        fi
+
+        cleanup() {
+          rm keycloak-env.sh
+        }
+
+        cat > keycloak-env.sh <<EOF
+        KEYCLOAK_ADMIN=keycloak
+        KC_DB=postgres
+        KC_DB_URL_HOST=postgres
+        KC_DB_URL_PORT=5432
+        KC_DB_URL_DATABASE=keycloak
+        KC_DB_USERNAME=keycloak
+        EOF
+
+        trap cleanup EXIT
+
+        kubectl delete configmap keycloak || echo "No configmap for keycloak yet. Creating..."
+        kubectl create configmap keycloak --from-env-file=keycloak-env.sh
+        # kubectl delete pod $(kubectl get pod -l app=keycloak -o jsonpath='{.items[0].metadata.name}') || echo "Keycloak is not running yet, nevermind..."
+  deploy_keycloak:
+    cmds:
+      - task: recreate_config
+      - |
+        kubectl apply -f keycloak.yaml
+        kubectl apply -f keycloak-httpproxy.yaml
+  wait_for_server:
+    cmds:
+      - |
+        echo "Waiting for local Keycloak to be ready"
+
+        test_cmd="curl --output /dev/null --silent --head --fail --max-time 2 {{.KEYCLOAK_URL}}"
+
+        wait_in_loop() {
+          local max_iteration_count=$1
+          local iteration_count=0
+          until test $iteration_count -ge $max_iteration_count;
+          do
+            if eval "$test_cmd";
+            then
+              return 0
+            fi
+            printf '.'
+            iteration_count=$((iteration_count+1))
+            sleep 2
+          done
+          return 1
+        }
+
+        if ! wait_in_loop 5;
+        then
+          printf '\n'
+          echo "Is minikube tunnel started?"
+          if ! wait_in_loop 5
+          then
+            echo "Is keycloak external IP mapped to the \"keycloak\" DNS name?"
+          fi
+          wait_in_loop 100000000
+        fi
+  create_terraform_client:
+    cmds:
+      - task: wait_for_server
+      - |
+        KEYCLOAK_URL={{.KEYCLOAK_URL}}
+        KEYCLOAK_USER="keycloak"
+        KEYCLOAK_CLIENT_ID="terraform"
+
+        echo "Creating initial terraform client"
+
+        accessToken=$(
+          curl -s --fail \
+            -d "username=${KEYCLOAK_USER}" \
+            -d "password={{.KEYCLOAK_ADMIN_PASSWORD}}" \
+            -d "client_id=admin-cli" \
+            -d "grant_type=password" \
+            "${KEYCLOAK_URL}/realms/master/protocol/openid-connect/token" |
+            jq -r '.access_token'
+        )
+
+        echo "accessToken: $accessToken"
+
+        function post() {
+          curl --fail \
+            -H "Authorization: bearer ${accessToken}" \
+            -H "Content-Type: application/json" \
+            -d "${2}" \
+            "${KEYCLOAK_URL}/admin${1}"
+        }
+
+        function put() {
+          curl --fail \
+            -X PUT \
+            -H "Authorization: bearer ${accessToken}" \
+            -H "Content-Type: application/json" \
+            -d "${2}" \
+            "${KEYCLOAK_URL}/admin${1}"
+        }
+
+        function get() {
+          curl --fail --silent \
+            -H "Authorization: bearer ${accessToken}" \
+            -H "Content-Type: application/json" \
+            "${KEYCLOAK_URL}/admin${1}"
+        }
+
+        if [ -z "{{.KC_TF_CLIENT_SECRET}}" ]; then
+          KC_TF_CLIENT_SECRET="$(openssl rand -base64 32)" 
+          # Use `stringData` with jq for unencoded data:
+          kubectl get secret keycloak -o json | jq ".stringData[\"KC_TF_CLIENT_SECRET\"]=\"$KC_TF_CLIENT_SECRET\"" | kubectl apply -f -
+        else
+          KC_TF_CLIENT_SECRET={{.KC_TF_CLIENT_SECRET}}
+        fi
+
+        terraformClient=$(jq -n "{
+            id: \"${KEYCLOAK_CLIENT_ID}\",
+            name: \"${KEYCLOAK_CLIENT_ID}\",
+            secret: \"$KC_TF_CLIENT_SECRET\",
+            clientAuthenticatorType: \"client-secret\",
+            enabled: true,
+            serviceAccountsEnabled: true,
+            directAccessGrantsEnabled: true,
+            standardFlowEnabled: false
+        }")
+
+        post "/realms/master/clients" "${terraformClient}"
+
+        masterRealmAdminRole=$(get "/realms/master/roles" | jq -r '
+            .
+            | map(
+                select(.name == "admin")
+            )
+            | .[0]
+        ')
+        masterRealmAdminRoleId=$(echo ${masterRealmAdminRole} | jq -r '.id')
+
+        terraformClientServiceAccount=$(get "/realms/master/clients/${KEYCLOAK_CLIENT_ID}/service-account-user")
+        terraformClientServiceAccountId=$(echo ${terraformClientServiceAccount} | jq -r '.id')
+
+        serviceAccountAdminRoleMapping=$(jq -n "[{
+            clientRole: false,
+            composite: true,
+            containerId: \"master\",
+            description: \"\${role_admin}\",
+            id: \"${masterRealmAdminRoleId}\",
+            name: \"admin\",
+        }]")
+
+        post "/realms/master/users/${terraformClientServiceAccountId}/role-mappings/realm" "${serviceAccountAdminRoleMapping}"
+
+        echo "Extending access token lifespan (don't do this in production)"
+
+        masterRealmExtendAccessToken=$(jq -n "{
+            accessTokenLifespan: 86400,
+            accessTokenLifespanForImplicitFlow: 86400,
+            ssoSessionIdleTimeout: 86400,
+            ssoSessionMaxLifespan: 86400,
+            offlineSessionIdleTimeout: 86400,
+            offlineSessionMaxLifespan: 5184000,
+            accessCodeLifespan: 86400,
+            accessCodeLifespanUserAction: 86400,
+            accessCodeLifespanLogin: 86400,
+            actionTokenGeneratedByAdminLifespan: 86400,
+            actionTokenGeneratedByUserLifespan: 86400,
+            oauth2DeviceCodeLifespan: 86400
+        }")
+
+        put "/realms/master" "${masterRealmExtendAccessToken}"
+
+        echo "Done"
+  setup_reaml_and_users:
+    cmds:
+      - |
+        export KEYCLOAK_URL={{.KEYCLOAK_URL}}
+
+        KC_TF_CLIENT_SECRET={{.KC_TF_CLIENT_SECRET}}
+
+        if [ -z "{{.ICONREPO_CLIENT_SECRET}}" ]; then
+          echo "No keycloak secret yet, creating..."
+          ICONREPO_CLIENT_SECRET="$(openssl rand -base64 32)" 
+          # Use `stringData` with jq for unencoded data:
+          kubectl get secret keycloak -o json | jq ".stringData[\"ICONREPO_CLIENT_SECRET\"]=\"$ICONREPO_CLIENT_SECRET\"" | kubectl apply -f -
+        else
+          ICONREPO_CLIENT_SECRET={{.ICONREPO_CLIENT_SECRET}}
+        fi
+
+        UX_PASSWORD1=$(openssl rand -base64 32)
+        UX_PASSWORD2=$(openssl rand -base64 32)
+        cat > ~/.iconrepo.users <<EOF
+        [
+            {
+                "username": "ux-designer",
+                "email": "ux@design.internal",
+                "first_name": "Designer",
+                "last_name": "UX",
+                "password": "$UX_PASSWORD1",
+                "groups": [
+                    "ICON_EDITOR"
+                ]
+            },
+            {
+                "username": "dev-designer",
+                "email": "dev@design.internal",
+                "first_name": "Developer",
+                "last_name": "UX",
+                "password": "$UX_PASSWORD2",
+                "groups": []
+            }
+        ]
+        EOF
+        cat ~/.iconrepo.users
+
+        # export TF_LOG=DEBUG
+        cd realm-client &&
+          terraform init &&
+          terraform apply -auto-approve \
+            -var=keycloak_url=${KEYCLOAK_URL} \
+            -var="tf_client_secret=$KC_TF_CLIENT_SECRET" \
+            -var="client_secret=$ICONREPO_CLIENT_SECRET"
+
+        cd ../groups-users &&
+          terraform init &&
+          terraform apply -auto-approve \
+            -var=keycloak_url=${KEYCLOAK_URL} \
+            -var="tf_client_secret=$KC_TF_CLIENT_SECRET"
+

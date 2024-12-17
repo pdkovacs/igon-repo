@@ -1,7 +1,7 @@
 apiVersion: projectcontour.io/v1
 kind: HTTPProxy
 metadata:
-  name: content-delivery-ingress
+  name: by-path-backend-access-ingress
   namespace: default
 spec:
   virtualhost:
@@ -18,9 +18,9 @@ spec:
         - prefix: /api
           replacement: /
       cookieRewritePolicies: # We're not directing to REWRITE here actually, we're directing NOT to REWRITE
-      - name: mysession
-        pathRewrite:
-          value: /
+        - name: mysession
+          pathRewrite:
+            value: /
       timeoutPolicy:
         response: 1h
     - conditions:

@@ -1,0 +1,84 @@
+version: '3'
+
+vars:
+  APP_VERSION: '{{.APP_VERSION | default "latest"}}'
+  ICONREPO_CLIENT_SECRET:
+    sh: kubectl get secrets | grep keycloak >/dev/null && kubectl get secrets keycloak -o jsonpath={.data.ICONREPO_CLIENT_SECRET} | base64 -d || echo '' > /dev/null
+  DOCKER_REPOSITORY_PREFIX: '{{.DOCKER_REPOSITORY_PREFIX | default "docker.io/nightmanager"}}'
+  DEV_REGISTRY: 192.168.0.175:5000
+  KEYCLOAK_URL: http://keycloak.internal
+
+
+tasks:
+  init_db:
+    cmds:
+      - |
+        password=$(kubectl get secrets/postgres --template={{.data.PGPASSWORD}})
+        kubectl exec -i $(kubectl get pod -l app=postgres -o jsonpath='{.items[0].metadata.name}') -- psql -U postgres postgres <<EOF
+        create user iconrepo with password 'iconrepo';
+        alter user iconrepo createdb;
+        EOF
+        kubectl exec -i $(kubectl get pod -l app=postgres -o jsonpath='{.items[0].metadata.name}') -- psql -U iconrepo postgres <<EOF
+        create database iconrepo;
+        EOF
+  docker-hub-tag-push-backend:
+    cmds:
+      - |
+        if [ "{{.DOCKER_REPOSITORY_PREFIX}}" = "minikube" ]; then
+          echo "ERROR: minikube currently not supported as docker repository"
+          exit 1
+        fi
+        docker tag iconrepo-backend {{.DOCKER_REPOSITORY_PREFIX}}/iconrepo-backend:{{.APP_VERSION}}
+        docker push {{.DOCKER_REPOSITORY_PREFIX}}/iconrepo-backend:{{.APP_VERSION}}
+  recreate_secrets:
+    cmds:
+      - |
+        if [ -z "$GITLAB_ACCESS_TOKEN" ]; then
+          echo "ERROR: The GITLAB_ACCESS_TOKEN env var is unset"
+          exit 1
+        fi
+        kubectl delete secret iconrepo 2>/dev/null || echo "Error while deleting secret 'iconrepo', probably didn't exist yet. Creating it..."
+        kubectl create secret generic iconrepo \
+          --from-literal=OIDC_CLIENT_SECRET={{.ICONREPO_CLIENT_SECRET}} \
+          --from-literal=GITLAB_ACCESS_TOKEN=$GITLAB_ACCESS_TOKEN \
+          --from-literal=AWS_ACCESS_KEY_ID="kalap" \
+          --from-literal=AWS_SECRET_ACCESS_KEY="kabat"
+        kubectl get pod | grep iconrepo && kubectl delete pod $(kubectl get pod -l app=iconrepo -o jsonpath='{.items[0].metadata.name}') || echo "No pod to delete"
+  create_config:
+    cmds:
+      - cp configs/dev-oidc.json configs/config.json
+      - kubectl delete configmap iconrepo
+      - kubectl create configmap iconrepo --from-file=configs/config.json
+  deploy:
+      - kubectl apply -f contour-httpproxy/cdn-origin/by-path.yaml
+      - kubectl apply -f manifests/backend.yaml
+  add_dyndb_credentials:
+    cmds:
+      - |
+        dyndb_tf_dir=deployments/aws/dynamodb 
+
+        AWS_ACCESS_KEY_ID="$(terraform -chdir=$dyndb_tf_dir output -raw access_key_id)"
+        AWS_SECRET_ACCESS_KEY="$(terraform -chdir=$dyndb_tf_dir output -raw encrypted_access_key_secret | base64 --decode | keybase pgp decrypt)"
+
+        declare -A secrets
+        for secret_key in GITLAB_ACCESS_TOKEN OIDC_CLIENT_SECRET;
+        do
+          secrets[$secret_key]="$(kubectl get secret iconrepo -ojsonpath='{.data.'$secret_key'}' | base64 --decode)"
+          echo "$secret_key: ${secrets[$secret_key]}"
+        done
+
+        secrets[AWS_ACCESS_KEY_ID]=$AWS_ACCESS_KEY_ID
+        secrets[AWS_SECRET_ACCESS_KEY]=$AWS_SECRET_ACCESS_KEY
+
+        from_literal_args=""
+        for key in "${!secrets[@]}";
+        do
+          value="${secrets[$key]}"
+          echo "Key: $key"
+          echo "Value: $value"
+          from_literal_args="$from_literal_args --from-literal=$key=$value"
+        done
+
+        kubectl delete secret iconrepo 2>/dev/null || echo "Error while deleting secret 'iconrepo', probably didn't exist yet. Creating it..."
+        kubectl create secret generic iconrepo $from_literal_args
+
