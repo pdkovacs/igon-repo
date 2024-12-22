@@ -42,7 +42,7 @@ func Start(ctx context.Context, conf config.Options, ready func(port int, stop f
 	defer db.Close()
 
 	var blobstore repositories.BlobstoreRepository
-	if len(conf.LocalGitRepo) > 0 {
+	if len(conf.GitlabNamespacePath) == 0 && len(conf.LocalGitRepo) > 0 {
 		localGit := git.NewLocalGitRepository(conf.LocalGitRepo)
 		blobstore = &localGit
 		logger.Info().Str("location", conf.LocalGitRepo).Msg("Connecting local git repo...")
