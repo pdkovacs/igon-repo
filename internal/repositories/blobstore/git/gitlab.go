@@ -542,14 +542,21 @@ func (g *Gitlab) sendRequest(ctx context.Context, method string, apiCallPath str
 		return resp.StatusCode, nil, "", fmt.Errorf("failed to read body: %w", errBody)
 	}
 
-	rateLimitRemainning, rateLimitParseErr := strconv.ParseInt(resp.Header.Get("RateLimit-Remaining"), 10, 0)
-	if rateLimitParseErr != nil {
-		return resp.StatusCode, nil, "", fmt.Errorf("failed to parse %s header", "RateLimit-Remaining")
+	rateLimitRemainingHeader := resp.Header.Get("RateLimit-Remaining")
+	if len(rateLimitRemainingHeader) > 0 {
+		rateLimitRemainning, rateLimitParseErr := strconv.ParseInt(resp.Header.Get("RateLimit-Remaining"), 10, 0)
+		if rateLimitParseErr != nil {
+			debugLogger := logger.Debug()
+			for key, value := range resp.Header {
+				debugLogger.Any(key, value)
+			}
+			debugLogger.Send()
+			return resp.StatusCode, nil, "", fmt.Errorf("failed to parse %s header: %w", "RateLimit-Remaining", rateLimitParseErr)
+		}
+		if rateLimitRemainning < 5 {
+			logger.Warn().Int64("rateLimitRemainning", rateLimitRemainning).Msg("Rate limit remaining to low")
+		}
 	}
-	if rateLimitRemainning < 5 {
-		logger.Warn().Int64("rateLimitRemainning", rateLimitRemainning).Msg("Rate limit remaining to low")
-	}
-
 	return resp.StatusCode, resp.Header, string(respBody), nil
 }
 
